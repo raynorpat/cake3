@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup>
+		<Filter Include="common">
+			<UniqueIdentifier>{CD3A8C88-CD4E-3B41-885E-F8428E2F37AE}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs">
+			<UniqueIdentifier>{C5CBA21F-5DB0-194F-B1E3-C833B9C6DBA3}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs\picomodel">
+			<UniqueIdentifier>{9A07A1AB-12AF-0344-B309-F59BAAC82996}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs\picomodel\lwo">
+			<UniqueIdentifier>{E35FD31E-C965-D34C-A5C4-FAA0EABA1949}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs\jpeg">
+			<UniqueIdentifier>{C8D61B56-9E06-8B4D-A9E1-1C6966F9CE9F}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs\png">
+			<UniqueIdentifier>{4C3A4FCF-7525-CA45-AFE1-555C01CA58FA}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="libs\zlib">
+			<UniqueIdentifier>{106C5645-2DC1-F94C-BC1A-B13311AF3CD2}</UniqueIdentifier>
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\common\cmdlib.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\imagelib.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\inout.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\mathlib.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\mutex.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\polylib.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\scriplib.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\threads.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\unzip.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="..\common\vfs.h">
+			<Filter>common</Filter>
+		</ClInclude>
+		<ClInclude Include="game_xreal.h" />
+		<ClInclude Include="q3map2.h" />
+		<ClInclude Include="..\..\libs\picomodel\picointernal.h">
+			<Filter>libs\picomodel</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\libs\picomodel\picomodel.h">
+			<Filter>libs\picomodel</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\libs\picomodel\pm_fm.h">
+			<Filter>libs\picomodel</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\libs\picomodel\lwo\lwo2.h">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClInclude>
+	</ItemGroup>
+	<ItemGroup>
+		<ClCompile Include="..\common\cmdlib.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\imagelib.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\inout.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\mathlib.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\mutex.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\polylib.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\scriplib.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\threads.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\unzip.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="..\common\vfs.c">
+			<Filter>common</Filter>
+		</ClCompile>
+		<ClCompile Include="brush.c" />
+		<ClCompile Include="brush_primit.c" />
+		<ClCompile Include="bsp.c" />
+		<ClCompile Include="bspfile_abstract.c" />
+		<ClCompile Include="bspfile_ibsp.c" />
+		<ClCompile Include="bspfile_rbsp.c" />
+		<ClCompile Include="bspfile_xbsp.c" />
+		<ClCompile Include="convert_ase.c" />
+		<ClCompile Include="convert_map.c" />
+		<ClCompile Include="decals.c" />
+		<ClCompile Include="facebsp.c" />
+		<ClCompile Include="fog.c" />
+		<ClCompile Include="gldraw.c" />
+		<ClCompile Include="image.c" />
+		<ClCompile Include="leakfile.c" />
+		<ClCompile Include="light.c" />
+		<ClCompile Include="lightmaps_ydnar.c" />
+		<ClCompile Include="light_bounce.c" />
+		<ClCompile Include="light_trace.c" />
+		<ClCompile Include="light_ydnar.c" />
+		<ClCompile Include="main.c" />
+		<ClCompile Include="map.c" />
+		<ClCompile Include="mesh.c" />
+		<ClCompile Include="model.c" />
+		<ClCompile Include="patch.c" />
+		<ClCompile Include="path_init.c" />
+		<ClCompile Include="portals.c" />
+		<ClCompile Include="prtfile.c" />
+		<ClCompile Include="shaders.c" />
+		<ClCompile Include="surface_abstract.c" />
+		<ClCompile Include="surface_extra.c" />
+		<ClCompile Include="surface_foliage.c" />
+		<ClCompile Include="surface_fur.c" />
+		<ClCompile Include="surface_meta.c" />
+		<ClCompile Include="tjunction.c" />
+		<ClCompile Include="tree.c" />
+		<ClCompile Include="vis.c" />
+		<ClCompile Include="visflow.c" />
+		<ClCompile Include="writebsp.c" />
+		<ClCompile Include="..\..\libs\picomodel\picointernal.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\picomodel.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\picomodules.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_3ds.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_ase.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_fm.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_lwo.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_md2.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_md3.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_mdc.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_ms3d.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_obj.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\pm_terrain.c">
+			<Filter>libs\picomodel</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\clip.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\envelope.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\list.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\lwio.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\lwo2.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\lwob.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\pntspols.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\surface.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\vecmath.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\picomodel\lwo\vmap.c">
+			<Filter>libs\picomodel\lwo</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jaricom.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcapimin.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcapistd.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcarith.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jccoefct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jccolor.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcdctmgr.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jchuff.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcinit.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcmainct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcmarker.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcmaster.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcomapi.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcparam.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcprepct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jcsample.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jctrans.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdapimin.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdapistd.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdarith.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdatadst.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdatasrc.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdcoefct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdcolor.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jddctmgr.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdhuff.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdinput.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdmainct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdmarker.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdmaster.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdmerge.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdpostct.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdsample.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jdtrans.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jerror.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jfdctflt.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jfdctfst.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jfdctint.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jidctflt.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jidctfst.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jidctint.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jmemmgr.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jmemnobs.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jquant1.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jquant2.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\jpeg\jutils.c">
+			<Filter>libs\jpeg</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\example.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\png.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngerror.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pnggccrd.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngget.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngmem.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngpread.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngread.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngrio.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngrtran.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngrutil.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngset.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngtrans.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngvcrd.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngwio.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngwrite.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngwtran.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\png\pngwutil.c">
+			<Filter>libs\png</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\adler32.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\compress.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\crc32.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\deflate.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\gzio.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\infback.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\inffast.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\inflate.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\inftrees.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\ioapi.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\trees.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\uncompr.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\libs\zlib\zutil.c">
+			<Filter>libs\zlib</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="xmap2.ico" />
+	</ItemGroup>
+	<ItemGroup>
+		<ResourceCompile Include="xmap2.rc" />
+	</ItemGroup>
+</Project>

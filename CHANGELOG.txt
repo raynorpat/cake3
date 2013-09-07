@@ -1,0 +1,41 @@
+
+
+___________________________________________________
+
+Changes since XreaL_PreAlpha_20080704.7z
+__________________________________________
+
+	* Added Half-Lambert lighting like in Half-Life 2 on entities
+	* Added Rim lighting on entities
+	* Added new non-uniform lighting that allows mixing of static precomputed lighting and realtime lighting
+	* Added new true HDR rendering with adaptive tone mapping
+	* Improved the bloom post process effect
+	* Improved texture compression
+	* Added optional OpenGL 3.2 support
+	* Improved ATI support
+	* Improved hardware accelerated BSP/PVS rendering
+	* Added GPU accelerated skeletal animation system
+	* Rewrote .md3 code to be GPU accelerated
+	* Improved Doom 3 .MD5Mesh/.MD5Anim model and animation support
+	* Added Unreal Actor X .PSK/.PSA model and animation support
+	* Updated core engine to the latest ioquake3 1.36 code
+	* Merged OGG Theora playback support for cinematics from the WOP engine
+	* Improved and added new Blender 3D import/export scripts
+	* Zons of bugfixes and overall performance optimizations
+	* Redesigned the menu
+	* Redesigned the hud
+	* Removed gore
+	* Replaced almost all font rendering with True Type fonts
+	* Added Prey style wallwalking
+	* Changed player size from 56 to 74 (default in Half-Life 2 and Doom 3)
+	* Changed player collision shape to capsule instead of bounding box
+	* Increased player speed by 25 %
+	* Added bright skins support
+	* Changed media license for most media files to http://creativecommons.org/licenses/by-nc-sa/3.0/
+	* Added new sounds
+	* Added new mapobject models
+	* Added a new MD5 player model
+	* Added new textures
+	* Added new maps
+	* Added new weapons with alternate firemodes
+	
