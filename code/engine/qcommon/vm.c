@@ -342,7 +342,7 @@ vm_t           *VM_Create(const char *module, intptr_t(*systemCalls) (intptr_t *
 		
 		if(retval == VMI_NATIVE)
 		{
-			Com_Printf("Try loading dll file %s\n", filename);
+			Com_DPrintf("Try loading dll file %s\n", filename);
 
 			vm->dllHandle = Sys_LoadGameDll(filename, &vm->entryPoint, VM_DllSyscall);	
 
@@ -353,7 +353,7 @@ vm_t           *VM_Create(const char *module, intptr_t(*systemCalls) (intptr_t *
 				return vm;
 			}
 			
-			Com_Printf("Failed loading dll, trying next\n");
+			Com_DPrintf("Failed loading dll, trying next\n");
 		}
 #ifdef USE_QVM
 		else if(retval == VMI_COMPILED)
