@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+#include <GL/glu.h>
+
 // can't use the glvertex3fv functions, because the vec3_t fields
 // could be either floats or doubles, depending on DOUBLEVEC_T
 
@@ -36,12 +38,11 @@ qboolean        drawFlag;
 static qboolean drawInit = qfalse;
 static vec3_t   drawOrigin = { 0, 0, 0 };
 static vec3_t   drawAngles = { 0, 0, 0 };
-static SDL_VideoInfo *drawVideo = NULL;
-static SDL_Surface *drawScreen = NULL;
 
+static SDL_Window *mainwindow;
+static SDL_GLContext maincontext;
 
 #define	WIN_SIZE	512
-
 
 static void Reshape(int width, int height)
 {
@@ -71,21 +72,14 @@ static void Reshape(int width, int height)
 
 static void Draw_BeginScene(void)
 {
-	int             w, h, g;
-	vec_t           mx, my;
 	const char     *glString;
 
 	if(!drawInit)
 	{
 		Sys_FPrintf(SYS_VRB, "Draw_InitSDL()\n");
 
-		SDL_Init(SDL_INIT_VIDEO);
-
-		drawVideo = SDL_GetVideoInfo();
-		if(!drawVideo)
-		{
-			Error("Couldn't get video information: %s\n", SDL_GetError());
-		}
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+			Error("Unable to initialize SDL");
 
 		// Set the minimum requirements for the OpenGL window
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
@@ -99,21 +93,16 @@ static void Draw_BeginScene(void)
 		 * Double buffering is enabled or disabled using the 
 		 * SDL_GL_DOUBLEBUFFER attribute.
 		 */
-
-		drawScreen = SDL_SetVideoMode(WIN_SIZE, WIN_SIZE, drawVideo->vfmt->BitsPerPixel, SDL_OPENGL | SDL_RESIZABLE);
-		if(!drawScreen)
+		mainwindow = SDL_CreateWindow("XMap2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIN_SIZE, WIN_SIZE, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+		if(!mainwindow)
 		{
 			SDL_Quit();
 			Error("Couldn't set GL video mode: %s\n", SDL_GetError());
 		}
 
-		if(SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1) < 0)
-		{
-			Error("Unable to guarantee accelerated " "visual with libSDL < 1.2.10\n");
-		}
+		maincontext = SDL_GL_CreateContext(mainwindow);
 
-		SDL_WM_SetCaption("ETXMap", "etxmap");
-
+		SDL_GL_SetSwapInterval(1);
 
 		glString = (char *)glGetString(GL_VENDOR);
 		Sys_FPrintf(SYS_VRB, "GL_VENDOR: %s\n", glString);
@@ -124,30 +113,14 @@ static void Draw_BeginScene(void)
 		glString = (char *)glGetString(GL_VERSION);
 		Sys_FPrintf(SYS_VRB, "GL_VERSION: %s\n", glString);
 
-		//SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-
 		drawInit = qtrue;
 	}
 
-	Reshape(drawScreen->w, drawScreen->h);
+	Reshape(WIN_SIZE, WIN_SIZE);
 
 	//glClearColor(1, 0.8, 0.8, 0);
 	glClearColor(0.8, 0.8, 0.8, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
-
-	/*
-	   w = (drawMaxs[0] - drawMins[0]);
-	   h = (drawMaxs[1] - drawMins[1]);
-
-	   mx = drawMins[0] + w / 2;
-	   my = drawMins[1] + h / 2;
-
-	   g = w > h ? w : h;
-
-	   glLoadIdentity();
-	   gluPerspective(90, 1, 2, 16384);
-	   gluLookAt(mx, my, drawMaxs[2] + g / 2, mx, my, drawMaxs[2], 0, 1, 0);
-	 */
 
 	glColor3f(0, 0, 0);
 //  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -175,7 +148,7 @@ static void Draw_EndScene(void)
 {
 	//Sys_FPrintf(SYS_VRB, "Draw_EndScene()\n");
 
-	SDL_GL_SwapBuffers();
+	SDL_GL_SwapWindow(mainwindow);
 }
 
 static void Draw_Shutdown(void)
@@ -321,22 +294,6 @@ void Draw_Scene(void (*drawFunc) (void))
 		{
 			switch (event.type)
 			{
-				case SDL_VIDEORESIZE:
-				{
-					drawScreen =
-						SDL_SetVideoMode(event.resize.w, event.resize.h, drawVideo->vfmt->BitsPerPixel,
-										 SDL_OPENGL | SDL_RESIZABLE);
-					if(drawScreen)
-					{
-						Reshape(drawScreen->w, drawScreen->h);
-					}
-					else
-					{
-						/* Uh oh, we couldn't set the new video mode?? */ ;
-					}
-					break;
-				}
-
 				case SDL_MOUSEMOTION:
 				{
 					if(mouseGrabbed && !mouseGrabbedLastFrame)
@@ -356,15 +313,16 @@ void Draw_Scene(void (*drawFunc) (void))
 						{		// K_MOUSE2;
 							if(!mouseGrabbed)
 							{
-								SDL_WM_GrabInput(SDL_GRAB_ON);
-								SDL_ShowCursor(0);
+								SDL_SetRelativeMouseMode(SDL_TRUE);
+								SDL_SetWindowGrab(mainwindow, SDL_TRUE);
 								mouseGrabbed = qtrue;
 								mouseGrabbedLastFrame = qtrue;
 							}
 							else
 							{
 								SDL_ShowCursor(1);
-								SDL_WM_GrabInput(SDL_GRAB_OFF);
+								SDL_SetWindowGrab(mainwindow, SDL_FALSE);
+								SDL_SetRelativeMouseMode(SDL_FALSE);
 								mouseGrabbed = qfalse;
 							}
 							break;
@@ -387,8 +345,7 @@ void Draw_Scene(void (*drawFunc) (void))
 			}
 		}
 
-
-		keys = SDL_GetKeyState(NULL);
+		keys = SDL_GetKeyboardState(NULL);
 
 		if(keys[SDLK_ESCAPE])
 		{

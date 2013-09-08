@@ -63,7 +63,7 @@ project "XMap2"
 		{
 			"../../libs/glib/include/glib-2.0",
 			"../../libs/glib/lib/glib-2.0/include",
-			"../../libs/sdl/include",
+			"../../libs/sdl2/include",
 		}
 		links
 		{ 
@@ -93,13 +93,13 @@ project "XMap2"
 		libdirs
 		{
 			"../../libs/glib/lib",
-			"../../libs/sdl/lib",
+			"../../libs/sdl2/lib",
 		}
 		links
 		{ 
 			"wsock32",
-			"SDL",
-			"SDLmain",
+			"SDL2",
+			"SDL2main",
 			"opengl32",
 			"glu32",
 		}
@@ -109,7 +109,7 @@ project "XMap2"
 		libdirs
 		{
 			"../../libs/glib/lib64",
-			"../../libs/sdl/lib64",
+			"../../libs/sdl2/lib64",
 		}
 	
 	configuration { "linux", "gmake" }
@@ -120,12 +120,12 @@ project "XMap2"
 		buildoptions
 		{
 			"`pkg-config --cflags glib-2.0`",
-			"`pkg-config --cflags sdl`",
+			"`pkg-config --cflags sdl2`",
 		}
 		linkoptions
 		{
 			"`pkg-config --libs glib-2.0`",
-			"`pkg-config --libs sdl`",
+			"`pkg-config --libs sdl2`",
 		}
 		
 	configuration { "linux", "x32" }
@@ -144,4 +144,3 @@ project "XMap2"
 			"GL",
 			"GLU",
 		}
-		
