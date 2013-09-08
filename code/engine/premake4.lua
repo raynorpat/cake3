@@ -464,8 +464,6 @@ project "XreaL-dedicated"
 		
 		"botlib/**.c", "botlib/**.h",
 		"server/**.c", "server/**.h",
-		
-		"splines/**.cpp", "splines/**.h",
 
 		"null/null_client.c",
 		"null/null_input.c",
@@ -502,6 +500,7 @@ project "XreaL-dedicated"
 	{ 
 		"DEDICATED",
 		"STANDALONE",
+		"BOTLIB",
 		--"USE_MUMBLE",
 		--"USE_VOIP",
 	}
