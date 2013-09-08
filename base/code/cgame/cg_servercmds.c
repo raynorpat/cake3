@@ -401,7 +401,7 @@ static void CG_ConfigStringModified(void)
 	{
 		if(str[0] != '*')
 		{						// player specific sounds don't register here
-			cgs.gameSounds[num - CS_SOUNDS] = trap_S_RegisterSound(str, qfalse);
+			cgs.gameSounds[num - CS_SOUNDS] = trap_S_RegisterSound(str);
 		}
 	}
 	else if(num >= CS_PLAYERS && num < CS_PLAYERS + MAX_CLIENTS)
@@ -535,7 +535,7 @@ static void CG_MapRestart(void)
 
 	CG_InitLocalEntities();
 	CG_InitMarkPolys();
-	CG_ClearParticles();
+	CG_InitParticles();
 
 	// make sure the "3 frags left" warnings play again
 	cg.fraglimitWarnings = 0;
@@ -622,10 +622,8 @@ int CG_ParseVoiceChats(const char *filename, voiceChatList_t * voiceChatList, in
 	char          **p, *ptr;
 	char           *token;
 	voiceChat_t    *voiceChats;
-	qboolean        compress;
 	sfxHandle_t     sound;
 
-	compress = qtrue;
 	if(cg_buildScript.integer)
 	{
 		compress = qfalse;
@@ -706,7 +704,7 @@ int CG_ParseVoiceChats(const char *filename, voiceChatList_t * voiceChatList, in
 			}
 			if(!Q_stricmp(token, "}"))
 				break;
-			sound = trap_S_RegisterSound(token, compress);
+			sound = trap_S_RegisterSound(token);
 			voiceChats[voiceChatList->numVoiceChats].sounds[voiceChats[voiceChatList->numVoiceChats].numSounds] = sound;
 			token = Com_ParseExt(p, qtrue);
 			if(!token || token[0] == 0)

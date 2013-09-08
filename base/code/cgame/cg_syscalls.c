@@ -121,6 +121,11 @@ int trap_FS_Seek(fileHandle_t f, long offset, int origin)
 	return syscall(CG_FS_SEEK, f, offset, origin);
 }
 
+int trap_FS_GetFileList(const char *path, const char *extension, char *listbuf, int bufsize)
+{
+	return syscall(CG_FS_GETFILELIST, path, extension, listbuf, bufsize);
+}
+
 void trap_SendConsoleCommand(const char *text)
 {
 	syscall(CG_SENDCONSOLECOMMAND, text);
@@ -129,6 +134,11 @@ void trap_SendConsoleCommand(const char *text)
 void trap_AddCommand(const char *cmdName)
 {
 	syscall(CG_ADDCOMMAND, cmdName);
+}
+
+void trap_AddCommandAlias(const char *cmdName, const char *cmdOther)
+{
+	syscall(CG_ADDCOMMANDALIAS, cmdName, cmdOther);
 }
 
 void trap_RemoveCommand(const char *cmdName)
@@ -207,6 +217,19 @@ void trap_CM_TransformedCapsuleTrace(trace_t * results, const vec3_t start, cons
 	syscall(CG_CM_TRANSFORMEDCAPSULETRACE, results, start, end, mins, maxs, model, brushmask, origin, angles);
 }
 
+void trap_CM_BiSphereTrace(trace_t * results, const vec3_t start,
+						   const vec3_t end, float startRad, float endRad, clipHandle_t model, int mask)
+{
+	syscall(CG_CM_BISPHERETRACE, results, start, end, PASSFLOAT(startRad), PASSFLOAT(endRad), model, mask);
+}
+
+void trap_CM_TransformedBiSphereTrace(trace_t * results, const vec3_t start,
+									  const vec3_t end, float startRad, float endRad,
+									  clipHandle_t model, int mask, const vec3_t origin)
+{
+	syscall(CG_CM_TRANSFORMEDBISPHERETRACE, results, start, end, PASSFLOAT(startRad), PASSFLOAT(endRad), model, mask, origin);
+}
+
 int trap_CM_MarkFragments(int numPoints, const vec3_t * points,
 						  const vec3_t projection,
 						  int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t * fragmentBuffer)
@@ -254,9 +277,9 @@ void trap_S_Respatialize(int entityNum, const vec3_t origin, vec3_t axis[3], int
 	syscall(CG_S_RESPATIALIZE, entityNum, origin, axis, inwater);
 }
 
-sfxHandle_t trap_S_RegisterSound(const char *sample, qboolean compressed)
+sfxHandle_t trap_S_RegisterSound(const char *sample)
 {
-	return syscall(CG_S_REGISTERSOUND, sample, compressed);
+	return syscall(CG_S_REGISTERSOUND, sample);
 }
 
 void trap_S_StartBackgroundTrack(const char *intro, const char *loop)
@@ -365,14 +388,34 @@ int trap_R_LerpTag(orientation_t * tag, clipHandle_t mod, int startFrame, int en
 	return syscall(CG_R_LERPTAG, tag, mod, startFrame, endFrame, PASSFLOAT(frac), tagName);
 }
 
-int trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac)
+int trap_R_CheckSkeleton(refSkeleton_t * skel, qhandle_t hModel, qhandle_t hAnim)
 {
-	return syscall(CG_R_BUILDSKELETON, skel, anim, startFrame, endFrame, PASSFLOAT(frac));
+	return syscall(CG_R_CHECKSKELETON, skel, hModel, hAnim);
+}
+
+int trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac, qboolean clearOrigin)
+{
+	return syscall(CG_R_BUILDSKELETON, skel, anim, startFrame, endFrame, PASSFLOAT(frac), clearOrigin);
 }
 
 int trap_R_BlendSkeleton(refSkeleton_t * skel, const refSkeleton_t * blend, float frac)
 {
 	return syscall(CG_R_BLENDSKELETON, skel, blend, PASSFLOAT(frac));
+}
+
+int trap_R_BoneIndex(qhandle_t hModel, const char *boneName)
+{
+	return syscall(CG_R_BONEINDEX, hModel, boneName);
+}
+
+int trap_R_AnimNumFrames(qhandle_t hAnim)
+{
+	return syscall(CG_R_ANIMNUMFRAMES, hAnim);
+}
+
+int trap_R_AnimFrameRate(qhandle_t hAnim)
+{
+	return syscall(CG_R_ANIMFRAMERATE, hAnim);
 }
 
 void trap_R_RemapShader(const char *oldShader, const char *newShader, const char *timeOffset)
@@ -544,6 +587,16 @@ qboolean trap_getCameraInfo( int time, vec3_t *origin, vec3_t *angles) {
 }
 */
 
+int trap_GetDemoState(void)
+{
+	return syscall(CG_GETDEMOSTATE);
+}
+
+int trap_GetDemoPos(void)
+{
+	return syscall(CG_GETDEMOPOS);
+}
+
 qboolean trap_GetEntityToken(char *buffer, int bufferSize)
 {
 	return syscall(CG_GET_ENTITY_TOKEN, buffer, bufferSize);
@@ -552,4 +605,24 @@ qboolean trap_GetEntityToken(char *buffer, int bufferSize)
 qboolean trap_R_inPVS(const vec3_t p1, const vec3_t p2)
 {
 	return syscall(CG_R_INPVS, p1, p2);
+}
+
+void trap_GetDemoName(char *buffer, int size)
+{
+	syscall(CG_GETDEMONAME, buffer, size);
+}
+
+void trap_Key_KeynumToStringBuf(int keynum, char *buf, int buflen)
+{
+	syscall(CG_KEY_KEYNUMTOSTRINGBUF, keynum, buf, buflen);
+}
+
+void trap_Key_GetBindingBuf(int keynum, char *buf, int buflen)
+{
+	syscall(CG_KEY_GETBINDINGBUF, keynum, buf, buflen);
+}
+
+void trap_Key_SetBinding(int keynum, const char *binding)
+{
+	syscall(CG_KEY_SETBINDING, keynum, binding);
 }

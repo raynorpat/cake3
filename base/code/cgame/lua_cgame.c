@@ -1,6 +1,6 @@
 /*
 ===========================================================================
-Copyright (C) 2006 Robert Beckebans <trebor_7@users.sourceforge.net>
+Copyright (C) 2007 Robert Beckebans <trebor_7@users.sourceforge.net>
 
 This file is part of XreaL source code.
 
@@ -19,42 +19,17 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-// lua_game.c -- qagame library for Lua
+// lua_cgame.c -- cgame library for Lua
 
-#include "g_local.h"
+#include "cg_local.h"
+
+#ifdef CG_LUA
 
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 
-#if(defined(G_LUA))
-
-static int game_Print(lua_State * L)
-{
-	int             i;
-	int             n = lua_gettop(L);	// number of arguments
-
-	lua_getglobal(L, "tostring");
-	for(i = 1; i <= n; i++)
-	{
-		const char     *s;
-
-		lua_pushvalue(L, -1);	// function to be called
-		lua_pushvalue(L, i);	// value to print
-		lua_call(L, 1, 1);
-		s = lua_tostring(L, -1);	// get result
-		
-		if(s == NULL)
-			return luaL_error(L, "`tostring' must return a string to `print'");
-		
-		trap_Printf(s);
-		lua_pop(L, 1);			// pop result
-	}
-	trap_Printf("\n");
-	return 0;
-}
-
-static int game_Broadcast(lua_State * L)
+static int cgame_Print(lua_State * L)
 {
 	int             i;
 	char            buf[MAX_STRING_CHARS];
@@ -71,33 +46,47 @@ static int game_Broadcast(lua_State * L)
 		lua_pushvalue(L, i);	// value to print
 		lua_call(L, 1, 1);
 		s = lua_tostring(L, -1);	// get result
-		
+
 		if(s == NULL)
 			return luaL_error(L, "`tostring' must return a string to `print'");
-		
+
 		Q_strcat(buf, sizeof(buf), s);
-		
+
 		lua_pop(L, 1);			// pop result
 	}
-	
-	trap_SendServerCommand(-1, va("cp \"" S_COLOR_WHITE "%s\n\"", buf));
-	
+
+	CG_Printf("%s\n", buf);
 	return 0;
 }
 
-static const luaL_reg gamelib[] = {
-	{"Print", game_Print},
-	{"Broadcast", game_Broadcast},
+static int cgame_RegisterShader(lua_State * L)
+{
+	const char     *s;
+	char            shaderName[MAX_QPATH];
+	qhandle_t       shader;
+
+	s = luaL_checkstring(L, 1);
+	Q_strncpyz(shaderName, s, sizeof(shaderName));
+
+	shader = trap_R_RegisterShader(shaderName);
+	lua_pushinteger(L, shader);
+
+	return 1;
+}
+
+static const luaL_reg cgamelib[] = {
+	{"Print", cgame_Print},
+	{"RegisterShader", cgame_RegisterShader},
 	{NULL, NULL}
 };
 
-int luaopen_game(lua_State * L)
+int luaopen_cgame(lua_State * L)
 {
-	luaL_register(L, "game", gamelib);
-	
-	lua_pushliteral(L, "_GAMEVERSION");
-	lua_pushliteral(L, GAMEVERSION);
-	
+	luaL_register(L, "cgame", cgamelib);
+
+	lua_pushliteral(L, "_GAME_VERSION");
+	lua_pushliteral(L, GAME_VERSION);
+
 	return 1;
 }
 

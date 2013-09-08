@@ -54,7 +54,7 @@ sfxHandle_t CG_CustomSound(int clientNum, const char *soundName)
 
 	if(soundName[0] != '*')
 	{
-		return trap_S_RegisterSound(soundName, qfalse);
+		return trap_S_RegisterSound(soundName);
 	}
 
 	if(clientNum < 0 || clientNum >= MAX_CLIENTS)
@@ -364,7 +364,7 @@ static qboolean CG_FileExists(const char *filename)
 CG_FindClientModelFile
 ==========================
 */
-static qboolean CG_FindClientModelFile(char *filename, int length, clientInfo_t * ci, const char *teamName, const char *modelName,
+qboolean CG_FindClientModelFile(char *filename, int length, clientInfo_t * ci, const char *teamName, const char *modelName,
 									   const char *skinName, const char *base, const char *ext)
 {
 	char           *team, *charactersFolder;
@@ -885,11 +885,11 @@ static void CG_LoadClientInfo(int clientNum, clientInfo_t * ci)
 		// if the model didn't load use the sounds of the default model
 		if(modelloaded)
 		{
-			ci->sounds[i] = trap_S_RegisterSound(va("sound/player/%s/%s", dir, s + 1), qfalse);
+			ci->sounds[i] = trap_S_RegisterSound(va("sound/player/%s/%s", dir, s + 1));
 		}
 		if(!ci->sounds[i])
 		{
-			ci->sounds[i] = trap_S_RegisterSound(va("sound/player/%s/%s", fallback, s + 1), qfalse);
+			ci->sounds[i] = trap_S_RegisterSound(va("sound/player/%s/%s", fallback, s + 1));
 		}
 	}
 
@@ -1347,7 +1347,7 @@ static void CG_SetLerpFrameAnimation(clientInfo_t * ci, lerpFrame_t * lf, int ne
 	anim = &ci->animations[newAnimation];
 
 	lf->animation = anim;
-	lf->animationTime = lf->frameTime + anim->initialLerp;
+	lf->animationStartTime = lf->frameTime + anim->initialLerp;
 
 	if(cg_debugAnim.integer)
 	{
@@ -1394,15 +1394,15 @@ static void CG_RunLerpFrame(clientInfo_t * ci, lerpFrame_t * lf, int newAnimatio
 		{
 			return;				// shouldn't happen
 		}
-		if(cg.time < lf->animationTime)
+		if(cg.time < lf->animationStartTime)
 		{
-			lf->frameTime = lf->animationTime;	// initial lerp
+			lf->frameTime = lf->animationStartTime;	// initial lerp
 		}
 		else
 		{
 			lf->frameTime = lf->oldFrameTime + anim->frameLerp;
 		}
-		f = (lf->frameTime - lf->animationTime) / anim->frameLerp;
+		f = (lf->frameTime - lf->animationStartTime) / anim->frameLerp;
 		f *= speedScale;		// adjust for haste, etc
 
 		numFrames = anim->numFrames;
@@ -2348,7 +2348,7 @@ Returns the Z component of the surface being shadowed
 ===============
 */
 #define	SHADOW_DISTANCE		128
-static qboolean CG_PlayerShadow(centity_t * cent, float *shadowPlane)
+qboolean CG_PlayerShadow(centity_t * cent, float *shadowPlane, int noShadowID)
 {
 	vec3_t          end, mins = { -15, -15, 0 }, maxs =
 	{
@@ -2358,7 +2358,7 @@ static qboolean CG_PlayerShadow(centity_t * cent, float *shadowPlane)
 
 	*shadowPlane = 0;
 
-	if(cg_shadows.integer == 0)
+	if(cg_shadows.integer != 1)
 	{
 		return qfalse;
 	}
@@ -2381,15 +2381,96 @@ static qboolean CG_PlayerShadow(centity_t * cent, float *shadowPlane)
 		return qfalse;
 	}
 
+	// fade the shadow out with height
+	alpha = 1.0 - trace.fraction;
+
+#if 0							// FIXME
+	if((cg_shadows.integer >= SHADOWING_ESM16 && cg_shadows.integer <= SHADOWING_EVSM) && cg_precomputedLighting.integer)
+	{
+		refLight_t      light;
+		vec3_t          angles;
+
+		//float         angle;
+		vec3_t          projectionEnd;
+
+		vec3_t          ambientLight;
+		vec3_t          lightDir;
+		vec3_t          lightDirInversed;
+		vec3_t          directedLight;
+
+		static vec3_t   mins = { -4, -4, -4 };
+		static vec3_t   maxs = { 4, 4, 4 };
+
+		trap_R_LightForPoint(cent->lerpOrigin, ambientLight, directedLight, lightDir);
+		VectorNegate(lightDir, lightDirInversed);
+
+		// add light
+		memset(&light, 0, sizeof(refLight_t));
+
+		light.rlType = RL_PROJ;
+
+
+		// find light origin
+		VectorMA(cent->lerpOrigin, SHADOW_DISTANCE, lightDir, light.origin);
+		trap_CM_BoxTrace(&trace, cent->lerpOrigin, light.origin, mins, maxs, 0, MASK_SOLID);
+
+		// no shadow if too high
+		/*
+		   if(trace.fraction == 1.0 || trace.startsolid || trace.allsolid)
+		   {
+		   return qfalse;
+		   }
+		 */
+
+		VectorCopy(trace.endpos, light.origin);
+		//VectorMA(refdef.vieworg, -200, refdef.viewaxis[0], light.origin);
+		//light.origin[1] += 10;
+
+		// find projection end
+		VectorMA(light.origin, SHADOW_DISTANCE * 100, lightDirInversed, projectionEnd);
+		trap_CM_BoxTrace(&trace, light.origin, projectionEnd, mins, maxs, 0, MASK_PLAYERSOLID);
+#if 0
+		if( /* trace.fraction == 1.0 || */ trace.startsolid || trace.allsolid)
+		{
+			return qfalse;
+		}
+#endif
+
+#if 0
+		angle = AngleBetweenVectors(lightDirInversed, surfNormal);
+		if(angle > 30)
+		{
+			VectorCopy(surfNormal, lightDirInversed);
+		}
+#endif
+
+		VectorToAngles(lightDirInversed, angles);
+		QuatFromAngles(light.rotation, angles[PITCH], angles[YAW], angles[ROLL]);
+
+		light.color[0] = 0.9f * alpha;
+		light.color[1] = 0.9f * alpha;
+		light.color[2] = 0.9f * alpha;
+
+		light.fovX = 35;
+		light.fovY = 35;
+		light.distNear = 1;
+		light.distFar = Distance(light.origin, trace.endpos) + SHADOW_DISTANCE;
+
+		light.noShadowID = noShadowID;
+		light.inverseShadows = qtrue;
+		light.attenuationShader = cgs.media.shadowProjectedLightShader;
+
+		trap_R_AddRefLightToScene(&light);
+		return qtrue;
+	}
+#endif
+
 	*shadowPlane = trace.endpos[2] + 1;
 
 	if(cg_shadows.integer != 1)
 	{							// no mark for stencil or projection shadows
 		return qtrue;
 	}
-
-	// fade the shadow out with height
-	alpha = 1.0 - trace.fraction;
 
 	// hack / FPE - bogus planes?
 	//assert( DotProduct( trace.plane.normal, trace.plane.normal ) != 0.0f ) 
@@ -2617,6 +2698,7 @@ void CG_Player(centity_t * cent)
 	int             renderfx;
 	qboolean        shadow;
 	float           shadowPlane;
+	int             noShadowID;
 
 #ifdef MISSIONPACK
 	refEntity_t     skull;
@@ -2661,10 +2743,16 @@ void CG_Player(centity_t * cent)
 		}
 	}
 
-
 	memset(&legs, 0, sizeof(legs));
 	memset(&torso, 0, sizeof(torso));
 	memset(&head, 0, sizeof(head));
+
+	// generate a new unique noShadowID to avoid that the lights of the quad damage
+	// will cause bad player shadows
+	noShadowID = CG_UniqueNoShadowID();
+	legs.noShadowID = noShadowID;
+	torso.noShadowID = noShadowID;
+	head.noShadowID = noShadowID;
 
 	// get the rotation information
 	CG_PlayerAngles(cent, legs.axis, torso.axis, head.axis);
@@ -2676,7 +2764,7 @@ void CG_Player(centity_t * cent)
 	CG_PlayerSprites(cent);
 
 	// add the shadow
-	shadow = CG_PlayerShadow(cent, &shadowPlane);
+	shadow = CG_PlayerShadow(cent, &shadowPlane, noShadowID);
 
 	// add a water splash if partially in and out of water
 	CG_PlayerSplash(cent);

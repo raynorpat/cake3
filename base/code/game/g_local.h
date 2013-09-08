@@ -526,8 +526,9 @@ void            SaveRegisteredItems(void);
 //
 // g_utils.c
 //
-int             G_ModelIndex(char *name);
-int             G_SoundIndex(char *name);
+int             G_ModelIndex(const char *name);
+int             G_SoundIndex(const char *name);
+int				G_EffectIndex(const char *name);
 void            G_TeamCommand(team_t team, char *cmd);
 void            G_KillBox(gentity_t * ent);
 void            G_ProjectSource(vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result);

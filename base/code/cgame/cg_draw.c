@@ -309,7 +309,8 @@ void CG_Draw3DModel(float x, float y, float w, float h, qhandle_t model, qhandle
 {
 	refdef_t        refdef;
 	refEntity_t     ent;
-	vec3_t          lightOrigin;
+	refLight_t      light;
+	float           fov_x;
 
 	if(!cg_draw3dIcons.integer || !cg_drawIcons.integer)
 	{
@@ -344,15 +345,31 @@ void CG_Draw3DModel(float x, float y, float w, float h, qhandle_t model, qhandle
 	trap_R_ClearScene();
 	trap_R_AddRefEntityToScene(&ent);
 	
-	VectorCopy(origin, lightOrigin);
-	lightOrigin[0] -= 90;
-	lightOrigin[1] += 10;
-	lightOrigin[2] += 30;
-	trap_R_AddLightToScene(lightOrigin, 200, 1.0, 1.0, 1.0);
+	// add light
+	memset(&light, 0, sizeof(refLight_t));
+
+	light.rlType = RL_PROJ;
+
+	VectorCopy(cg.refdef.vieworg, light.origin);
+	light.origin[1] += 10;
+
+	QuatClear(light.rotation);
+
+	light.color[0] = 0.8f;
+	light.color[1] = 0.8f;
+	light.color[2] = 0.8f;
+
+	fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
+	VectorCopy(cg.refdef.viewaxis[0], light.projTarget);
+	VectorScale(cg.refdef.viewaxis[1], -fov_x, light.projRight);
+	VectorScale(cg.refdef.viewaxis[2], fov_x, light.projUp);
+	VectorScale(cg.refdef.viewaxis[0], -200, light.projStart);
+	VectorScale(cg.refdef.viewaxis[0], 1000, light.projEnd);
+
+	trap_R_AddRefLightToScene(&light);
 	
 	trap_R_RenderScene(&refdef);
 }
-
 
 /*
 ================
@@ -364,7 +381,8 @@ void CG_Draw3DWeaponModel(float x, float y, float w, float h, qhandle_t weaponMo
 {
 	refdef_t        refdef;
 	refEntity_t     ent;
-	vec3_t          lightOrigin;
+	refLight_t      light;
+	float           fov_x;
 
 	if(!cg_draw3dIcons.integer || !cg_drawIcons.integer)
 	{
@@ -419,11 +437,28 @@ void CG_Draw3DWeaponModel(float x, float y, float w, float h, qhandle_t weaponMo
 		trap_R_AddRefEntityToScene(&barrel);
 	}
 	
-	VectorCopy(origin, lightOrigin);
-	lightOrigin[0] -= 90;
-	lightOrigin[1] += 10;
-	lightOrigin[2] += 30;
-	trap_R_AddLightToScene(lightOrigin, 200, 1.0, 1.0, 1.0);
+	// add light
+	memset(&light, 0, sizeof(refLight_t));
+
+	light.rlType = RL_PROJ;
+
+	VectorCopy(cg.refdef.vieworg, light.origin);
+	light.origin[1] += 10;
+
+	QuatClear(light.rotation);
+
+	light.color[0] = 0.8f;
+	light.color[1] = 0.8f;
+	light.color[2] = 0.8f;
+
+	fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
+	VectorCopy(cg.refdef.viewaxis[0], light.projTarget);
+	VectorScale(cg.refdef.viewaxis[1], -fov_x, light.projRight);
+	VectorScale(cg.refdef.viewaxis[2], fov_x, light.projUp);
+	VectorScale(cg.refdef.viewaxis[0], -30, light.projStart);
+	VectorScale(cg.refdef.viewaxis[0], 1000, light.projEnd);
+
+	trap_R_AddRefLightToScene(&light);
 
 	trap_R_RenderScene(&refdef);
 }
@@ -498,7 +533,6 @@ void CG_DrawFlagModel(float x, float y, float w, float h, int team, qboolean for
 
 	if(!force2D && cg_draw3dIcons.integer)
 	{
-
 		VectorClear(angles);
 
 		cm = cgs.media.redFlagModel;
@@ -688,7 +722,6 @@ static void CG_DrawStatusBar(void)
 	vec3_t          angles;
 	vec3_t          origin;
 	static float    colors[4][4] = {
-//      { 0.2, 1.0, 0.2, 1.0 } , { 1.0, 0.2, 0.2, 1.0 }, {0.5, 0.5, 0.5, 1} };
 		{1.0f, 0.69f, 0.0f, 1.0f},	// normal
 		{1.0f, 0.2f, 0.2f, 1.0f},	// low health
 		{0.5f, 0.5f, 0.5f, 1.0f},	// weapon firing
@@ -951,6 +984,7 @@ static float CG_DrawFPS(float y)
 		fps = 1000 * FPS_FRAMES / total;
 
 		s = va("%ifps", fps);
+
 		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
 
 		CG_DrawBigString(635 - w, y + 2, s, 1.0F);
@@ -1696,28 +1730,6 @@ static void CG_DrawHoldableItem(void)
 }
 #endif							// MISSIONPACK
 
-#ifdef MISSIONPACK
-/*
-===================
-CG_DrawPersistantPowerup
-===================
-*/
-#if 0							// sos001208 - DEAD
-static void CG_DrawPersistantPowerup(void)
-{
-	int             value;
-
-	value = cg.snap->ps.stats[STAT_PERSISTANT_POWERUP];
-	if(value)
-	{
-		CG_RegisterItemVisuals(value);
-		CG_DrawPic(640 - ICON_SIZE, (SCREEN_HEIGHT - ICON_SIZE) / 2 - ICON_SIZE, ICON_SIZE, ICON_SIZE, cg_items[value].icon);
-	}
-}
-#endif
-#endif							// MISSIONPACK
-
-
 /*
 ===================
 CG_DrawReward
@@ -1759,21 +1771,6 @@ static void CG_DrawReward(void)
 
 	trap_R_SetColor(color);
 
-	/*
-	   count = cg.rewardCount[0]/10;                // number of big rewards to draw
-
-	   if (count) {
-	   y = 4;
-	   x = 320 - count * ICON_SIZE;
-	   for ( i = 0 ; i < count ; i++ ) {
-	   CG_DrawPic( x, y, (ICON_SIZE*2)-4, (ICON_SIZE*2)-4, cg.rewardShader[0] );
-	   x += (ICON_SIZE*2);
-	   }
-	   }
-
-	   count = cg.rewardCount[0] - count*10;        // number of small rewards to draw
-	 */
-
 	if(cg.rewardCount[0] >= 10)
 	{
 		y = 56;
@@ -1797,36 +1794,6 @@ static void CG_DrawReward(void)
 		}
 	}
 	trap_R_SetColor(NULL);
-}
-
-/*
-==============
-CG_DrawBloom
-==============
-*/
-static void CG_DrawBloom(void)
-{
-	if(cg_drawBloom.integer == 1)
-	{
-		CG_DrawPic(0, 0, 640, 480, cgs.media.bloomShader);
-	}
-	else if(cg_drawBloom.integer == 2)
-	{
-		CG_DrawPic(0, 0, 640, 480, cgs.media.bloom2Shader);
-	}
-}
-
-/*
-==============
-CG_DrawRotoscope
-==============
-*/
-static void CG_DrawRotoscope(void)
-{
-	if(cg_drawRotoscope.integer == 1)
-	{
-		CG_DrawPic(0, 0, 640, 480, cgs.media.rotoscopeShader);
-	}
 }
 
 
@@ -2668,7 +2635,7 @@ static void CG_DrawProxWarning(void)
 	}
 
 	w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
-	CG_DrawBigStringColor(320 - w / 2, 64 + BIGCHAR_HEIGHT, s, g_color_table[ColorIndex(COLOR_RED)]);
+	CG_DrawBigStringColor(320 - w / 2, 64 + BIGCHAR_HEIGHT, s, (float *)g_color_table[ColorIndex(COLOR_RED)]);
 }
 #endif
 
@@ -2953,9 +2920,8 @@ static void CG_Draw2D(void)
 
 #ifndef MISSIONPACK
 			CG_DrawHoldableItem();
-#else
-			//CG_DrawPersistantPowerup();
 #endif
+
 			CG_DrawReward();
 		}
 
@@ -3002,8 +2968,7 @@ static void CG_Draw2D(void)
 
 static void CG_DrawTourneyScoreboard(void)
 {
-#ifdef MISSIONPACK
-#else
+#ifndef MISSIONPACK
 	CG_DrawOldTourneyScoreboard();
 #endif
 }
@@ -3069,12 +3034,6 @@ void CG_DrawActive(stereoFrame_t stereoView)
 	{
 		VectorCopy(baseOrg, cg.refdef.vieworg);
 	}
-
-	// draw bloom post process effect
-	CG_DrawBloom();
-	
-	// draw rotoscope post process effect
-	CG_DrawRotoscope();
 
 	// draw status bar and other floating elements
 	CG_Draw2D();

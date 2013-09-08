@@ -23,6 +23,7 @@ project "base_cgame"
 		"cg_info.c",
 		"cg_local.h",
 		"cg_localents.c",
+		"cg_lua.c",
 		"cg_main.c",
 		"cg_marks.c",
 		"cg_newdraw.c",
@@ -38,6 +39,9 @@ project "base_cgame"
 		"cg_weapons.c",
 		
 		"../ui/ui_parse.c",
+
+		"lua_cgame.c",
+		"lua_particle.c",
 
 		"../game/bg_**.c", "../game/bg_**.cpp", "../game/bg_**.h",
 		

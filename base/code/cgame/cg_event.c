@@ -20,9 +20,8 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-//
-// cg_event.c -- handle entity events at snapshot or playerstate transitions
 
+// cg_event.c -- handle entity events at snapshot or playerstate transitions
 #include "cg_local.h"
 
 // for the voice chats
@@ -493,7 +492,7 @@ int CG_WaterLevel(centity_t * cent)
 	// get waterlevel, accounting for ducking
 	waterlevel = 0;
 	VectorCopy(cent->lerpOrigin, point);
-	point[2] += MINS_Z + 1;
+	point[2] += playerMins[2] + 1;
 	anim = cent->currentState.legsAnim & ~ANIM_TOGGLEBIT;
 
 	if(anim == LEGS_WALKCR || anim == LEGS_IDLECR)
@@ -509,16 +508,16 @@ int CG_WaterLevel(centity_t * cent)
 
 	if(contents & MASK_WATER)
 	{
-		sample2 = point[2] - MINS_Z;
+		sample2 = point[2] - playerMins[2];
 		sample1 = sample2 / 2;
 		waterlevel = 1;
-		point[2] = cent->lerpOrigin[2] + MINS_Z + sample1;
+		point[2] = cent->lerpOrigin[2] + playerMins[2] + sample1;
 		contents = CG_PointContents(point, -1);
 
 		if(contents & MASK_WATER)
 		{
 			waterlevel = 2;
-			point[2] = cent->lerpOrigin[2] + MINS_Z + sample2;
+			point[2] = cent->lerpOrigin[2] + playerMins[2] + sample2;
 			contents = CG_PointContents(point, -1);
 
 			if(contents & MASK_WATER)
@@ -854,7 +853,7 @@ void CG_EntityEvent(centity_t * cent, vec3_t position)
 				}
 				else
 				{
-					trap_S_StartSound(NULL, es->number, CHAN_AUTO, trap_S_RegisterSound(item->pickup_sound, qfalse));
+					trap_S_StartSound(NULL, es->number, CHAN_AUTO, trap_S_RegisterSound(item->pickup_sound));
 				}
 
 				// show icon and name on status bar
@@ -881,7 +880,7 @@ void CG_EntityEvent(centity_t * cent, vec3_t position)
 				// powerup pickups are global
 				if(item->pickup_sound)
 				{
-					trap_S_StartSound(NULL, cg.snap->ps.clientNum, CHAN_AUTO, trap_S_RegisterSound(item->pickup_sound, qfalse));
+					trap_S_StartSound(NULL, cg.snap->ps.clientNum, CHAN_AUTO, trap_S_RegisterSound(item->pickup_sound));
 				}
 
 				// show icon and name on status bar
@@ -981,13 +980,13 @@ void CG_EntityEvent(centity_t * cent, vec3_t position)
 		case EV_PLAYER_TELEPORT_IN:
 			DEBUGNAME("EV_PLAYER_TELEPORT_IN");
 			trap_S_StartSound(NULL, es->number, CHAN_AUTO, cgs.media.teleInSound);
-			//CG_ParticleTeleportEffect(position);
+			CG_ParticleTeleportEffect(position);
 			break;
 
 		case EV_PLAYER_TELEPORT_OUT:
 			DEBUGNAME("EV_PLAYER_TELEPORT_OUT");
 			trap_S_StartSound(NULL, es->number, CHAN_AUTO, cgs.media.teleOutSound);
-			//CG_ParticleTeleportEffect(position);
+			CG_ParticleTeleportEffect(position);
 			break;
 
 		case EV_ITEM_POP:
@@ -1348,6 +1347,20 @@ void CG_EntityEvent(centity_t * cent, vec3_t position)
 			DEBUGNAME("EV_STOPLOOPINGSOUND");
 			trap_S_StopLoopingSound(es->number);
 			es->loopSound = 0;
+			break;
+
+		case EV_EFFECT:
+			DEBUGNAME("EV_EFFECT");
+#ifdef CG_LUA
+			// Tr3B: run scriptable effects like "TestParticleSpawn" in "effects/particleTests.lua"
+			AngleVectors(cent->lerpAngles, dir, NULL, NULL);
+
+			s = CG_ConfigString(CS_EFFECTS + es->eventParm);
+			if(s[0])
+			{
+				CG_RunLuaFunction(s, "vv", position, dir);
+			}
+#endif
 			break;
 
 		case EV_DEBUG_LINE:

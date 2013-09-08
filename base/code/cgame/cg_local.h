@@ -31,9 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // If you absolutely need something stored, it can either be kept
 // by the server in the server stored userinfos, or stashed in a cvar.
 
-#ifdef MISSIONPACK
-#define CG_FONT_THRESHOLD 0.1
-#endif
+#define CG_FONT_THRESHOLD 	0.1
 
 #define	POWERUP_BLINKS		5
 
@@ -119,9 +117,11 @@ typedef enum
 // The current lerp will finish out, then it will lerp to the new animation
 typedef struct
 {
+	refSkeleton_t   oldSkeleton;
 	int             oldFrame;
 	int             oldFrameTime;	// time when ->oldFrame was exactly on
 
+	refSkeleton_t   skeleton;
 	int             frame;
 	int             frameTime;	// time when ->frame will be exactly on
 
@@ -134,13 +134,25 @@ typedef struct
 
 	int             animationNumber;	// may include ANIM_TOGGLEBIT
 	animation_t    *animation;
-	int             animationTime;	// time when the first frame of the animation will be exact
+	int             animationStartTime;	// time when the first frame of the animation will be exact
+	float           animationScale;
+
+	// added for smooth blending between animations on change
+
+	int             old_animationNumber;	// may include ANIM_TOGGLEBIT
+	animation_t    *old_animation;
+
+	float           blendlerp;
+	float           blendtime;
+
+	int             weaponNumber;
+	int             old_weaponNumber;
 } lerpFrame_t;
 
 
 typedef struct
 {
-	lerpFrame_t     legs, torso, flag;
+	lerpFrame_t     legs, torso, flag, gun;
 	int             painTime;
 	int             painDirection;	// flip from 0 to 1
 	int             lightningFiring;
@@ -401,6 +413,9 @@ typedef struct weaponInfo_s
 	qhandle_t       barrelModel;
 	qhandle_t       flashModel;
 
+	qhandle_t       viewModel;
+	animation_t     viewModel_animations[MAX_WEAPON_STATES];
+
 	vec3_t          weaponMidpoint;	// so it will rotate centered instead of by tag
 
 	float           flashLight;
@@ -436,6 +451,7 @@ typedef struct
 {
 	qboolean        registered;
 	qhandle_t       models[MAX_ITEM_MODELS];
+	qhandle_t       skins[MAX_ITEM_MODELS];
 	qhandle_t       icon;
 } itemInfo_t;
 
@@ -457,6 +473,77 @@ typedef struct
 
 #define MAX_REWARDSTACK		10
 #define MAX_SOUNDBUFFER		20
+
+//======================================================================
+
+typedef enum
+{
+	P_NONE,
+	P_WEATHER,
+	P_WEATHER_TURBULENT,
+	P_WEATHER_FLURRY,
+	P_FLAT,
+	P_FLAT_SCALEUP,
+	P_FLAT_SCALEUP_FADE,
+	P_SMOKE,
+	P_SMOKE_IMPACT,
+	P_BLOOD,
+	P_BUBBLE,
+	P_BUBBLE_TURBULENT,
+	P_SPRITE,
+	P_SPARK,
+	P_LIGHTSPARK
+} particleType_t;
+
+// particle flags
+enum
+{
+	PF_UNDERWATER = BIT(0),
+	PF_AIRONLY = BIT(1),
+};
+
+typedef struct particle_s
+{
+	particleType_t  type;
+	int             flags;
+
+	qhandle_t       pshader;
+
+	float           time;
+	float           endTime;
+
+	vec3_t          org;
+	vec3_t          oldOrg;
+
+	vec3_t          vel;
+	vec3_t          accel;
+
+	vec4_t          color;
+	vec4_t          colorVel;
+
+	float           width;
+	float           height;
+
+	float           endWidth;
+	float           endHeight;
+
+	float           start;
+	float           end;
+
+	float           startfade;
+	qboolean        rotate;
+	int             snum;
+
+	qboolean        link;
+
+	int             roll;
+
+	int             accumroll;
+
+	float           bounceFactor;	// 0.0 = no bounce, 1.0 = perfect
+
+	struct particle_s *next;
+} cparticle_t;
 
 //======================================================================
 
@@ -763,16 +850,20 @@ typedef struct
 	qhandle_t       backTileShader;
 	qhandle_t       noammoShader;
 
-	qhandle_t       bloomShader;
-	qhandle_t       bloom2Shader;
-	qhandle_t       rotoscopeShader;
+	qhandle_t       sparkShader;
 
 	qhandle_t       smokePuffShader;
-	qhandle_t       smokePuffRageProShader;
 	qhandle_t       shotgunSmokePuffShader;
 	qhandle_t       plasmaBallShader;
 	qhandle_t       waterBubbleShader;
 	qhandle_t       bloodTrailShader;
+	qhandle_t       bloodSpurtShader;
+	qhandle_t       bloodSpurt2Shader;
+	qhandle_t       bloodSpurt3Shader;
+
+	// globe mapping shaders
+	qhandle_t       shadowProjectedLightShader;
+
 #ifdef MISSIONPACK
 	qhandle_t       nailPuffShader;
 	qhandle_t       blueProxMine;
@@ -787,6 +878,8 @@ typedef struct
 	// wall mark shaders
 	qhandle_t       wakeMarkShader;
 	qhandle_t       bloodMarkShader;
+	qhandle_t       bloodMark2Shader;
+	qhandle_t       bloodMark3Shader;
 	qhandle_t       bulletMarkShader;
 	qhandle_t       burnMarkShader;
 	qhandle_t       holeMarkShader;
@@ -807,14 +900,10 @@ typedef struct
 #endif
 
 	// weapon effect models
-	qhandle_t       bulletFlashModel;
-	qhandle_t       ringFlashModel;
 	qhandle_t       dishFlashModel;
 	qhandle_t       lightningExplosionModel;
 
 	// weapon effect shaders
-	qhandle_t       railExplosionShader;
-	qhandle_t       plasmaExplosionShader;
 	qhandle_t       bulletExplosionShader;
 	qhandle_t       rocketExplosionShader;
 	qhandle_t       grenadeExplosionShader;
@@ -822,8 +911,7 @@ typedef struct
 	qhandle_t       bloodExplosionShader;
 
 	// special effects models
-	qhandle_t       teleportEffectModel;
-	qhandle_t       teleportEffectShader;
+	qhandle_t       teleportFlareShader;
 #ifdef MISSIONPACK
 	qhandle_t       kamikazeEffectModel;
 	qhandle_t       kamikazeShockWave;
@@ -1017,9 +1105,6 @@ typedef struct
 	sfxHandle_t     wstbimpmSound;
 	sfxHandle_t     wstbimpdSound;
 	sfxHandle_t     wstbactvSound;
-
-	// light attenuation
-	qhandle_t       defaultLightShader;
 } cgMedia_t;
 
 
@@ -1110,7 +1195,6 @@ typedef struct
 
 	// media
 	cgMedia_t       media;
-
 } cgs_t;
 
 //==============================================================================
@@ -1130,6 +1214,7 @@ extern vmCvar_t cg_bobpitch;
 extern vmCvar_t cg_bobroll;
 extern vmCvar_t cg_swingSpeed;
 extern vmCvar_t cg_shadows;
+extern vmCvar_t cg_precomputedLighting;
 extern vmCvar_t cg_gibs;
 extern vmCvar_t cg_drawTimer;
 extern vmCvar_t cg_drawFPS;
@@ -1218,8 +1303,8 @@ extern vmCvar_t cg_oldRocket;
 extern vmCvar_t cg_oldPlasma;
 extern vmCvar_t cg_trueLightning;
 
-extern vmCvar_t cg_drawBloom;
-extern vmCvar_t cg_drawRotoscope;
+extern vmCvar_t cg_particles;
+extern vmCvar_t cg_particleCollision;
 
 #ifdef MISSIONPACK
 extern vmCvar_t cg_redTeamName;
@@ -1270,7 +1355,7 @@ void            CG_TestModelPrevFrame_f(void);
 void            CG_TestModelNextSkin_f(void);
 void            CG_TestModelPrevSkin_f(void);
 void            CG_TestAnimation_f(void);
-void            CG_TestAnimation2_f(void);
+void            CG_TestBlend_f(void);
 void            CG_TestOmniLight_f(void);
 void            CG_TestProjLight_f(void);
 void            CG_TestFlashLight_f(void);
@@ -1358,7 +1443,7 @@ qhandle_t       CG_StatusHandle(int task);
 
 
 //
-// cg_player.c
+// cg_players.c
 //
 void            CG_Player(centity_t * cent);
 void            CG_ResetPlayerEntity(centity_t * cent);
@@ -1399,6 +1484,11 @@ void            CG_PositionEntityOnTag(refEntity_t * entity, const refEntity_t *
 void            CG_PositionRotatedEntityOnTag(refEntity_t * entity, const refEntity_t * parent,
 											  qhandle_t parentModel, char *tagName);
 
+qboolean        CG_PositionRotatedEntityOnBone(refEntity_t * entity, const refEntity_t * parent,
+											   qhandle_t parentModel, char *tagName);
+
+void            CG_TransformSkeleton(refSkeleton_t * skel, const vec3_t scale);
+int             CG_UniqueNoShadowID(void);
 
 
 //
@@ -1517,6 +1607,93 @@ void            CG_TransitionPlayerState(playerState_t * ps, playerState_t * ops
 void            CG_CheckChangedPredictableEvents(playerState_t * ps);
 
 
+#ifdef CG_LUA
+//
+// cg_lua.c
+//
+#include <lua.h>
+void            CG_InitLua();
+void            CG_ShutdownLua();
+void            CG_LoadLuaScript(const char *filename);
+void            CG_RunLuaFunction(const char *func, const char *sig, ...);
+void            CG_DumpLuaStack();
+void            CG_RestartLua_f(void);
+
+//
+// lua_cgame.c
+//
+int             luaopen_cgame(lua_State * L);
+
+
+//
+// lua_particle.c
+//
+typedef struct
+{
+	cparticle_t    *p;
+} lua_Particle;
+
+int             luaopen_particle(lua_State * L);
+void            lua_pushparticle(lua_State * L, cparticle_t * p);
+lua_Particle   *lua_getparticle(lua_State * L, int argNum);
+
+//
+// lua_qmath.c
+//
+int             luaopen_qmath(lua_State * L);
+
+//
+// lua_vector.c
+//
+int             luaopen_vector(lua_State * L);
+void            lua_pushvector(lua_State * L, vec3_t v);
+vec_t          *lua_getvector(lua_State * L, int argNum);
+#endif
+
+
+//
+// cg_particles.c
+//
+void            CG_InitParticles(void);
+cparticle_t    *CG_AllocParticle(void);
+void            CG_FreeParticle(cparticle_t * p);
+void            CG_AddParticles(void);
+void            CG_ParticleSnow(qhandle_t pshader, vec3_t origin, vec3_t origin2, int turb, float range, int snum);
+void            CG_ParticleSmoke(qhandle_t pshader, centity_t * cent);
+void            CG_AddParticleShrapnel(localEntity_t * le);
+void            CG_ParticleSnowFlurry(qhandle_t pshader, centity_t * cent);
+void            CG_ParticleImpactSmokePuff(qhandle_t pshader, vec3_t origin);
+void            CG_ParticleBlood(vec3_t org, vec3_t dir, int count);
+void            CG_Particle_Bleed(qhandle_t pshader, vec3_t start, vec3_t dir, int fleshEntityNum, int duration);
+void            CG_BloodPool(qhandle_t pshader, vec3_t origin);
+void            CG_ParticleBulletDebris(vec3_t org, vec3_t vel, int duration);
+void            CG_ParticleDirtBulletDebris_Core(vec3_t org, vec3_t vel, int duration, float width, float height, float alpha,
+												 qhandle_t shader);
+void            CG_ParticleBloodCloud(vec3_t origin, vec3_t dir);
+void            CG_ParticleSparks(vec3_t org, vec3_t vel, int duration, float x, float y, float speed);
+void            CG_ParticleSparks2(vec3_t org, vec3_t dir, int count);
+void            CG_ParticleRick(vec3_t org, vec3_t dir);
+void            CG_ParticleRailRick(vec3_t org, vec3_t dir, vec3_t clientColor);
+void            CG_ParticleDust(centity_t * cent, vec3_t origin, vec3_t dir);
+void            CG_ParticleMisc(qhandle_t pshader, vec3_t origin, int size, int duration, float alpha);
+void            CG_ParticleTeleportEffect(const vec3_t origin);
+void            CG_ParticleGibEffect(const vec3_t origin);
+int             CG_NewParticleArea(int num);
+void            CG_TestParticles_f(void);
+
+void            CG_SwingAngles(float destination, float swingTolerance, float clampTolerance,
+							   float speed, float *angle, qboolean * swinging);
+void            CG_AddPainTwitch(centity_t * cent, vec3_t torsoAngles);
+
+void            CG_PlayerTokens(centity_t * cent, int renderfx);
+void            CG_BreathPuffs(centity_t * cent, const vec3_t headOrigin, const vec3_t headDirection);
+
+void            CG_PlayerSprites(centity_t * cent);
+void            CG_PlayerSplash(centity_t * cent);
+qboolean        CG_PlayerShadow(centity_t * cent, float *shadowPlane, int noShadowID);
+qboolean		CG_FindClientModelFile(char *filename, int length, clientInfo_t * ci, const char *teamName, const char *modelName,
+									   const char *skinName, const char *base, const char *ext);
+
 //===============================================
 
 //
@@ -1552,6 +1729,7 @@ void            trap_FS_Read(void *buffer, int len, fileHandle_t f);
 void            trap_FS_Write(const void *buffer, int len, fileHandle_t f);
 void            trap_FS_FCloseFile(fileHandle_t f);
 int             trap_FS_Seek(fileHandle_t f, long offset, int origin);	// fsOrigin_t
+int             trap_FS_GetFileList(const char *path, const char *extension, char *listbuf, int bufsize);
 
 // add commands to the local console as if they were typed in
 // for map changing, etc.  The command is not executed immediately,
@@ -1562,6 +1740,10 @@ void            trap_SendConsoleCommand(const char *text);
 // register a command name so the console can perform command completion.
 // FIXME: replace this with a normal console command "defineCommand"?
 void            trap_AddCommand(const char *cmdName);
+
+// register a command name as an alias for an existing engine command.
+// this allows gamecode to register aliases for binds like "+button6".
+void            trap_AddCommandAlias(const char *cmdName, const char *cmdOther);
 
 // send a string to the server over the network
 void            trap_SendClientCommand(const char *s);
@@ -1581,6 +1763,16 @@ void            trap_CM_BoxTrace(trace_t * results, const vec3_t start, const ve
 void            trap_CM_TransformedBoxTrace(trace_t * results, const vec3_t start, const vec3_t end,
 											const vec3_t mins, const vec3_t maxs,
 											clipHandle_t model, int brushmask, const vec3_t origin, const vec3_t angles);
+void            trap_CM_CapsuleTrace(trace_t * results, const vec3_t start, const vec3_t end,
+									 const vec3_t mins, const vec3_t maxs, clipHandle_t model, int brushmask);
+void            trap_CM_TransformedCapsuleTrace(trace_t * results, const vec3_t start, const vec3_t end,
+												const vec3_t mins, const vec3_t maxs,
+												clipHandle_t model, int brushmask, const vec3_t origin, const vec3_t angles);
+void            trap_CM_BiSphereTrace(trace_t * results, const vec3_t start,
+									  const vec3_t end, float startRad, float endRad, clipHandle_t model, int mask);
+void            trap_CM_TransformedBiSphereTrace(trace_t * results, const vec3_t start,
+												 const vec3_t end, float startRad, float endRad,
+												 clipHandle_t model, int mask, const vec3_t origin);
 
 // Returns the projection of a polygon onto the solid brushes in the world
 int             trap_CM_MarkFragments(int numPoints, const vec3_t * points,
@@ -1602,7 +1794,7 @@ void            trap_S_UpdateEntityPosition(int entityNum, const vec3_t origin);
 // respatialize recalculates the volumes of sound as they should be heard by the
 // given entityNum and position
 void            trap_S_Respatialize(int entityNum, const vec3_t origin, vec3_t axis[3], int inwater);
-sfxHandle_t     trap_S_RegisterSound(const char *sample, qboolean compressed);	// returns buzz if not found
+sfxHandle_t     trap_S_RegisterSound(const char *sample);	// returns buzz if not found
 void            trap_S_StartBackgroundTrack(const char *intro, const char *loop);	// empty name stops music
 void            trap_S_StopBackgroundTrack(void);
 
@@ -1637,8 +1829,14 @@ void            trap_R_DrawStretchPic(float x, float y, float w, float h,
 void            trap_R_ModelBounds(clipHandle_t model, vec3_t mins, vec3_t maxs);
 int             trap_R_LerpTag(orientation_t * tag, clipHandle_t mod, int startFrame, int endFrame,
 							   float frac, const char *tagName);
-int             trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac);
+int             trap_R_CheckSkeleton(refSkeleton_t * skel, qhandle_t hModel, qhandle_t hAnim);
+int             trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac,
+									 qboolean clearOrigin);
 int             trap_R_BlendSkeleton(refSkeleton_t * skel, const refSkeleton_t * blend, float frac);
+int             trap_R_BoneIndex(qhandle_t hModel, const char *boneName);
+int             trap_R_AnimNumFrames(qhandle_t hAnim);
+int             trap_R_AnimFrameRate(qhandle_t hAnim);
+
 void            trap_R_RemapShader(const char *oldShader, const char *newShader, const char *timeOffset);
 
 // The glConfig_t will not change during the life of a cgame.
@@ -1708,17 +1906,4 @@ qboolean        trap_getCameraInfo(int time, vec3_t * origin, vec3_t * angles);
 
 qboolean        trap_GetEntityToken(char *buffer, int bufferSize);
 
-void            CG_ClearParticles(void);
-void            CG_AddParticles(void);
-void            CG_ParticleSnow(qhandle_t pshader, vec3_t origin, vec3_t origin2, int turb, float range, int snum);
-void            CG_ParticleSmoke(qhandle_t pshader, centity_t * cent);
-void            CG_AddParticleShrapnel(localEntity_t * le);
-void            CG_ParticleSnowFlurry(qhandle_t pshader, centity_t * cent);
-void            CG_ParticleBulletDebris(vec3_t org, vec3_t vel, int duration);
-void            CG_ParticleSparks(vec3_t org, vec3_t vel, int duration, float x, float y, float speed);
-void            CG_ParticleDust(centity_t * cent, vec3_t origin, vec3_t dir);
-void            CG_ParticleMisc(qhandle_t pshader, vec3_t origin, int size, int duration, float alpha);
-void            CG_ParticleExplosion(char *animStr, vec3_t origin, vec3_t vel, int duration, int sizeStart, int sizeEnd);
-void            CG_ParticleTeleportEffect(const vec3_t origin);
-extern qboolean initparticles;
-int             CG_NewParticleArea(int num);
+int             trap_RealTime(qtime_t * qtime);

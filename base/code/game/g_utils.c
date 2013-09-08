@@ -90,7 +90,7 @@ G_FindConfigstringIndex
 
 ================
 */
-int G_FindConfigstringIndex(char *name, int start, int max, qboolean create)
+static int G_FindConfigstringIndex(const char *name, int start, int max, qboolean create)
 {
 	int             i;
 	char            s[MAX_STRING_CHARS];
@@ -129,14 +129,19 @@ int G_FindConfigstringIndex(char *name, int start, int max, qboolean create)
 }
 
 
-int G_ModelIndex(char *name)
+int G_ModelIndex(const char *name)
 {
 	return G_FindConfigstringIndex(name, CS_MODELS, MAX_MODELS, qtrue);
 }
 
-int G_SoundIndex(char *name)
+int G_SoundIndex(const char *name)
 {
 	return G_FindConfigstringIndex(name, CS_SOUNDS, MAX_SOUNDS, qtrue);
+}
+
+int G_EffectIndex(const char *name)
+{
+	return G_FindConfigstringIndex(name, CS_EFFECTS, MAX_EFFECTS, qtrue);
 }
 
 //=====================================================================

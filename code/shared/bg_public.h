@@ -59,10 +59,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
 
 #define	STEPSIZE			18
-#define	MINS_Z				-24
 #define	DEFAULT_VIEWHEIGHT	26
 #define CROUCH_VIEWHEIGHT	12
-#define	DEAD_VIEWHEIGHT		-16
+#define CROUCH_HEIGHT		16
+#define	DEAD_VIEWHEIGHT	   -16
 
 //
 // config strings are a general means of communicating variable length strings
@@ -99,9 +99,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	CS_SOUNDS				(CS_MODELS+MAX_MODELS)
 #define	CS_PLAYERS				(CS_SOUNDS+MAX_SOUNDS)
 #define CS_LOCATIONS			(CS_PLAYERS+MAX_CLIENTS)
-#define CS_PARTICLES			(CS_LOCATIONS+MAX_LOCATIONS)
+#define CS_EFFECTS				(CS_LOCATIONS+MAX_LOCATIONS)
 
-#define CS_MAX					(CS_PARTICLES+MAX_LOCATIONS)
+#define CS_MAX					(CS_EFFECTS+MAX_EFFECTS)
 
 #if (CS_MAX) > MAX_CONFIGSTRINGS
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS
@@ -153,7 +153,9 @@ typedef enum
 	WEAPON_READY,
 	WEAPON_RAISING,
 	WEAPON_DROPPING,
-	WEAPON_FIRING
+	WEAPON_FIRING,
+
+	MAX_WEAPON_STATES
 } weaponstate_t;
 
 // pmove->pm_flags
@@ -172,6 +174,9 @@ typedef enum
 #define PMF_INVULEXPAND		16384	// invulnerability sphere set to full size
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
+
+extern const vec3_t playerMins;
+extern const vec3_t playerMaxs;
 
 #define	MAXTOUCH	32
 typedef struct
@@ -463,6 +468,8 @@ typedef enum
 	EV_LIGHTNINGBOLT,			// lightning bolt bounced of invulnerability sphere
 //#endif
 
+	EV_EFFECT,					// Lua scripted special effect
+
 	EV_DEBUG_LINE,
 	EV_STOPLOOPINGSOUND,
 	EV_TAUNT,
@@ -552,6 +559,10 @@ typedef enum
 
 typedef struct animation_s
 {
+
+	qhandle_t       handle;		// registered md5Animation or whatever
+	qboolean        clearOrigin;	// reset the origin bone
+
 	int             firstFrame;
 	int             numFrames;
 	int             loopFrames;	// 0 to numFrames
@@ -657,8 +668,8 @@ typedef struct gitem_s
 {
 	char           *classname;	// spawning name
 	char           *pickup_sound;
-	char           *world_model[MAX_ITEM_MODELS];
-
+	char           *models[MAX_ITEM_MODELS];
+	char           *skins[MAX_ITEM_MODELS];
 	char           *icon;
 	char           *pickup_name;	// for printing on pickup
 
@@ -694,10 +705,11 @@ qboolean        BG_CanItemBeGrabbed(int gametype, const entityState_t * ent, con
 #define	MASK_ALL				(-1)
 #define	MASK_SOLID				(CONTENTS_SOLID)
 #define	MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
+#define	MASK_BOTSOLID			(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY|CONTENTS_BOTCLIP)
 #define	MASK_DEADSOLID			(CONTENTS_SOLID|CONTENTS_PLAYERCLIP)
 #define	MASK_WATER				(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
 #define	MASK_OPAQUE				(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
-#define	MASK_SHOT				(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+#define	MASK_SHOT				(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE|CONTENTS_SHOOTABLE)
 
 
 //

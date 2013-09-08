@@ -443,7 +443,15 @@ void RespawnItem(gentity_t * ent)
 		{
 			te = G_TempEntity(ent->s.pos.trBase, EV_GLOBAL_SOUND);
 		}
-		te->s.eventParm = G_SoundIndex("sound/items/poweruprespawn.wav");
+
+		if(ent->item->giTag == PW_QUAD)
+		{
+			te->s.eventParm = G_SoundIndex("sound/items/quadrespawn.ogg");
+		}
+		else
+		{
+			te->s.eventParm = G_SoundIndex("sound/items/poweruprespawn.ogg");
+		}
 		te->r.svFlags |= SVF_BROADCAST;
 	}
 
@@ -811,7 +819,6 @@ G_CheckTeamItems
 */
 void G_CheckTeamItems(void)
 {
-
 	// Set up team stuff
 	Team_InitGame();
 
@@ -1017,7 +1024,7 @@ void G_SpawnItem(gentity_t * ent, gitem_t * item)
 
 	if(item->giType == IT_POWERUP)
 	{
-		G_SoundIndex("sound/items/poweruprespawn.wav");
+		G_SoundIndex("sound/items/poweruprespawn.ogg");
 		G_SpawnFloat("noglobalsound", "0", &ent->speed);
 	}
 

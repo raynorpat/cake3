@@ -458,8 +458,8 @@ CG_EditHud_f
 */
 /*
 static void CG_EditHud_f( void ) {
-  //cls.keyCatchers ^= KEYCATCH_CGAME;
-  //VM_Call (cgvm, CG_EVENT_HANDLING, (cls.keyCatchers & KEYCATCH_CGAME) ? CGAME_EVENT_EDITHUD : CGAME_EVENT_NONE);
+  //Key_GetCatcher() ^= KEYCATCH_CGAME;
+  //VM_Call (cgvm, CG_EVENT_HANDLING, (Key_GetCatcher() & KEYCATCH_CGAME) ? CGAME_EVENT_EDITHUD : CGAME_EVENT_NONE);
 }
 */
 
@@ -517,7 +517,7 @@ static consoleCommand_t commands[] = {
 	{"testModel", CG_TestModel_f},
 	{"testGun", CG_TestGun_f},
 	{"testAnimation", CG_TestAnimation_f},
-	{"testAnimation2", CG_TestAnimation2_f},
+	{"testBlend", CG_TestBlend_f},
 	{"testOmniLight", CG_TestOmniLight_f},
 	{"testProjLight", CG_TestProjLight_f},
 	{"testFlashLight", CG_TestFlashLight_f},
@@ -659,4 +659,7 @@ void CG_InitConsoleCommands(void)
 	trap_AddCommand("lua_stackdump");
 	trap_AddCommand("lua_restart");
 #endif
+
+	// for ACEBot
+	trap_AddCommand("savenodes");
 }

@@ -189,6 +189,7 @@ void            SP_target_position(gentity_t * ent);
 void            SP_target_null(gentity_t * ent);
 void            SP_target_location(gentity_t * ent);
 void            SP_target_push(gentity_t * ent);
+void            SP_target_fx(gentity_t * ent);
 
 void            SP_light(gentity_t * self);
 void            SP_info_null(gentity_t * self);
@@ -260,7 +261,6 @@ spawn_t         spawns[] = {
 	{"target_give", SP_target_give},
 	{"target_remove_powerups", SP_target_remove_powerups},
 	{"target_delay", SP_target_delay},
-	{"target_speaker", SP_target_speaker},
 	{"target_print", SP_target_print},
 	{"target_laser", SP_target_laser},
 	{"target_score", SP_target_score},
@@ -271,6 +271,10 @@ spawn_t         spawns[] = {
 	{"target_null", SP_target_null},
 	{"target_location", SP_target_location},
 	{"target_push", SP_target_push},
+	{"target_fx", SP_target_fx},
+
+	{"target_speaker", SP_target_speaker},
+	{"speaker", SP_target_speaker},
 
 	{"light", SP_light},
 	{"path_corner", SP_path_corner},

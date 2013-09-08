@@ -28,6 +28,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "bg_public.h"
 #include "bg_local.h"
 
+const vec3_t playerMins = { -15, -15, -24 };
+const vec3_t playerMaxs = { 15, 15, 32 };
+
 pmove_t        *pm;
 pml_t           pml;
 
@@ -917,9 +920,6 @@ static void PM_WalkMove(void)
 	}
 
 	PM_StepSlideMove(qfalse);
-
-	//Com_Printf("velocity2 = %1.1f\n", VectorLength(pm->ps->velocity));
-
 }
 
 
@@ -1230,10 +1230,10 @@ static void PM_GroundTraceMissed(void)
 		// if they aren't in a jumping animation and the ground is a ways away, force into it
 		// if we didn't do the trace, the player would be backflipping down staircases
 		VectorCopy(pm->ps->origin, point);
-		point[2] -= 64;
+		point[2] -= 64.0f;
 
 		pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
-		if(trace.fraction == 1.0)
+		if(trace.fraction == 1.0f)
 		{
 			if(pm->cmd.forwardmove >= 0)
 			{
@@ -1385,22 +1385,22 @@ static void PM_SetWaterLevel(void)
 
 	point[0] = pm->ps->origin[0];
 	point[1] = pm->ps->origin[1];
-	point[2] = pm->ps->origin[2] + MINS_Z + 1;
+	point[2] = pm->ps->origin[2] + playerMins[2] + 1;
 	cont = pm->pointcontents(point, pm->ps->clientNum);
 
 	if(cont & MASK_WATER)
 	{
-		sample2 = pm->ps->viewheight - MINS_Z;
+		sample2 = pm->ps->viewheight - playerMins[2];
 		sample1 = sample2 / 2;
 
 		pm->watertype = cont;
 		pm->waterlevel = 1;
-		point[2] = pm->ps->origin[2] + MINS_Z + sample1;
+		point[2] = pm->ps->origin[2] + playerMins[2] + sample1;
 		cont = pm->pointcontents(point, pm->ps->clientNum);
 		if(cont & MASK_WATER)
 		{
 			pm->waterlevel = 2;
-			point[2] = pm->ps->origin[2] + MINS_Z + sample2;
+			point[2] = pm->ps->origin[2] + playerMins[2] + sample2;
 			cont = pm->pointcontents(point, pm->ps->clientNum);
 			if(cont & MASK_WATER)
 			{
@@ -1432,8 +1432,9 @@ static void PM_CheckDuck(void)
 		}
 		else
 		{
-			VectorSet(pm->mins, -15, -15, MINS_Z);
-			VectorSet(pm->maxs, 15, 15, 16);
+			// Tr3B: use global player size constants
+			VectorCopy(playerMins, pm->mins);
+			VectorCopy(playerMaxs, pm->maxs);
 		}
 		pm->ps->pm_flags |= PMF_DUCKED;
 		pm->ps->viewheight = CROUCH_VIEWHEIGHT;
@@ -1441,13 +1442,9 @@ static void PM_CheckDuck(void)
 	}
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
 
-	pm->mins[0] = -15;
-	pm->mins[1] = -15;
-
-	pm->maxs[0] = 15;
-	pm->maxs[1] = 15;
-
-	pm->mins[2] = MINS_Z;
+	// Tr3B: use global player size constants
+	VectorCopy(playerMins, pm->mins);
+	VectorCopy(playerMaxs, pm->maxs);
 
 	if(pm->ps->pm_type == PM_DEAD)
 	{
@@ -1465,7 +1462,7 @@ static void PM_CheckDuck(void)
 		if(pm->ps->pm_flags & PMF_DUCKED)
 		{
 			// try to stand up
-			pm->maxs[2] = 32;
+			pm->maxs[2] = playerMaxs[2];
 			pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
 			if(!trace.allsolid)
 				pm->ps->pm_flags &= ~PMF_DUCKED;
@@ -1474,12 +1471,12 @@ static void PM_CheckDuck(void)
 
 	if(pm->ps->pm_flags & PMF_DUCKED)
 	{
-		pm->maxs[2] = 16;
+		pm->maxs[2] = CROUCH_HEIGHT;
 		pm->ps->viewheight = CROUCH_VIEWHEIGHT;
 	}
 	else
 	{
-		pm->maxs[2] = 32;
+		pm->maxs[2] = playerMaxs[2];
 		pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
 	}
 }

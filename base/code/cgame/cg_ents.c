@@ -69,7 +69,6 @@ void CG_PositionRotatedEntityOnTag(refEntity_t * entity, const refEntity_t * par
 	orientation_t   lerped;
 	vec3_t          tempAxis[3];
 
-//AxisClear( entity->axis );
 	// lerp the tag
 	trap_R_LerpTag(&lerped, parentModel, parent->oldframe, parent->frame, 1.0 - parent->backlerp, tagName);
 
@@ -83,6 +82,106 @@ void CG_PositionRotatedEntityOnTag(refEntity_t * entity, const refEntity_t * par
 	// had to cast away the const to avoid compiler problems...
 	AxisMultiply(entity->axis, lerped.axis, tempAxis);
 	AxisMultiply(tempAxis, ((refEntity_t *) parent)->axis, entity->axis);
+}
+
+/*
+======================
+CG_PositionRotatedEntityOnTag
+
+Modifies the entities position and axis by the given
+tag location
+======================
+*/
+qboolean CG_PositionRotatedEntityOnBone(refEntity_t * entity, const refEntity_t * parent, qhandle_t parentModel, char *tagName)
+{
+	int             i;
+	int             boneIndex;
+	orientation_t   lerped;
+	vec3_t          tempAxis[3];
+
+	// lerp the tag
+	boneIndex = trap_R_BoneIndex(parentModel, tagName);
+	if(boneIndex == -1)
+		return qfalse;
+
+	VectorCopy(parent->skeleton.bones[boneIndex].origin, lerped.origin);
+	QuatToAxis(parent->skeleton.bones[boneIndex].rotation, lerped.axis);
+
+	// FIXME: allow origin offsets along tag?
+	VectorCopy(parent->origin, entity->origin);
+	for(i = 0; i < 3; i++)
+	{
+		VectorMA(entity->origin, lerped.origin[i], parent->axis[i], entity->origin);
+	}
+
+	// had to cast away the const to avoid compiler problems...
+	AxisMultiply(entity->axis, lerped.axis, tempAxis);
+	AxisMultiply(tempAxis, ((refEntity_t *) parent)->axis, entity->axis);
+
+	return qtrue;
+}
+
+
+/*
+=================
+CG_TransformSkeleton
+
+transform relative bones to absolute ones required for vertex skinning
+=================
+*/
+void CG_TransformSkeleton(refSkeleton_t * skel, const vec3_t scale)
+{
+	int             i;
+	refBone_t      *bone;
+
+	switch (skel->type)
+	{
+		case SK_INVALID:
+		case SK_ABSOLUTE:
+			return;
+
+		default:
+			break;
+	}
+
+	// calculate absolute transforms
+	for(i = 0, bone = &skel->bones[0]; i < skel->numBones; i++, bone++)
+	{
+		if(bone->parentIndex >= 0)
+		{
+			vec3_t          rotated;
+			quat_t          quat;
+
+			refBone_t      *parent;
+
+			parent = &skel->bones[bone->parentIndex];
+
+			QuatTransformVector(parent->rotation, bone->origin, rotated);
+
+			if(scale)
+			{
+				rotated[0] *= scale[0];
+				rotated[1] *= scale[1];
+				rotated[2] *= scale[2];
+			}
+
+			VectorAdd(parent->origin, rotated, bone->origin);
+
+			QuatMultiply1(parent->rotation, bone->rotation, quat);
+			QuatCopy(quat, bone->rotation);
+		}
+	}
+
+	skel->type = SK_ABSOLUTE;
+
+	if(scale)
+	{
+		VectorCopy(scale, skel->scale);
+	}
+	else
+	{
+		VectorSet(skel->scale, 1, 1, 1);
+	}
 }
 
 
@@ -339,6 +438,9 @@ static void CG_Item(centity_t * cent)
 		VectorScale(ent.axis[1], frac, ent.axis[1]);
 		VectorScale(ent.axis[2], frac, ent.axis[2]);
 		ent.nonNormalizedAxes = qtrue;
+
+		// don't cast shadows in this time period
+		ent.renderfx |= RF_NOSHADOW;
 	}
 	else
 	{
@@ -373,6 +475,12 @@ static void CG_Item(centity_t * cent)
 		ent.nonNormalizedAxes = qtrue;
 	}
 #endif
+
+	// Tr3B: added skins support so we don't need multiple versions of the same team models
+	if(item->skins[0])
+	{
+		ent.customSkin = cg_items[es->modelindex].skins[0];
+	}
 
 	// add to refresh list
 	trap_R_AddRefEntityToScene(&ent);
@@ -424,6 +532,9 @@ static void CG_Item(centity_t * cent)
 					VectorScale(ent.axis[1], frac, ent.axis[1]);
 					VectorScale(ent.axis[2], frac, ent.axis[2]);
 					ent.nonNormalizedAxes = qtrue;
+
+					// don't cast shadows in this time period
+					ent.renderfx |= RF_NOSHADOW;
 				}
 				trap_R_AddRefEntityToScene(&ent);
 			}
@@ -662,22 +773,21 @@ Also called as an event
 */
 void CG_Beam(centity_t * cent)
 {
-	refEntity_t     ent;
+	refEntity_t     beam;
 	entityState_t  *s1;
+
+	//CG_Printf("CG_Beam()\n");
 
 	s1 = &cent->currentState;
 
-	// create the render entity
-	memset(&ent, 0, sizeof(ent));
-	VectorCopy(s1->pos.trBase, ent.origin);
-	VectorCopy(s1->origin2, ent.oldorigin);
-	AxisClear(ent.axis);
-	ent.reType = RT_BEAM;
+	memset(&beam, 0, sizeof(beam));
 
-	ent.renderfx = RF_NOSHADOW;
+	VectorCopy(s1->pos.trBase, beam.origin);
+	VectorCopy(s1->origin2, beam.oldorigin);
 
-	// add to refresh list
-	trap_R_AddRefEntityToScene(&ent);
+	beam.reType = RT_LIGHTNING;
+	beam.customShader = cgs.media.lightningShader;
+	trap_R_AddRefEntityToScene(&beam);
 }
 
 
@@ -714,6 +824,120 @@ static void CG_Portal(centity_t * cent)
 	trap_R_AddRefEntityToScene(&ent);
 }
 
+
+/*
+==================
+CG_AI_Node
+==================
+*/
+static void CG_AI_Node(centity_t * cent)
+{
+	refEntity_t     ent;
+	vec3_t          origin, delta, dir, vec, up = { 0, 0, 1 };
+	float           len;
+	int             i, node, digits[10], numdigits, negative;
+	int             numberSize = 8;
+
+	entityState_t  *s1;
+
+	s1 = &cent->currentState;
+
+	memset(&ent, 0, sizeof(ent));
+
+#if 0
+
+	// set frame
+	VectorCopy(cent->lerpOrigin, ent.origin);
+	VectorCopy(cent->lerpOrigin, ent.oldorigin);
+
+	// convert angles to axis
+	AnglesToAxis(cent->lerpAngles, ent.axis);
+
+	// add to refresh list
+	trap_R_AddRefEntityToScene(&ent);
+
+#else
+	// draw node number as sprite
+	// code based on CG_AddScorePlum
+
+	ent.reType = RT_SPRITE;
+	ent.radius = 5;
+
+	ent.shaderRGBA[0] = 0xff;
+	ent.shaderRGBA[1] = 0xff;
+	ent.shaderRGBA[2] = 0xff;
+	ent.shaderRGBA[3] = 0xff;
+
+	VectorCopy(cent->lerpOrigin, origin);
+	origin[2] += 5;
+
+	VectorSubtract(cg.refdef.vieworg, origin, dir);
+	CrossProduct(dir, up, vec);
+	VectorNormalize(vec);
+
+	//VectorMA(origin, -10 + 20 * sin(c * 2 * M_PI), vec, origin);
+
+	// if the view would be "inside" the sprite, kill the sprite
+	// so it doesn't add too much overdraw
+	VectorSubtract(origin, cg.refdef.vieworg, delta);
+	len = VectorLength(delta);
+	if(len < 20)
+	{
+		return;
+	}
+
+	node = s1->otherEntityNum;
+
+	negative = qfalse;
+	if(node < 0)
+	{
+		negative = qtrue;
+		node = -node;
+	}
+
+	for(numdigits = 0; !(numdigits && !node); numdigits++)
+	{
+		digits[numdigits] = node % 10;
+		node = node / 10;
+	}
+
+	if(negative)
+	{
+		digits[numdigits] = 10;
+		numdigits++;
+	}
+
+	for(i = 0; i < numdigits; i++)
+	{
+		VectorMA(origin, (float)(((float)numdigits / 2) - i) * numberSize, vec, ent.origin);
+		ent.customShader = cgs.media.numberShaders[digits[numdigits - 1 - i]];
+		trap_R_AddRefEntityToScene(&ent);
+	}
+#endif
+}
+
+/*
+===============
+CG_AI_Link
+===============
+*/
+static void CG_AI_Link(centity_t * cent)
+{
+	refEntity_t     beam;
+	entityState_t  *s1;
+
+	s1 = &cent->currentState;
+
+	memset(&beam, 0, sizeof(beam));
+
+	VectorCopy(s1->pos.trBase, beam.origin);
+	VectorCopy(s1->origin2, beam.oldorigin);
+
+	//beam.reType = RT_BEAM;
+	beam.reType = RT_LIGHTNING;
+	beam.customShader = cgs.media.lightningShader;
+	trap_R_AddRefEntityToScene(&beam);
+}
 
 /*
 =========================
@@ -1077,6 +1301,12 @@ static void CG_AddCEntity(centity_t * cent)
 		case ET_TEAM:
 			CG_TeamBase(cent);
 			break;
+		case ET_AI_NODE:
+			CG_AI_Node(cent);
+			break;
+		case ET_AI_LINK:
+			CG_AI_Link(cent);
+			break;
 	}
 }
 
@@ -1139,4 +1369,23 @@ void CG_AddPacketEntities(void)
 		cent = &cg_entities[cg.snap->entities[num].number];
 		CG_AddCEntity(cent);
 	}
+}
+
+/*
+===============
+CG_UniqueNoShadowID
+===============
+*/
+int CG_UniqueNoShadowID(void)
+{
+	static int      noShadowID = 1;
+
+	noShadowID++;
+
+	if(!noShadowID)
+	{
+		noShadowID = 1;
+	}
+
+	return noShadowID;
 }

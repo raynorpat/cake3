@@ -76,6 +76,7 @@ void CG_TestModel_f(void)
 	memset(&cg.testModelEntity, 0, sizeof(cg.testModelEntity));
 	if(trap_Argc() < 2)
 	{
+		CG_Printf("usage: testModel <modelname> [lerp]\n");
 		return;
 	}
 
@@ -84,7 +85,7 @@ void CG_TestModel_f(void)
 
 	if(trap_Argc() == 3)
 	{
-		cg.testModelEntity.backlerp = atof(CG_Argv(2));
+		cg.testModelEntity.backlerp = 1.0f - atof(CG_Argv(2));
 		cg.testModelEntity.frame = 1;
 		cg.testModelEntity.oldframe = 0;
 	}
@@ -126,7 +127,12 @@ CG_TestAnimation_f
 */
 void CG_TestAnimation_f(void)
 {
-	/*
+	if(trap_Argc() < 2)
+	{
+		CG_Printf("usage: testAnimation <animationname>\n");
+		return;
+	}
+
 	Q_strncpyz(cg.testAnimationName, CG_Argv(1), MAX_QPATH);
 	cg.testAnimation = trap_R_RegisterAnimation(cg.testAnimationName);
 
@@ -136,39 +142,37 @@ void CG_TestAnimation_f(void)
 		return;
 	}
 	
-	if(!trap_R_ResetSkeleton(&cg.testModelEntity.skeleton, cg.testModelEntity.hModel))
+	// check the bones if they match
+	if(!trap_R_CheckSkeleton(&cg.testModelEntity.skeleton, cg.testModelEntity.hModel, cg.testAnimation))
 	{
-		CG_Printf("Can't reset skeleton\n");
+		CG_Printf("Can't verify animation\n");
 		return;
 	}
-	
-//	CG_Printf("resetted %i bones\n", cg.testModelEntity.skeleton.numBones);
 	
 	// modify bones and set proper local bounds for culling
 	if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
 						  cg.testAnimation,
-						  cg.testModelEntity.oldframe,
-						  cg.testModelEntity.frame,
-						  1.0 - cg.testModelEntity.backlerp))
+							 cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 	{
 		CG_Printf("Can't build animation\n");
 		return;
 	}
-	
-	// tell renderer that skeleton is set up properly
-	cg.testModelEntity.renderfx |= RF_SKELETON;
-	*/
 }
 
 
 /*
 =================
-CG_TestAnimation2_f
+CG_TestBlend_f
 =================
 */
-void CG_TestAnimation2_f(void)
+void CG_TestBlend_f(void)
 {
-	/*
+	if(trap_Argc() < 2)
+	{
+		CG_Printf("usage: testBlend <animationname> [lerp factor 0.0 - 1.0]\n");
+		return;
+	}
+
 	if(!cg.testAnimation)
 	{
 		CG_Printf("Use testAnimation first to set a valid animation\n");
@@ -184,12 +188,15 @@ void CG_TestAnimation2_f(void)
 		return;
 	}
 	
+	if(trap_Argc() == 3)
+	{
+		cg.testModelEntity.backlerp = 1.0f - atof(CG_Argv(2));
+	}
+
 	// modify bones and set proper local bounds for culling
 	if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
 		cg.testAnimation,
-		cg.testModelEntity.oldframe,
-		cg.testModelEntity.frame,
-		1.0 - cg.testModelEntity.backlerp))
+		cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 	{
 		CG_Printf("Can't build animation\n");
 		return;
@@ -197,21 +204,18 @@ void CG_TestAnimation2_f(void)
 	
 	if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
 		cg.testAnimation2,
-		cg.testModelEntity.oldframe,
-		cg.testModelEntity.frame,
-		1.0 - cg.testModelEntity.backlerp))
+        cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 	{
 		CG_Printf("Can't build animation2\n");
 		return;
 	}
 	
 	// lerp between first and second animation
-	if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 0.5))
+	if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
 	{
 		CG_Printf("Can't blend animation2\n");
 		return;
 	}
-	*/
 }
 
 void CG_TestModelNextFrame_f(void)
@@ -224,8 +228,7 @@ void CG_TestModelNextFrame_f(void)
 		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
 			cg.testAnimation,
 			cg.testModelEntity.oldframe,
-			cg.testModelEntity.frame,
-			1.0 - cg.testModelEntity.backlerp))
+			cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 		{
 			CG_Printf("Can't build animation\n");
 		}
@@ -236,8 +239,7 @@ void CG_TestModelNextFrame_f(void)
 		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
 			cg.testAnimation2,
 			cg.testModelEntity.oldframe,
-			cg.testModelEntity.frame,
-			1.0 - cg.testModelEntity.backlerp))
+			cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 		{
 			CG_Printf("Can't build animation2\n");
 		}
@@ -263,8 +265,7 @@ void CG_TestModelPrevFrame_f(void)
 		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
 			cg.testAnimation,
 			cg.testModelEntity.oldframe,
-			cg.testModelEntity.frame,
-			1.0 - cg.testModelEntity.backlerp))
+			cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 		{
 			CG_Printf("Can't build animation\n");
 		}
@@ -275,13 +276,86 @@ void CG_TestModelPrevFrame_f(void)
 		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
 			cg.testAnimation2,
 			cg.testModelEntity.oldframe,
-			cg.testModelEntity.frame,
-			1.0 - cg.testModelEntity.backlerp))
+			cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
 		{
 			CG_Printf("Can't build animation2\n");
 		}
 		
 		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 0.5))
+		{
+			CG_Printf("Can't blend animation2\n");
+		}
+	}
+}
+
+void CG_TestModelIncreaseLerp_f(void)
+{
+	cg.testModelEntity.backlerp -= 0.1f;
+	if(cg.testModelEntity.backlerp < 0)
+	{
+		cg.testModelEntity.backlerp = 0;
+	}
+	CG_Printf("lerp %f\n", 1.0f - cg.testModelEntity.backlerp);
+
+	if(cg.testAnimation)
+	{
+		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
+								 cg.testAnimation,
+								 cg.testModelEntity.oldframe,
+								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		{
+			CG_Printf("Can't build animation\n");
+		}
+	}
+
+	if(cg.testAnimation2)
+	{
+		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
+								 cg.testAnimation2,
+								 cg.testModelEntity.oldframe,
+								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		{
+			CG_Printf("Can't build animation2\n");
+		}
+
+		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
+		{
+			CG_Printf("Can't blend animation2\n");
+		}
+	}
+}
+
+void CG_TestModelDecreaseLerp_f(void)
+{
+	cg.testModelEntity.backlerp += 0.1f;
+	if(cg.testModelEntity.backlerp > 1.0)
+	{
+		cg.testModelEntity.backlerp = 1;
+	}
+	CG_Printf("lerp %f\n", 1.0f - cg.testModelEntity.backlerp);
+
+	if(cg.testAnimation)
+	{
+		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
+								 cg.testAnimation,
+								 cg.testModelEntity.oldframe,
+								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		{
+			CG_Printf("Can't build animation\n");
+		}
+	}
+
+	if(cg.testAnimation2)
+	{
+		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
+								 cg.testAnimation2,
+								 cg.testModelEntity.oldframe,
+								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		{
+			CG_Printf("Can't build animation2\n");
+		}
+
+		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't blend animation2\n");
 		}
@@ -333,6 +407,35 @@ static void CG_AddTestModel(void)
 		}
 	}
 
+#if 0
+	if(cg.testAnimation)
+	{
+		int             max = trap_R_AnimNumFrames(cg.testAnimation);
+
+		cg.testModelEntity.oldframe = cg.testModelEntity.frame;
+
+		cg.testModelEntity.frame++;
+		if(cg.testModelEntity.frame >= max)
+		{
+			cg.testModelEntity.frame = 0;
+		}
+
+		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
+								 cg.testAnimation,
+								 cg.testModelEntity.oldframe,
+								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		{
+			CG_Printf("Can't build animation\n");
+		}
+	}
+#endif
+
+	if(cg.testModelEntity.skeleton.type == SK_RELATIVE)
+	{
+		// transform relative bones to absolute ones required for vertex skinning
+		CG_TransformSkeleton(&cg.testModelEntity.skeleton, NULL);
+	}
+
 	trap_R_AddRefEntityToScene(&cg.testModelEntity);
 }
 
@@ -346,7 +449,6 @@ Creates a omni-directional light in front of the current position, which can the
 */
 void CG_TestOmniLight_f(void)
 {
-/*
 	vec3_t          angles;
 
 	memset(&cg.testLight, 0, sizeof(cg.testLight));
@@ -374,18 +476,17 @@ void CG_TestOmniLight_f(void)
 	cg.testLight.color[1] = 1.0;
 	cg.testLight.color[2] = 1.0;
 	
-	cg.testLight.radius[0] = 200;
-	cg.testLight.radius[1] = 200;
-	cg.testLight.radius[2] = 200;
+	cg.testLight.radius[0] = 300;
+	cg.testLight.radius[1] = 300;
+	cg.testLight.radius[2] = 300;
 
 	angles[PITCH] = cg.refdefViewAngles[PITCH];
 	angles[YAW] = cg.refdefViewAngles[YAW];// + 180;
 	angles[ROLL] = 0;
 
-	AnglesToAxis(angles, cg.testLight.axis);
+	AnglesToQuat(angles, cg.testLight.rotation);
 	
 	cg.testFlashLight = qfalse;
-	*/
 }
 
 
@@ -398,7 +499,8 @@ Creates a projective light in front of the current position, which can then be m
 */
 void CG_TestProjLight_f(void)
 {
-	/*
+	float           fov_x;
+
 	memset(&cg.testLight, 0, sizeof(cg.testLight));
 	if(trap_Argc() < 2)
 	{
@@ -418,30 +520,22 @@ void CG_TestProjLight_f(void)
 	cg.testLight.rlType = RL_PROJ;
 //	cg.testLight.lightfx = LF_ROTATION;
 
-	VectorMA(cg.refdef.vieworg, 10, cg.refdef.viewaxis[0], cg.testLight.origin);
+	VectorCopy(cg.refdef.vieworg, cg.testLight.origin);
 	
 	cg.testLight.color[0] = 1.0;
 	cg.testLight.color[1] = 1.0;
 	cg.testLight.color[2] = 1.0;
 	
-	cg.testLight.radius[0] = 500;
-	cg.testLight.radius[1] = 100;
-	cg.testLight.radius[2] = 100;
+	QuatClear(cg.testLight.rotation);
 	
-#if 1
-	VectorCopy(cg.refdef.viewaxis[0], cg.testLight.axis[0]);
-	VectorCopy(cg.refdef.viewaxis[1], cg.testLight.axis[1]);
-	VectorCopy(cg.refdef.viewaxis[2], cg.testLight.axis[2]);
-#else
-	AxisClear(cg.testLight.axis);
-#endif
-	
-	VectorSet(cg.testLight.target, 500, 0, 0);
-	VectorSet(cg.testLight.right, 0, -35, 0);
-	VectorSet(cg.testLight.up, 0, 0, 35);
+	fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
+	VectorCopy(cg.refdef.viewaxis[0], cg.testLight.projTarget);
+	VectorScale(cg.refdef.viewaxis[1], -fov_x, cg.testLight.projRight);
+	VectorScale(cg.refdef.viewaxis[2], fov_x, cg.testLight.projUp);
+	VectorScale(cg.refdef.viewaxis[0], 10, cg.testLight.projStart);
+	VectorScale(cg.refdef.viewaxis[0], 1000, cg.testLight.projEnd);
 	
 	cg.testFlashLight = qfalse;
-	*/
 }
 
 /*
@@ -464,8 +558,7 @@ void CG_TestFlashLight_f(void)
 
 static void CG_AddTestLight(void)
 {
-	/*
-//	int             i;
+	float           fov_x;
 
 	// re-register the model, because the level may have changed
 	cg.testLight.attenuationShader = trap_R_RegisterShaderLightAttenuation(cg.testLightName);
@@ -478,15 +571,17 @@ static void CG_AddTestLight(void)
 	// if testing a flashlight, set the projection direction reletive to the view direction
 	if(cg.testFlashLight)
 	{
-		VectorMA(cg.refdef.vieworg, 10, cg.refdef.viewaxis[0], cg.testLight.origin);
+		VectorCopy(cg.refdef.vieworg, cg.testLight.origin);
 		
-		VectorCopy(cg.refdef.viewaxis[0], cg.testLight.axis[0]);
-		VectorCopy(cg.refdef.viewaxis[1], cg.testLight.axis[1]);
-		VectorCopy(cg.refdef.viewaxis[2], cg.testLight.axis[2]);
+		fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
+		VectorCopy(cg.refdef.viewaxis[0], cg.testLight.projTarget);
+		VectorScale(cg.refdef.viewaxis[1], -fov_x, cg.testLight.projRight);
+		VectorScale(cg.refdef.viewaxis[2], fov_x, cg.testLight.projUp);
+		VectorScale(cg.refdef.viewaxis[0], 10, cg.testLight.projStart);
+		VectorScale(cg.refdef.viewaxis[0], 1000, cg.testLight.projEnd);
 	}
 
 	trap_R_AddRefLightToScene(&cg.testLight);
-	*/
 }
 
 
@@ -528,8 +623,8 @@ static void CG_CalcVrect(void)
 		{
 			size = cg_viewsize.integer;
 		}
-
 	}
+
 	cg.refdef.width = cgs.glconfig.vidWidth * size / 100;
 	cg.refdef.width &= ~1;
 
@@ -612,7 +707,6 @@ static void CG_OffsetThirdPersonView(void)
 			VectorCopy(trace.endpos, view);
 		}
 	}
-
 
 	VectorCopy(view, cg.refdef.vieworg);
 
@@ -933,6 +1027,7 @@ CG_DamageBlendBlob
 */
 static void CG_DamageBlendBlob(void)
 {
+#if 0
 	int             t;
 	int             maxTime;
 	refEntity_t     ent;
@@ -973,6 +1068,7 @@ static void CG_DamageBlendBlob(void)
 	ent.shaderRGBA[2] = 255;
 	ent.shaderRGBA[3] = 200 * (1.0 - ((float)t / maxTime));
 	trap_R_AddRefEntityToScene(&ent);
+#endif
 }
 
 
@@ -1202,6 +1298,10 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 
 	// build cg.refdef
 	inwater = CG_CalcViewValues();
+	if(inwater)
+	{
+		cg.refdef.rdflags |= RDF_UNDERWATER;
+	}
 
 	// first person blend blobs, done after AnglesToAxis
 	if(!cg.renderingThirdPerson)
@@ -1286,6 +1386,4 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 	{
 		CG_Printf("cg.clientFrame:%i\n", cg.clientFrame);
 	}
-
-
 }
