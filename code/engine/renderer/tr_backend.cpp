@@ -535,7 +535,7 @@ void GL_State(uint32_t stateBits)
 					break;
 				default:
 					srcFactor = GL_ONE;	// to get warning to shut up
-					ri.Error(ERR_DROP, "GL_State: invalid src blend state bits\n");
+					//ri.Error(ERR_DROP, "GL_State: invalid src blend state bits\n");
 					break;
 			}
 
@@ -567,7 +567,7 @@ void GL_State(uint32_t stateBits)
 					break;
 				default:
 					dstFactor = GL_ONE;	// to get warning to shut up
-					ri.Error(ERR_DROP, "GL_State: invalid dst blend state bits\n");
+					//ri.Error(ERR_DROP, "GL_State: invalid dst blend state bits\n");
 					break;
 			}
 

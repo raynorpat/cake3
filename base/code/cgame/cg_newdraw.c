@@ -28,7 +28,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 extern displayContextDef_t cgDC;
 
-
 // set in CG_ParseTeamInfo
 
 //static int sortedTeamPlayers[TEAM_MAXOVERLAY];
@@ -2181,11 +2180,11 @@ void CG_ShowTeamMenu(void)
 /*
 ==================
 CG_EventHandling
-==================
+
  type 0 - no event handling
       1 - team menu
       2 - hud editor
-
+==================
 */
 void CG_EventHandling(int type)
 {
@@ -2201,9 +2200,7 @@ void CG_EventHandling(int type)
 	else if(type == CGAME_EVENT_SCOREBOARD)
 	{
 	}
-
 }
-
 
 
 void CG_KeyEvent(int key, qboolean down)
@@ -2227,8 +2224,6 @@ void CG_KeyEvent(int key, qboolean down)
 	//  CG_EventHandling(CGAME_EVENT_NONE);
 	//  trap_Key_SetCatcher(0);
 	//}
-
-
 
 	Display_HandleKey(key, down, cgs.cursorX, cgs.cursorY);
 
@@ -2269,7 +2264,6 @@ void CG_ShowResponseHead(void)
 void CG_RunMenuScript(char **args)
 {
 }
-
 
 void CG_GetTeamColor(vec4_t * color)
 {

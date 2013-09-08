@@ -30,8 +30,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 extern menuDef_t *menuScoreboard;
 #endif
 
-
-
 void CG_TargetCommand_f(void)
 {
 	int             targetNum;
@@ -91,10 +89,10 @@ static void CG_Viewpos_f(void)
 
 static void CG_ScoresDown_f(void)
 {
-
 #ifdef MISSIONPACK
 	CG_BuildSpectatorString();
 #endif
+
 	if(cg.scoresRequestTime + 2000 < cg.time)
 	{
 		// the scores are more than two seconds out of data,
@@ -152,7 +150,6 @@ static void CG_LoadHud_f(void)
 	menuScoreboard = NULL;
 }
 
-
 static void CG_scrollScoresDown_f(void)
 {
 	if(menuScoreboard && cg.scoreBoardShowing)
@@ -173,7 +170,6 @@ static void CG_scrollScoresUp_f(void)
 		Menu_ScrollFeeder(menuScoreboard, FEEDER_BLUETEAM_LIST, qfalse);
 	}
 }
-
 
 static void CG_spWin_f(void)
 {
@@ -438,8 +434,6 @@ static void CG_TaskSuicide_f(void)
 	trap_SendClientCommand(command);
 }
 
-
-
 /*
 ==================
 CG_TeamMenu_f
@@ -512,7 +506,6 @@ static void CG_Camera_f( void ) {
 	}
 }
 */
-
 
 typedef struct
 {
