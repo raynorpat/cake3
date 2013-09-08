@@ -1,0 +1,25 @@
+
+models/players/visor/visor
+{
+	{
+		stage diffuseMap
+		map models/players/visor/visor.tga
+	}
+}
+
+models/players/visor/red
+{
+	{
+		stage diffuseMap
+		map models/players/visor/red.tga
+	}
+}
+
+models/players/visor/blue
+{
+	{
+		stage diffuseMap
+		map models/players/visor/blue.tga
+	}
+}
+
