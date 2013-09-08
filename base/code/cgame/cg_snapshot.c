@@ -201,6 +201,7 @@ static void CG_TransitionSnapshot(void)
 			CG_TransitionPlayerState(ps, ops);
 		}
 	}
+
 }
 
 
@@ -288,7 +289,7 @@ static snapshot_t *CG_ReadNextSnapshot(void)
 
 	if(cg.latestSnapshotNum > cgs.processedSnapshotNum + 1000)
 	{
-		CG_Printf("WARNING: CG_ReadNextSnapshot: way out of range, %i > %i", cg.latestSnapshotNum, cgs.processedSnapshotNum);
+		CG_Printf("WARNING: CG_ReadNextSnapshot: way out of range, %i > %i\n", cg.latestSnapshotNum, cgs.processedSnapshotNum);
 	}
 
 	while(cgs.processedSnapshotNum < cg.latestSnapshotNum)

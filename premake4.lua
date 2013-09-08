@@ -111,5 +111,6 @@ include "base/code/cgame"
 include "base/code/ui"
 
 -- tools
+include "code/tools/bspc"
 include "code/tools/xmap2"
 include "code/tools/master"

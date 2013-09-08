@@ -20,13 +20,19 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
+//
 // cg_syscalls.c -- this file is only included when building a dll
+// cg_syscalls.asm is included instead when building a qvm
+#ifdef Q3_VM
+#error "Do not use in VM build"
+#endif
+
 #include "cg_local.h"
 
-static          intptr_t(QDECL * syscall) (intptr_t arg, ...) = (intptr_t(QDECL *) (intptr_t,...)) - 1;
+static intptr_t      (QDECL * syscall) (intptr_t arg, ...) = (intptr_t (QDECL *) (intptr_t,...))-1;
 
 
-void dllEntry(intptr_t(QDECL * syscallptr) (intptr_t arg, ...))
+void dllEntry(intptr_t (QDECL * syscallptr) (intptr_t arg, ...))
 {
 	syscall = syscallptr;
 }
@@ -115,11 +121,6 @@ int trap_FS_Seek(fileHandle_t f, long offset, int origin)
 	return syscall(CG_FS_SEEK, f, offset, origin);
 }
 
-int trap_FS_GetFileList(const char *path, const char *extension, char *listbuf, int bufsize)
-{
-	return syscall(CG_FS_GETFILELIST, path, extension, listbuf, bufsize);
-}
-
 void trap_SendConsoleCommand(const char *text)
 {
 	syscall(CG_SENDCONSOLECOMMAND, text);
@@ -128,11 +129,6 @@ void trap_SendConsoleCommand(const char *text)
 void trap_AddCommand(const char *cmdName)
 {
 	syscall(CG_ADDCOMMAND, cmdName);
-}
-
-void trap_AddCommandAlias(const char *cmdName, const char *cmdOther)
-{
-	syscall(CG_ADDCOMMANDALIAS, cmdName, cmdOther);
 }
 
 void trap_RemoveCommand(const char *cmdName)
@@ -211,19 +207,6 @@ void trap_CM_TransformedCapsuleTrace(trace_t * results, const vec3_t start, cons
 	syscall(CG_CM_TRANSFORMEDCAPSULETRACE, results, start, end, mins, maxs, model, brushmask, origin, angles);
 }
 
-void trap_CM_BiSphereTrace(trace_t * results, const vec3_t start,
-						   const vec3_t end, float startRad, float endRad, clipHandle_t model, int mask)
-{
-	syscall(CG_CM_BISPHERETRACE, results, start, end, PASSFLOAT(startRad), PASSFLOAT(endRad), model, mask);
-}
-
-void trap_CM_TransformedBiSphereTrace(trace_t * results, const vec3_t start,
-									  const vec3_t end, float startRad, float endRad,
-									  clipHandle_t model, int mask, const vec3_t origin)
-{
-	syscall(CG_CM_TRANSFORMEDBISPHERETRACE, results, start, end, PASSFLOAT(startRad), PASSFLOAT(endRad), model, mask, origin);
-}
-
 int trap_CM_MarkFragments(int numPoints, const vec3_t * points,
 						  const vec3_t projection,
 						  int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t * fragmentBuffer)
@@ -271,9 +254,9 @@ void trap_S_Respatialize(int entityNum, const vec3_t origin, vec3_t axis[3], int
 	syscall(CG_S_RESPATIALIZE, entityNum, origin, axis, inwater);
 }
 
-sfxHandle_t trap_S_RegisterSound(const char *sample)
+sfxHandle_t trap_S_RegisterSound(const char *sample, qboolean compressed)
 {
-	return syscall(CG_S_REGISTERSOUND, sample);
+	return syscall(CG_S_REGISTERSOUND, sample, compressed);
 }
 
 void trap_S_StartBackgroundTrack(const char *intro, const char *loop)
@@ -382,34 +365,14 @@ int trap_R_LerpTag(orientation_t * tag, clipHandle_t mod, int startFrame, int en
 	return syscall(CG_R_LERPTAG, tag, mod, startFrame, endFrame, PASSFLOAT(frac), tagName);
 }
 
-int trap_R_CheckSkeleton(refSkeleton_t * skel, qhandle_t hModel, qhandle_t hAnim)
+int trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac)
 {
-	return syscall(CG_R_CHECKSKELETON, skel, hModel, hAnim);
-}
-
-int trap_R_BuildSkeleton(refSkeleton_t * skel, qhandle_t anim, int startFrame, int endFrame, float frac, qboolean clearOrigin)
-{
-	return syscall(CG_R_BUILDSKELETON, skel, anim, startFrame, endFrame, PASSFLOAT(frac), clearOrigin);
+	return syscall(CG_R_BUILDSKELETON, skel, anim, startFrame, endFrame, PASSFLOAT(frac));
 }
 
 int trap_R_BlendSkeleton(refSkeleton_t * skel, const refSkeleton_t * blend, float frac)
 {
 	return syscall(CG_R_BLENDSKELETON, skel, blend, PASSFLOAT(frac));
-}
-
-int trap_R_BoneIndex(qhandle_t hModel, const char *boneName)
-{
-	return syscall(CG_R_BONEINDEX, hModel, boneName);
-}
-
-int trap_R_AnimNumFrames(qhandle_t hAnim)
-{
-	return syscall(CG_R_ANIMNUMFRAMES, hAnim);
-}
-
-int trap_R_AnimFrameRate(qhandle_t hAnim)
-{
-	return syscall(CG_R_ANIMFRAMERATE, hAnim);
 }
 
 void trap_R_RemapShader(const char *oldShader, const char *newShader, const char *timeOffset)
@@ -492,29 +455,35 @@ int trap_Key_GetKey(const char *binding)
 	return syscall(CG_KEY_GETKEY, binding);
 }
 
+int Parse_AddGlobalDefine(char *string);
+int Parse_LoadSourceHandle(const char *filename);
+int Parse_FreeSourceHandle(int handle);
+int Parse_ReadTokenHandle(int handle, pc_token_t * pc_token);
+int Parse_SourceFileAndLine(int handle, char *filename, int *line);
+
 int trap_PC_AddGlobalDefine(char *define)
 {
-	return syscall(CG_PC_ADD_GLOBAL_DEFINE, define);
+	return Parse_AddGlobalDefine(define);
 }
 
 int trap_PC_LoadSource(const char *filename)
 {
-	return syscall(CG_PC_LOAD_SOURCE, filename);
+	return Parse_LoadSourceHandle(filename);
 }
 
 int trap_PC_FreeSource(int handle)
 {
-	return syscall(CG_PC_FREE_SOURCE, handle);
+	return Parse_FreeSourceHandle(handle);
 }
 
 int trap_PC_ReadToken(int handle, pc_token_t * pc_token)
 {
-	return syscall(CG_PC_READ_TOKEN, handle, pc_token);
+	return Parse_ReadTokenHandle(handle, pc_token);
 }
 
 int trap_PC_SourceFileAndLine(int handle, char *filename, int *line)
 {
-	return syscall(CG_PC_SOURCE_FILE_AND_LINE, handle, filename, line);
+	return Parse_SourceFileAndLine(handle, filename, line);
 }
 
 void trap_S_StopBackgroundTrack(void)
@@ -561,15 +530,19 @@ void trap_CIN_SetExtents(int handle, int x, int y, int w, int h)
 	syscall(CG_CIN_SETEXTENTS, handle, x, y, w, h);
 }
 
-int trap_GetDemoState(void)
-{
-	return syscall(CG_GETDEMOSTATE);
+/*
+qboolean trap_loadCamera( const char *name ) {
+	return syscall( CG_LOADCAMERA, name );
 }
 
-int trap_GetDemoPos(void)
-{
-	return syscall(CG_GETDEMOPOS);
+void trap_startCamera(int time) {
+	syscall(CG_STARTCAMERA, time);
 }
+
+qboolean trap_getCameraInfo( int time, vec3_t *origin, vec3_t *angles) {
+	return syscall( CG_GETCAMERAINFO, time, origin, angles );
+}
+*/
 
 qboolean trap_GetEntityToken(char *buffer, int bufferSize)
 {
@@ -579,24 +552,4 @@ qboolean trap_GetEntityToken(char *buffer, int bufferSize)
 qboolean trap_R_inPVS(const vec3_t p1, const vec3_t p2)
 {
 	return syscall(CG_R_INPVS, p1, p2);
-}
-
-void trap_GetDemoName(char *buffer, int size)
-{
-	syscall(CG_GETDEMONAME, buffer, size);
-}
-
-void trap_Key_KeynumToStringBuf(int keynum, char *buf, int buflen)
-{
-	syscall(CG_KEY_KEYNUMTOSTRINGBUF, keynum, buf, buflen);
-}
-
-void trap_Key_GetBindingBuf(int keynum, char *buf, int buflen)
-{
-	syscall(CG_KEY_GETBINDINGBUF, keynum, buf, buflen);
-}
-
-void trap_Key_SetBinding(int keynum, const char *binding)
-{
-	syscall(CG_KEY_SETBINDING, keynum, binding);
 }

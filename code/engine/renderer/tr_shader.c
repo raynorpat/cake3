@@ -1388,7 +1388,6 @@ static qboolean LoadMap(shaderStage_t * stage, char *buffer)
 	int             imageBits = 0;
 	filterType_t    filterType;
 	wrapType_t      wrapType;
-	qboolean		uncompressed;
 	char           *buffer_p = &buffer[0];
 
 	if(!buffer || !buffer[0])

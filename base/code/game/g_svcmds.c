@@ -20,12 +20,14 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
+//
 
-// g_svcmds.c - this file holds commands that can be executed by the server console, but not remote clients
+// this file holds commands that can be executed by the server console, but not remote clients
+
 #include "g_local.h"
 
 #if defined(ACEBOT)
-#include "acebot.h"
+#include "acebot/acebot.h"
 #endif
 
 
@@ -33,7 +35,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ==============================================================================
 
 PACKET FILTERING
-
+ 
 
 You can add or remove addresses from the filter list with:
 
@@ -296,7 +298,7 @@ void Svcmd_RemoveIP_f(void)
 
 	if(trap_Argc() < 2)
 	{
-		G_Printf("Usage:  sv removeip <ip-mask>\n");
+		G_Printf("Usage: removeip <ip-mask>\n");
 		return;
 	}
 
@@ -327,10 +329,9 @@ Svcmd_EntityList_f
 */
 void Svcmd_EntityList_f(void)
 {
-	int             e, count;
+	int             e;
 	gentity_t      *check;
 
-	count = 0;
 	check = g_entities + 1;
 	for(e = 1; e < level.numEntities; e++, check++)
 	{
@@ -338,8 +339,7 @@ void Svcmd_EntityList_f(void)
 		{
 			continue;
 		}
-
-		count++, G_Printf("%3i:", e);
+		G_Printf("%3i:", e);
 		switch (check->s.eType)
 		{
 			case ET_GENERAL:
@@ -351,11 +351,8 @@ void Svcmd_EntityList_f(void)
 			case ET_ITEM:
 				G_Printf("ET_ITEM             ");
 				break;
-			case ET_PROJECTILE:
-				G_Printf("ET_PROJECTILE       ");
-				break;
-			case ET_PROJECTILE2:
-				G_Printf("ET_PROJECTILE2      ");
+			case ET_MISSILE:
+				G_Printf("ET_MISSILE          ");
 				break;
 			case ET_MOVER:
 				G_Printf("ET_MOVER            ");
@@ -398,8 +395,6 @@ void Svcmd_EntityList_f(void)
 		}
 		G_Printf("\n");
 	}
-
-	G_Printf("%i entities in use\n", count);
 }
 
 gclient_t      *ClientForString(const char *s)
@@ -458,6 +453,12 @@ void Svcmd_ForceTeam_f(void)
 	gclient_t      *cl;
 	char            str[MAX_TOKEN_CHARS];
 
+	if(trap_Argc() < 3)
+	{
+		G_Printf("Usage: forceteam <player> <team>\n");
+		return;
+	}
+
 	// find the player
 	trap_Argv(1, str, sizeof(str));
 	cl = ClientForString(str);
@@ -473,16 +474,17 @@ void Svcmd_ForceTeam_f(void)
 
 char           *ConcatArgs(int start);
 
+
 /*
 =================
 Svcmd_LuaRestart_f
 =================
 */
-#ifdef G_LUA
+#ifdef LUA
 static void Svcmd_LuaRestart_f(void)
 {
-	G_LuaShutdown();
-	G_LuaInit();
+	G_ShutdownLua();
+	G_InitLua();
 }
 #endif
 
@@ -497,26 +499,6 @@ qboolean ConsoleCommand(void)
 	char            cmd[MAX_TOKEN_CHARS];
 
 	trap_Argv(0, cmd, sizeof(cmd));
-
-#ifdef G_LUA
-	if(Q_stricmp(cmd, "lua_status") == 0)
-	{
-		G_LuaStatus(NULL);
-		return qtrue;
-	}
-
-	if(Q_stricmp(cmd, "lua_restart") == 0)
-	{
-		Svcmd_LuaRestart_f();
-		return qtrue;
-	}
-
-	// Lua API callbacks
-	if(G_LuaHook_ConsoleCommand(cmd))
-	{
-		return qtrue;
-	}
-#endif
 
 	if(Q_stricmp(cmd, "entitylist") == 0)
 	{
@@ -567,6 +549,14 @@ qboolean ConsoleCommand(void)
 		Svcmd_RemoveIP_f();
 		return qtrue;
 	}
+	
+#ifdef LUA
+	if(Q_stricmp(cmd, "lua_restart") == 0)
+	{
+		Svcmd_LuaRestart_f();
+		return qtrue;
+	}
+#endif
 
 	if(Q_stricmp(cmd, "listip") == 0)
 	{
@@ -585,7 +575,6 @@ qboolean ConsoleCommand(void)
 
 #if defined(ACEBOT)
 	// ACEBOT_ADD
-
 	if(Q_stricmp(cmd, "addbot") == 0)
 	{
 		char            string[MAX_TOKEN_CHARS];
@@ -651,11 +640,11 @@ qboolean ConsoleCommand(void)
 	{
 		if(Q_stricmp(cmd, "say") == 0)
 		{
-			trap_SendServerCommand(-1, va("print \"server: %s\"", ConcatArgs(1)));
+			trap_SendServerCommand(-1, va("print \"server: %s\n\"", ConcatArgs(1)));
 			return qtrue;
 		}
 		// everything else will also be printed as a say command
-		trap_SendServerCommand(-1, va("print \"server: %s\"", ConcatArgs(0)));
+		trap_SendServerCommand(-1, va("print \"server: %s\n\"", ConcatArgs(0)));
 		return qtrue;
 	}
 

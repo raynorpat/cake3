@@ -209,6 +209,7 @@ typedef struct
 	char            downloadURL[MAX_OSPATH];
 	CURL           *downloadCURL;
 	CURLM          *downloadCURLM;
+	qboolean		activeCURLNotGameRelated;
 #endif							/* USE_CURL */
 	int             sv_allowDownload;
 	char            sv_dlURL[MAX_CVAR_VALUE_STRING];
@@ -218,6 +219,7 @@ typedef struct
 	int             downloadSize;	// how many bytes we got
 	char            downloadList[MAX_INFO_STRING];	// list of paks we need to download
 	qboolean        downloadRestart;	// if true, we need to do another FS_Restart because we downloaded a pak
+	char			newsString[MAX_NEWS_STRING];
 
 	// demo information
 	char            demoName[MAX_QPATH];
@@ -290,12 +292,14 @@ typedef struct
 	char            info[MAX_INFO_STRING];
 } ping_t;
 
+#define MAX_FEATLABEL_CHARS  32
 typedef struct
 {
 	netadr_t        adr;
-	char            hostName[MAX_NAME_LENGTH];
+	char	  	hostName[MAX_HOSTNAME_LENGTH];
 	char            mapName[MAX_NAME_LENGTH];
 	char            game[MAX_NAME_LENGTH];
+	char		label[MAX_FEATLABEL_CHARS]; // for featured servers, NULL otherwise
 	int             netType;
 	int             gameType;
 	int             clients;

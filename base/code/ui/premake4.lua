@@ -1,5 +1,3 @@
-
-
 project "base_ui"
 	targetname  "ui"
 	targetdir 	"../.."
@@ -16,22 +14,13 @@ project "base_ui"
 		
 		"**.c", "**.cpp", "**.h",
 	}
-	excludes
-	{
-		"ui_login.c",
-		"ui_rankings.c",
-		"ui_rankstatus.c",
-		"ui_signup.c",
-		"ui_specifyleague.c",
-		"ui_spreset.c",
-	}
 	includedirs
 	{
 		"../../../code/shared",
 	}
 	defines
 	{ 
-		--"CGAMEDLL",
+		"UI",
 	}
 	
 	--

@@ -298,7 +298,7 @@ int Pickup_Weapon(gentity_t * ent, gentity_t * other)
 
 	Add_Ammo(other, ent->item->giTag, quantity);
 
-	if(ent->item->giTag == WP_GAUNTLET)
+	if(ent->item->giTag == WP_GRAPPLING_HOOK)
 		other->client->ps.ammo[ent->item->giTag] = -1;	// unlimited ammo
 
 	// team deathmatch has slow weapon respawns
@@ -320,7 +320,7 @@ int Pickup_Health(gentity_t * ent, gentity_t * other)
 
 	// small and mega healths will go over the max
 #ifdef MISSIONPACK
-	if(other->client && bg_itemlist[other->client->ps.stats[STAT_PERSISTANT_POWERUP]].giTag == PW_GUARD)
+	if(bg_itemlist[other->client->ps.stats[STAT_PERSISTANT_POWERUP]].giTag == PW_GUARD)
 	{
 		max = other->client->ps.stats[STAT_MAX_HEALTH];
 	}
@@ -443,15 +443,7 @@ void RespawnItem(gentity_t * ent)
 		{
 			te = G_TempEntity(ent->s.pos.trBase, EV_GLOBAL_SOUND);
 		}
-
-		if(ent->item->giTag == PW_QUAD)
-		{
-			te->s.eventParm = G_SoundIndex("sound/items/quadrespawn.ogg");
-		}
-		else
-		{
-			te->s.eventParm = G_SoundIndex("sound/items/poweruprespawn.ogg");
-		}
+		te->s.eventParm = G_SoundIndex("sound/items/poweruprespawn.wav");
 		te->r.svFlags |= SVF_BROADCAST;
 	}
 
@@ -623,8 +615,8 @@ void Touch_Item(gentity_t * ent, gentity_t * other, trace_t * trace)
 	ent->r.contents = 0;
 
 	// ZOID
-	// A negative respawn times means to never respawn this item (but don't
-	// delete it).  This is used by items that are respawned by third party
+	// A negative respawn times means to never respawn this item (but don't 
+	// delete it).  This is used by items that are respawned by third party 
 	// events such as ctf flags
 	if(respawn <= 0)
 	{
@@ -669,15 +661,17 @@ gentity_t      *LaunchItem(gitem_t * item, vec3_t origin, vec3_t velocity)
 
 	G_SetOrigin(dropped, origin);
 	dropped->s.pos.trType = TR_GRAVITY;
-	dropped->s.pos.trAcceleration = -g_gravityZ.value;
 	dropped->s.pos.trTime = level.time;
 	VectorCopy(velocity, dropped->s.pos.trDelta);
 
 	dropped->s.eFlags |= EF_BOUNCE_HALF;
-
+#ifdef MISSIONPACK
 	if((g_gametype.integer == GT_CTF || g_gametype.integer == GT_1FCTF) && item->giType == IT_TEAM)
-	{
-		// Special case for CTF flags
+	{							// Special case for CTF flags
+#else
+	if(g_gametype.integer == GT_CTF && item->giType == IT_TEAM)
+	{							// Special case for CTF flags
+#endif
 		dropped->think = Team_DroppedFlagThink;
 		dropped->nextthink = level.time + 30000;
 		Team_CheckDroppedItem(dropped);
@@ -758,7 +752,7 @@ void FinishSpawningItem(gentity_t * ent)
 	// useing an item causes it to respawn
 	ent->use = Use_Item;
 
-	if(ent->suspended)
+	if(ent->spawnflags & 1)
 	{
 		// suspended
 		G_SetOrigin(ent, ent->s.origin);
@@ -770,11 +764,7 @@ void FinishSpawningItem(gentity_t * ent)
 		trap_Trace(&tr, ent->s.origin, ent->r.mins, ent->r.maxs, dest, ent->s.number, MASK_SOLID);
 		if(tr.startsolid)
 		{
-			if(ent->name)
-				G_Printf("FinishSpawningItem: %s startsolid at %s\n", ent->name, vtos(ent->s.origin));
-			else
-				G_Printf("FinishSpawningItem: %s startsolid at %s\n", ent->classname, vtos(ent->s.origin));
-
+			G_Printf("FinishSpawningItem: %s startsolid at %s\n", ent->classname, vtos(ent->s.origin));
 			G_FreeEntity(ent);
 			return;
 		}
@@ -787,7 +777,7 @@ void FinishSpawningItem(gentity_t * ent)
 
 	// team slaves and targeted items aren't present at start
 	// Tr3B - Doom3 entities have always a name
-	if((ent->flags & FL_TEAMSLAVE) /*|| ent->name */ )
+	if((ent->flags & FL_TEAMSLAVE) /*|| ent->name*/)
 	{
 		ent->s.eFlags |= EF_NODRAW;
 		ent->r.contents = 0;
@@ -821,6 +811,7 @@ G_CheckTeamItems
 */
 void G_CheckTeamItems(void)
 {
+
 	// Set up team stuff
 	Team_InitGame();
 
@@ -832,15 +823,15 @@ void G_CheckTeamItems(void)
 		item = BG_FindItem("Red Flag");
 		if(!item || !itemRegistered[item - bg_itemlist])
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_redflag in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_redflag in map\n");
 		}
 		item = BG_FindItem("Blue Flag");
 		if(!item || !itemRegistered[item - bg_itemlist])
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_blueflag in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_blueflag in map\n");
 		}
 	}
-
+#ifdef MISSIONPACK
 	if(g_gametype.integer == GT_1FCTF)
 	{
 		gitem_t        *item;
@@ -849,17 +840,17 @@ void G_CheckTeamItems(void)
 		item = BG_FindItem("Red Flag");
 		if(!item || !itemRegistered[item - bg_itemlist])
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_redflag in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_redflag in map\n");
 		}
 		item = BG_FindItem("Blue Flag");
 		if(!item || !itemRegistered[item - bg_itemlist])
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_blueflag in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_blueflag in map\n");
 		}
 		item = BG_FindItem("Neutral Flag");
 		if(!item || !itemRegistered[item - bg_itemlist])
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_neutralflag in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_CTF_neutralflag in map\n");
 		}
 	}
 
@@ -872,14 +863,14 @@ void G_CheckTeamItems(void)
 		ent = G_Find(ent, FOFS(classname), "team_redobelisk");
 		if(!ent)
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_redobelisk in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_redobelisk in map\n");
 		}
 
 		ent = NULL;
 		ent = G_Find(ent, FOFS(classname), "team_blueobelisk");
 		if(!ent)
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_blueobelisk in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_blueobelisk in map\n");
 		}
 	}
 
@@ -892,23 +883,24 @@ void G_CheckTeamItems(void)
 		ent = G_Find(ent, FOFS(classname), "team_redobelisk");
 		if(!ent)
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_redobelisk in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_redobelisk in map\n");
 		}
 
 		ent = NULL;
 		ent = G_Find(ent, FOFS(classname), "team_blueobelisk");
 		if(!ent)
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_blueobelisk in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_blueobelisk in map\n");
 		}
 
 		ent = NULL;
 		ent = G_Find(ent, FOFS(classname), "team_neutralobelisk");
 		if(!ent)
 		{
-			G_Printf(S_COLOR_YELLOW "WARNING: No team_neutralobelisk in map");
+			G_Printf(S_COLOR_YELLOW "WARNING: No team_neutralobelisk in map\n");
 		}
 	}
+#endif
 }
 
 /*
@@ -923,12 +915,13 @@ void ClearRegisteredItems(void)
 	// players always start with the base weapon
 	RegisterItem(BG_FindItemForWeapon(WP_MACHINEGUN));
 	RegisterItem(BG_FindItemForWeapon(WP_GAUNTLET));
-
+#ifdef MISSIONPACK
 	if(g_gametype.integer == GT_HARVESTER)
 	{
 		RegisterItem(BG_FindItem("Red Cube"));
 		RegisterItem(BG_FindItem("Blue Cube"));
 	}
+#endif
 }
 
 /*
@@ -1009,7 +1002,6 @@ void G_SpawnItem(gentity_t * ent, gitem_t * item)
 {
 	G_SpawnFloat("random", "0", &ent->random);
 	G_SpawnFloat("wait", "0", &ent->wait);
-	G_SpawnBoolean("suspended", "0", &ent->suspended);
 
 	RegisterItem(item);
 	if(G_ItemDisabled(item))
@@ -1025,7 +1017,7 @@ void G_SpawnItem(gentity_t * ent, gitem_t * item)
 
 	if(item->giType == IT_POWERUP)
 	{
-		G_SoundIndex("sound/items/poweruprespawn.ogg");
+		G_SoundIndex("sound/items/poweruprespawn.wav");
 		G_SpawnFloat("noglobalsound", "0", &ent->speed);
 	}
 
@@ -1088,13 +1080,12 @@ void G_RunItem(gentity_t * ent)
 	int             contents;
 	int             mask;
 
-	// if groundentity has been set to -1, it may have been pushed off an edge
-	if(ent->s.groundEntityNum == -1)
+	// if its groundentity has been set to none, it may have been pushed off an edge
+	if(ent->s.groundEntityNum == ENTITYNUM_NONE)
 	{
 		if(ent->s.pos.trType != TR_GRAVITY)
 		{
 			ent->s.pos.trType = TR_GRAVITY;
-			ent->s.pos.trAcceleration = -g_gravityZ.value;
 			ent->s.pos.trTime = level.time;
 		}
 	}

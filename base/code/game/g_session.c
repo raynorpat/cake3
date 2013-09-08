@@ -48,7 +48,7 @@ void G_WriteClientSessionData(gclient_t * client)
 
 	s = va("%i %i %i %i %i %i %i",
 		   client->sess.sessionTeam,
-		   client->sess.spectatorTime,
+		   client->sess.spectatorNum,
 		   client->sess.spectatorState,
 		   client->sess.spectatorClient, client->sess.wins, client->sess.losses, client->sess.teamLeader);
 
@@ -77,7 +77,7 @@ void G_ReadSessionData(gclient_t * client)
 
 	sscanf(s, "%i %i %i %i %i %i %i",
 		   &sessionTeam,
-		   &client->sess.spectatorTime,
+		   &client->sess.spectatorNum,
 		   &spectatorState, &client->sess.spectatorClient, &client->sess.wins, &client->sess.losses, &teamLeader);
 
 	client->sess.sessionTeam = (team_t) sessionTeam;
@@ -103,7 +103,7 @@ void G_InitSessionData(gclient_t * client, char *userinfo)
 	// initial team determination
 	if(g_gametype.integer >= GT_TEAM)
 	{
-		if(g_teamAutoJoin.integer)
+		if(g_teamAutoJoin.integer && !(g_entities[client - level.clients].r.svFlags & SVF_BOT))
 		{
 			sess->sessionTeam = PickTeam(-1);
 			BroadcastTeamChange(client, -1);
@@ -154,7 +154,7 @@ void G_InitSessionData(gclient_t * client, char *userinfo)
 	}
 
 	sess->spectatorState = SPECTATOR_FREE;
-	sess->spectatorTime = level.time;
+	AddTournamentQueue(client);
 
 	G_WriteClientSessionData(client);
 }
@@ -163,7 +163,6 @@ void G_InitSessionData(gclient_t * client, char *userinfo)
 /*
 ==================
 G_InitWorldSession
-
 ==================
 */
 void G_InitWorldSession(void)
@@ -186,7 +185,6 @@ void G_InitWorldSession(void)
 /*
 ==================
 G_WriteSessionData
-
 ==================
 */
 void G_WriteSessionData(void)

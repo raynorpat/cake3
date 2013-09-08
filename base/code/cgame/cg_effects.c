@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "cg_local.h"
 
-vec3_t          zeroVector = { 0, 0, 0 };
 
 /*
 ==================
@@ -70,7 +69,7 @@ void CG_BubbleTrail(vec3_t start, vec3_t end, float spacing)
 		le->lifeRate = 1.0 / (le->endTime - le->startTime);
 
 		re = &le->refEntity;
-		re->shaderTime = -cg.time / 1000.0f;
+		re->shaderTime = cg.time / 1000.0f;
 
 		re->reType = RT_SPRITE;
 		re->rotation = 0;
@@ -119,7 +118,7 @@ localEntity_t  *CG_SmokePuff(const vec3_t p, const vec3_t vel,
 	re = &le->refEntity;
 	re->rotation = Q_random(&seed) * 360;
 	re->radius = radius;
-	re->shaderTime = -startTime / 1000.0f;
+	re->shaderTime = startTime / 1000.0f;
 
 	le->leType = LE_MOVE_SCALE_FADE;
 	le->startTime = startTime;
@@ -159,6 +158,48 @@ localEntity_t  *CG_SmokePuff(const vec3_t p, const vec3_t vel,
 }
 
 /*
+==================
+CG_SpawnEffect
+
+Player teleporting in or out
+==================
+*/
+void CG_SpawnEffect(vec3_t org)
+{
+	localEntity_t  *le;
+	refEntity_t    *re;
+
+	le = CG_AllocLocalEntity();
+	le->leFlags = 0;
+	le->leType = LE_FADE_RGB;
+	le->startTime = cg.time;
+	le->endTime = cg.time + 500;
+	le->lifeRate = 1.0 / (le->endTime - le->startTime);
+
+	le->color[0] = le->color[1] = le->color[2] = le->color[3] = 1.0;
+
+	re = &le->refEntity;
+
+	re->reType = RT_MODEL;
+	re->shaderTime = cg.time / 1000.0f;
+
+#ifndef MISSIONPACK
+	re->customShader = cgs.media.teleportEffectShader;
+#endif
+	re->hModel = cgs.media.teleportEffectModel;
+	AxisClear(re->axis);
+
+	VectorCopy(org, re->origin);
+#ifdef MISSIONPACK
+	re->origin[2] += 16;
+#else
+	re->origin[2] -= 24;
+#endif
+}
+
+
+#ifdef MISSIONPACK
+/*
 ===============
 CG_LightningBoltBeam
 ===============
@@ -177,6 +218,7 @@ void CG_LightningBoltBeam(vec3_t start, vec3_t end)
 	beam = &le->refEntity;
 
 	VectorCopy(start, beam->origin);
+	// this is the end point
 	VectorCopy(end, beam->oldorigin);
 
 	beam->reType = RT_LIGHTNING;
@@ -207,45 +249,13 @@ void CG_KamikazeEffect(vec3_t org)
 	re = &le->refEntity;
 
 	re->reType = RT_MODEL;
-	re->shaderTime = -cg.time / 1000.0f;
+	re->shaderTime = cg.time / 1000.0f;
 
 	re->hModel = cgs.media.kamikazeEffectModel;
 
 	VectorCopy(org, re->origin);
+
 }
-
-
-/*
-==================
-CG_RailExplode
-==================
-*/
-void CG_RailExplode(vec3_t org)
-{
-	localEntity_t  *le;
-	refEntity_t    *re;
-
-	le = CG_AllocLocalEntity();
-	le->leFlags = 0;
-	le->leType = LE_RAILEXPLOSION;
-	le->startTime = cg.time;
-	le->endTime = cg.time + 3000;	//2250;
-	le->lifeRate = 1.0 / (le->endTime - le->startTime);
-
-	le->color[0] = le->color[1] = le->color[2] = le->color[3] = 1.0;
-
-	VectorClear(le->angles.trBase);
-
-	re = &le->refEntity;
-
-	re->reType = RT_MODEL;
-	re->shaderTime = -cg.time / 1000.0f;
-
-	re->hModel = cgs.media.kamikazeEffectModel;
-
-	VectorCopy(org, re->origin);
-}
-
 
 /*
 ==================
@@ -294,7 +304,7 @@ void CG_ObeliskPain(vec3_t org)
 	trap_S_StartSound(org, ENTITYNUM_NONE, CHAN_BODY, sfx);
 }
 
-#ifdef MISSIONPACK
+
 /*
 ==================
 CG_InvulnerabilityImpact
@@ -319,7 +329,7 @@ void CG_InvulnerabilityImpact(vec3_t org, vec3_t angles)
 	re = &le->refEntity;
 
 	re->reType = RT_MODEL;
-	re->shaderTime = -cg.time / 1000.0f;
+	re->shaderTime = cg.time / 1000.0f;
 
 	re->hModel = cgs.media.invulnerabilityImpactModel;
 
@@ -365,7 +375,7 @@ void CG_InvulnerabilityJuiced(vec3_t org)
 	re = &le->refEntity;
 
 	re->reType = RT_MODEL;
-	re->shaderTime = -cg.time / 1000.0f;
+	re->shaderTime = cg.time / 1000.0f;
 
 	re->hModel = cgs.media.invulnerabilityJuicedModel;
 
@@ -479,7 +489,7 @@ localEntity_t  *CG_MakeExplosion(vec3_t origin, vec3_t dir, qhandle_t hModel, qh
 	ex->endTime = ex->startTime + msec;
 
 	// bias the time so all shader effects start correctly
-	ex->refEntity.shaderTime = -ex->startTime / 1000.0f;
+	ex->refEntity.shaderTime = ex->startTime / 1000.0f;
 
 	ex->refEntity.hModel = hModel;
 	ex->refEntity.customShader = shader;
@@ -554,7 +564,6 @@ void CG_LaunchGib(vec3_t origin, vec3_t velocity, qhandle_t hModel)
 	re->hModel = hModel;
 
 	le->pos.trType = TR_GRAVITY;
-	le->pos.trAcceleration = -cg_gravityZ.value;
 	VectorCopy(origin, le->pos.trBase);
 	VectorCopy(velocity, le->pos.trDelta);
 	le->pos.trTime = cg.time;
@@ -568,7 +577,7 @@ void CG_LaunchGib(vec3_t origin, vec3_t velocity, qhandle_t hModel)
 	le->angles.trType = TR_LINEAR;
 	le->angles.trTime = cg.time;
 	le->angVel = 20 * crandom();	// random angular velocity
-	le->rotAxis[0] = crandom();	// random axis of rotation
+	le->rotAxis[0] = crandom();		// random axis of rotation
 	le->rotAxis[1] = crandom();
 	le->rotAxis[2] = crandom();
 	VectorNormalize(le->rotAxis);	// normalize the rotation axis
@@ -670,585 +679,83 @@ void CG_GibPlayer(vec3_t playerOrigin)
 	CG_LaunchGib(origin, velocity, cgs.media.gibLeg);
 }
 
-static ID_INLINE void VectorRandom(vec3_t a, const vec3_t mins, const vec3_t maxs)
-{
-	float           r;
-
-	r = crandom();
-	if(r > 0)
-	{
-		a[0] += r * maxs[0];
-	}
-	else
-	{
-		a[0] -= r * mins[0];
-	}
-	r = crandom();
-	if(r > 0)
-	{
-		a[1] += r * maxs[1];
-	}
-	else
-	{
-		a[1] -= r * mins[1];
-	}
-	r = crandom();
-	if(r > 0)
-	{
-		a[2] += r * maxs[2];
-	}
-	else
-	{
-		a[2] -= r * mins[2];
-	}
-}
-
-static ID_INLINE void VectorRandomUniform(vec3_t a, const vec3_t maxs)
-{
-	a[0] += crandom() * maxs[0];
-	a[1] += crandom() * maxs[1];
-	a[2] += crandom() * maxs[2];
-}
-
-void CG_FireEffect(vec3_t org, vec3_t mins, vec3_t maxs, float flameSize, int particles, float intensity)
-{
-	cparticle_t    *p;
-	refEntity_t     re;
-	int             i;
-	refLight_t      light;
-	const vec3_t    velmax = {25.0f, 25.0f, 25.0f};
-
-	memset(&re, 0, sizeof(re));
-	memset(&light, 0, sizeof(light));
-
-	//Setup light
-	QuatClear(light.rotation);
-	light.color[0] = 0.99f;
-	light.color[1] = 0.54f;
-	light.color[2] = 0.21f;
-	VectorCopy(org, light.origin);
-	light.radius[0] = intensity;
-	light.radius[1] = intensity;
-	light.radius[2] = intensity;
-	light.attenuationShader = cgs.media.fireLight;
-
-	trap_R_AddRefLightToScene(&light);
-
-	//Configure sprite
-	VectorCopy(org, re.origin);
-	re.origin[2] += flameSize * 0.7;
-	re.reType = RT_SPRITE;
-	re.radius = (float)flameSize;
-	re.renderfx = 0;
-	re.customShader = cgs.media.fire;
-
-	trap_R_AddRefEntityToScene(&re);
-
-	i = random() * 10;
-
-	//Add extra particles
-	//This should be cleaned up to use the particles variable
-	if((cg.time % 200) >= 100)
-	{
-		p = CG_AllocParticle();
-		if(!p)
-			return;
-
-		p->flags = PF_AIRONLY;
-		p->time = cg.time - (int)(random() * 100);
-		p->endTime = p->time + 750 + (random() * 250);
-
-		p->roll = crandom() * 20;
-		p->rotate = qtrue;
-
-		p->type = P_SMOKE_IMPACT;
-		p->pshader = cgs.media.flames[i % 3];
-
-		p->width = 8.0f + (crandom() * 4.0f);
-		p->height = p->width;
-
-		p->endHeight = p->height / 4;
-		p->endWidth = p->width / 4;
-
-		VectorCopy(org, p->org);
-		VectorRandom(p->org, mins, maxs);
-		VectorClear(p->vel);
-		VectorRandomUniform(p->vel, velmax);
-
-		p->accel[0] = -p->vel[0] / 2;
-		p->accel[1] = -p->vel[0] / 2;
-		p->accel[2] = random() * 32 + 8;
-	}
-}
-
 /*
 ==================
-CG_Fire
-
+CG_LaunchGib
 ==================
 */
-void CG_Fire(centity_t * cent)
-{
-	vec3_t          mins, maxs;
-
-	VectorSubtract(cent->currentState.origin2, cent->lerpOrigin, maxs);
-	VectorSubtract(cent->lerpOrigin, cent->currentState.origin2, mins);
-
-	CG_FireEffect(cent->lerpOrigin, mins, maxs, (float)cent->currentState.generic1, cent->currentState.weapon, (float)cent->currentState.constantLight);
-}
-
-void CG_AddFire(localEntity_t * le)
-{
-	float           flameSize;
-
-	flameSize = le->radius + 15;
-	if(flameSize > 80.0)
-	{
-		flameSize = 80.0;
-	}
-	if(flameSize < 30.0)
-	{
-		flameSize = 30.0;
-	}
-
-	CG_FireEffect(le->pos.trBase, zeroVector, zeroVector, flameSize, 1, le->light);
-}
-
-/*
-==================
-CG_ExplosiveRubble
-Rubble chunks
-==================
-*/
-void CG_ExplosiveRubble(vec3_t origin, vec3_t mins, vec3_t maxs, qhandle_t model)
+void CG_LaunchExplode(vec3_t origin, vec3_t velocity, qhandle_t hModel)
 {
 	localEntity_t  *le;
 	refEntity_t    *re;
-	const vec3_t    avelmax = {100.0f, 100.0f, 100.0f};
-	const vec3_t    velmax = {200.0f, 200.0f, 100.0f};
 
-	//Spawn debris ents
 	le = CG_AllocLocalEntity();
 	re = &le->refEntity;
 
-	//Initialize type
 	le->leType = LE_FRAGMENT;
 	le->startTime = cg.time;
-	le->endTime = le->startTime + 10000 + random() * 5000;
+	le->endTime = le->startTime + 10000 + random() * 6000;
 
-	//Initialize appearance
-	re->hModel = model;
-
-	//Initialize random rotations
-	le->angles.trType = TR_LINEAR;
-	le->angles.trTime = cg.time;
-	VectorClear(le->angles.trDelta);
-	VectorRandomUniform(le->angles.trDelta, avelmax);
-	le->angVel = 20 * crandom();	// random angular velocity
-	le->rotAxis[0] = crandom();	// random axis of rotation
-	le->rotAxis[1] = crandom();
-	le->rotAxis[2] = crandom();
-	VectorNormalize(le->rotAxis);	// normalize the rotation axis
-	QuatClear(le->quatRot);
-	QuatClear(le->quatOrient);
-	le->radius = 16;
-	le->leFlags = LEF_TUMBLE;
-
-	//Initialize location
-	AxisCopy(axisDefault, re->axis);
-	VectorCopy(origin, le->pos.trBase);
 	VectorCopy(origin, re->origin);
-	le->pos.trTime = cg.time;
-	//Randomly offset base within model bounds
-	VectorRandom(le->pos.trBase, mins, maxs);
+	AxisCopy(axisDefault, re->axis);
+	re->hModel = hModel;
 
-	//Initialize velocity
 	le->pos.trType = TR_GRAVITY;
-	le->pos.trAcceleration = 600;
-	VectorClear(le->pos.trDelta);
-	VectorRandomUniform(le->pos.trDelta, velmax);
+	VectorCopy(origin, le->pos.trBase);
+	VectorCopy(velocity, le->pos.trDelta);
+	le->pos.trTime = cg.time;
 
-	//Initialize bouncing
-	le->bounceFactor = 0.4f;
-	le->leBounceSoundType = LEBS_NONE;
+	le->bounceFactor = 0.1f;
+
+	le->leBounceSoundType = LEBS_BRASS;
 	le->leMarkType = LEMT_NONE;
 }
 
+#define	EXP_VELOCITY	100
+#define	EXP_JUMP		150
 /*
-==================
-CG_ExplosiveBlood
-Blood
-==================
+===================
+CG_GibPlayer
+
+Generated a bunch of gibs launching out from the bodies location
+===================
 */
-void CG_ExplosiveBlood(vec3_t origin, vec3_t mins, vec3_t maxs, int count)
+void CG_BigExplode(vec3_t playerOrigin)
 {
-	vec3_t          bloodOrigin;
-	vec3_t          impactVel;
-	int             i;
+	vec3_t          origin, velocity;
 
-	VectorCopy(zeroVector, impactVel);
-	for(i = count; i > 0; i--)
+	if(!cg_blood.integer)
 	{
-		VectorCopy(origin, bloodOrigin);
-		VectorRandom(bloodOrigin, mins, maxs);
-		CG_ParticleBlood(bloodOrigin, impactVel, 4);
-	}
-}
-
-/*
-==================
-CG_ExplosiveDust
-Small particles and smoke
-==================
-*/
-void CG_ExplosiveDust(vec3_t org, vec3_t mins, vec3_t maxs, int smokes, int dusts)
-{
-	cparticle_t    *p;
-	int             i;
-	const vec3_t    smoke_velmax = {128.0f, 128.0f, 32.0f};
-	const vec3_t    dust_velmax = {180.0f, 180.0f, 100.0f};
-
-	for(i = smokes; i > 0; i--)
-	{
-		//CG_ExplosiveParticles(cent->lerpOrigin, debrisVel, debrisAccel, 10000, cgs.media.smokePuffShader, 5.0f , 5.0f);
-
-		p = CG_AllocParticle();
-		if(!p)
-			return;
-
-		p->flags = PF_AIRONLY;
-		p->time = cg.time;
-		p->endTime = cg.time + 10000;
-
-		p->color[0] = 0.1f;
-		p->color[1] = 0.1f;
-		p->color[2] = 0.1f;
-		p->color[3] = 0.60f;
-
-		p->colorVel[0] = 0.7f;
-		p->colorVel[1] = 0.7f;
-		p->colorVel[2] = 0.7f;
-		p->colorVel[3] = -1.0 / (0.5 + random() * 0.5);
-
-		p->type = P_SMOKE_IMPACT;
-		p->pshader = cgs.media.smokePuffShader;
-
-		p->width = 5.0f + (i * 0.5f);
-		p->height = 5.0f + (i * 0.5f);
-
-		p->endHeight = p->height * 2;
-		p->endWidth = p->width * 2;
-
-		VectorCopy(org, p->org);
-		VectorRandom(p->org, mins, maxs);
-
-		VectorClear(p->vel);
-		VectorRandomUniform(p->vel, smoke_velmax);
-
-		p->accel[0] = crandom() * 64;
-		p->accel[1] = crandom() * 64;
-		p->accel[2] = 25;
+		return;
 	}
 
-	for(i = dusts; i > 0; i--)
-	{
-		p = CG_AllocParticle();
-		if(!p)
-			return;
+	VectorCopy(playerOrigin, origin);
+	velocity[0] = crandom() * EXP_VELOCITY;
+	velocity[1] = crandom() * EXP_VELOCITY;
+	velocity[2] = EXP_JUMP + crandom() * EXP_VELOCITY;
+	CG_LaunchExplode(origin, velocity, cgs.media.smoke2);
 
-		p->time = cg.time;
+	VectorCopy(playerOrigin, origin);
+	velocity[0] = crandom() * EXP_VELOCITY;
+	velocity[1] = crandom() * EXP_VELOCITY;
+	velocity[2] = EXP_JUMP + crandom() * EXP_VELOCITY;
+	CG_LaunchExplode(origin, velocity, cgs.media.smoke2);
 
-		p->endTime = cg.time + 4000;
-		p->startfade = cg.time + 4000 / 2;
+	VectorCopy(playerOrigin, origin);
+	velocity[0] = crandom() * EXP_VELOCITY * 1.5;
+	velocity[1] = crandom() * EXP_VELOCITY * 1.5;
+	velocity[2] = EXP_JUMP + crandom() * EXP_VELOCITY;
+	CG_LaunchExplode(origin, velocity, cgs.media.smoke2);
 
-		//p->color = EMISIVEFADE;
-		p->color[3] = 1.0;
-		p->colorVel[3] = 0;
+	VectorCopy(playerOrigin, origin);
+	velocity[0] = crandom() * EXP_VELOCITY * 2.0;
+	velocity[1] = crandom() * EXP_VELOCITY * 2.0;
+	velocity[2] = EXP_JUMP + crandom() * EXP_VELOCITY;
+	CG_LaunchExplode(origin, velocity, cgs.media.smoke2);
 
-		p->height = 0.5;
-		p->width = 0.5;
-		p->endHeight = 0.5;
-		p->endWidth = 0.5;
-
-		p->pshader = cgs.media.debrisBit;
-
-		p->type = P_SMOKE;
-
-		VectorCopy(org, p->org);
-
-		VectorClear(p->vel);
-		VectorRandomUniform(p->vel, dust_velmax);
-
-		VectorClear(p->accel);
-		p->accel[2] = -100;
-		p->vel[2] += -20;
-	}
-}
-
-void CG_ExplosivePlaster(vec3_t org, vec3_t mins, vec3_t maxs, int plasters)
-{
-	cparticle_t    *p;
-	int             i;
-	const vec3_t    plaster_velmax = {180.0f, 180.0f, 100.0f};
-
-	for(i = plasters; i > 0; i--)
-	{
-		p = CG_AllocParticle();
-		if(!p)
-			return;
-
-		p->time = cg.time;
-
-		p->endTime = cg.time + 5000;
-		p->startfade = cg.time + 4000 / 2;
-
-		//no alpha fade
-		p->color[3] = 1.0;
-		p->colorVel[3] = 0;
-
-		p->height = 6.0f;
-		p->width = 6.0f;
-		p->endHeight = 6.0f;
-		p->endWidth = 6.0f;
-
-		p->pshader = cgs.media.debrisPlaster;
-
-		p->type = P_SMOKE;
-
-		VectorCopy(org, p->org);
-
-		VectorClear(p->vel);
-		VectorRandomUniform(p->vel, plaster_velmax);
-
-		VectorClear(p->accel);
-		p->accel[2] = -100;
-		p->vel[2] += -20;
-	}
-}
-
-void CG_ExplosiveSmoke(vec3_t org, vec3_t mins, vec3_t maxs, int smokes)
-{
-	cparticle_t    *p;
-	int             i;
-	const vec3_t    smoke_velmax = {128.0f, 128.0f, 32.0f};
-
-	for(i = smokes; i > 0; i--)
-	{
-		p = CG_AllocParticle();
-		if(!p)
-			return;
-
-		p->flags = PF_AIRONLY;
-		p->time = cg.time;
-		p->endTime = cg.time + 10000;
-
-		p->color[0] = 0.1f;
-		p->color[1] = 0.1f;
-		p->color[2] = 0.1f;
-		p->color[3] = 0.60f;
-
-		p->colorVel[0] = 0.2f;
-		p->colorVel[1] = 0.2f;
-		p->colorVel[2] = 0.2f;
-		p->colorVel[3] = (float)(-(0.4 + random() * 0.4));
-
-		p->type = P_SMOKE_IMPACT;
-		p->pshader = cgs.media.smokePuffShader;
-
-		p->width = 8.0f + (i * 1.0f);
-		p->height = 8.0f + (i * 1.0f);
-
-		p->endHeight = p->height * 2;
-		p->endWidth = p->width * 2;
-
-		VectorCopy(org, p->org);
-		VectorRandom(p->org, mins, maxs);
-
-		VectorClear(p->vel);
-		VectorRandomUniform(p->vel, smoke_velmax);
-
-		p->accel[0] = crandom() * 64;
-		p->accel[1] = crandom() * 64;
-		p->accel[2] = 25;
-	}
-}
-
-void CG_ExplosiveGas(vec3_t org, vec3_t mins, vec3_t maxs, int smokes)
-{
-	cparticle_t    *p;
-	int             i;
-
-	for(i = smokes; i > 0; i--)
-	{
-		p = CG_AllocParticle();
-		if(!p)
-			return;
-
-		p->flags = PF_AIRONLY;
-		p->time = cg.time;
-		p->endTime = cg.time + 10000;
-
-		p->color[0] = 0.1f;
-		p->color[1] = 0.1f;
-		p->color[2] = 0.1f;
-		p->color[3] = 0.60f;
-
-		p->colorVel[0] = 0.2f;
-		p->colorVel[1] = 0.2f;
-		p->colorVel[2] = 0.2f;
-		p->colorVel[3] = (float)(-(0.4 + random() * 0.4));
-
-		p->type = P_SMOKE_IMPACT;
-		p->pshader = cgs.media.smokePuffShader;
-
-		p->width = 8.0f + (i * 1.0f);
-		p->height = 8.0f + (i * 1.0f);
-
-		p->endHeight = p->height * 2;
-		p->endWidth = p->width * 2;
-
-		VectorCopy(org, p->org);
-		VectorRandom(p->org, mins, maxs);
-
-		p->vel[0] = crandom() * 128;
-		p->vel[1] = crandom() * 128;
-		p->vel[2] = crandom() * 16;
-
-		p->accel[0] = crandom() * 64;
-		p->accel[1] = crandom() * 64;
-		p->accel[2] = -64;
-	}
-}
-
-void CG_ExplosiveFire(vec3_t org, vec3_t mins, vec3_t maxs, int fires)
-{
-	localEntity_t  *le;
-
-	le = CG_AllocLocalEntity();
-	VectorCopy(org, le->pos.trBase);
-	le->radius = fires;
-	le->light = fires * 4;
-	le->leType = LE_FIRE;
-	le->startTime = cg.time;
-	le->endTime = le->startTime + 700;
-}
-
-/*
-==================
-CG_ExplosiveExplode
-Client side effects for a func_explosive's death
-==================
-*/
-void CG_ExplosiveExplode(centity_t * cent)
-{
-	qhandle_t       centmodel;
-	vec3_t          mins, maxs;
-	int             i;
-
-	//Prevent excessively long loops
-	if(cent->currentState.torsoAnim > 10)
-	{
-		cent->currentState.torsoAnim = 10;
-	}
-	if(cent->currentState.legsAnim > 15)
-	{
-		cent->currentState.legsAnim = 15;
-	}
-	if(cent->currentState.weapon > 20)
-	{
-		cent->currentState.weapon = 20;
-	}
-
-	//Get area of model
-	centmodel = cgs.inlineDrawModel[cent->currentState.modelindex];
-	trap_R_ModelBounds(centmodel, mins, maxs);
-
-	switch (cent->currentState.generic1)	//Type
-	{
-		case ENTMAT_WOOD:
-			//Sawdust?
-			break;
-		case ENTMAT_GLASS:
-			break;
-		case ENTMAT_METAL:
-			//Sparks?
-			break;
-		case ENTMAT_GIBS:
-		case ENTMAT_BODY:
-			//Blood
-			CG_ExplosiveBlood(cent->lerpOrigin,
-							  mins,
-							  maxs,
-							  (3 * cent->currentState.torsoAnim + 2 * cent->currentState.legsAnim + cent->currentState.weapon));
-			break;
-		case ENTMAT_BRICK:
-		case ENTMAT_STONE:
-		case ENTMAT_TILES:
-			//Dust
-			CG_ExplosiveDust(cent->lerpOrigin,
-							 mins,
-							 maxs,
-							 (2 * cent->currentState.torsoAnim + cent->currentState.legsAnim),
-							 (10 * cent->currentState.torsoAnim + 5 * cent->currentState.legsAnim +
-							  2 * cent->currentState.weapon));
-			break;
-		case ENTMAT_PLASTER:
-			//Dust & flakes?
-			CG_ExplosivePlaster(cent->lerpOrigin,
-								mins,
-								maxs,
-								(8 * cent->currentState.torsoAnim + 4 * cent->currentState.legsAnim +
-								 1 * cent->currentState.weapon));
-			break;
-		case ENTMAT_FIBERS:
-			//Fiber flakes?
-			break;
-		case ENTMAT_SPRITE:
-			//Sprite
-			break;
-		case ENTMAT_SMOKE:
-			//Smoke (lighter than air)
-			CG_ExplosiveSmoke(cent->lerpOrigin,
-							  mins,
-							  maxs,
-							  (4 * cent->currentState.torsoAnim + 2 * cent->currentState.legsAnim +
-							   1 * cent->currentState.weapon));
-			break;
-		case ENTMAT_GAS:
-			//Gas (heavier than air)
-			CG_ExplosiveGas(cent->lerpOrigin,
-							mins,
-							maxs,
-							(4 * cent->currentState.torsoAnim + 2 * cent->currentState.legsAnim + 1 * cent->currentState.weapon));
-			break;
-		case ENTMAT_FIRE:
-			//Flames
-			CG_ExplosiveFire(cent->lerpOrigin,
-							 mins,
-							 maxs,
-							 (9 * cent->currentState.torsoAnim + 5 * cent->currentState.legsAnim +
-							  3 * cent->currentState.weapon));
-			break;
-		case ENTMAT_NONE:
-		default:
-			break;
-	}
-
-	for(i = cent->currentState.torsoAnim; i > 0; i--)
-	{
-		//Largest rubble
-		CG_ExplosiveRubble(cent->lerpOrigin, mins, maxs, cgs.media.debrisModels[cent->currentState.generic1][2][i & 1]);
-	}
-
-	for(i = cent->currentState.legsAnim; i > 0; i--)
-	{
-		//Medium rubble
-		CG_ExplosiveRubble(cent->lerpOrigin, mins, maxs, cgs.media.debrisModels[cent->currentState.generic1][1][i & 1]);
-	}
-
-	for(i = cent->currentState.weapon; i > 0; i--)
-	{
-		//Small rubble
-		CG_ExplosiveRubble(cent->lerpOrigin, mins, maxs, cgs.media.debrisModels[cent->currentState.generic1][0][i & 1]);
-	}
+	VectorCopy(playerOrigin, origin);
+	velocity[0] = crandom() * EXP_VELOCITY * 2.5;
+	velocity[1] = crandom() * EXP_VELOCITY * 2.5;
+	velocity[2] = EXP_JUMP + crandom() * EXP_VELOCITY;
+	CG_LaunchExplode(origin, velocity, cgs.media.smoke2);
 }

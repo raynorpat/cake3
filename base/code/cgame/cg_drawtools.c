@@ -33,20 +33,18 @@ Adjusted for resolution and screen aspect ratio
 */
 void CG_AdjustFrom640(float *x, float *y, float *w, float *h)
 {
-	// scale for screen sizes
 #if 0
-	// raynorpat: this code is the same as in ui, but doesn't seem to work or look right at all
-	*x = *x * cgs.screenScale + cgs.screenXBias;
-	*y = *y * cgs.screenScale + cgs.screenYBias;
-	*w *= cgs.screenScale;
-	*h *= cgs.screenScale;
-#else
-	// raynorpat: original id code
+	// adjust for wide screens
+	if(cgs.glconfig.vidWidth * 480 > cgs.glconfig.vidHeight * 640)
+	{
+		*x += 0.5 * (cgs.glconfig.vidWidth - (cgs.glconfig.vidHeight * 640 / 480));
+	}
+#endif
+	// scale for screen sizes
 	*x *= cgs.screenXScale;
 	*y *= cgs.screenYScale;
 	*w *= cgs.screenXScale;
 	*h *= cgs.screenYScale;
-#endif
 }
 
 /*
@@ -76,7 +74,7 @@ Coords are virtual 640x480
 void CG_DrawSides(float x, float y, float w, float h, float size)
 {
 	CG_AdjustFrom640(&x, &y, &w, &h);
-	size *= cgs.screenScale;
+	size *= cgs.screenXScale;
 	trap_R_DrawStretchPic(x, y, size, h, 0, 0, 0, 0, cgs.media.whiteShader);
 	trap_R_DrawStretchPic(x + w - size, y, size, h, 0, 0, 0, 0, cgs.media.whiteShader);
 }
@@ -84,7 +82,7 @@ void CG_DrawSides(float x, float y, float w, float h, float size)
 void CG_DrawTopBottom(float x, float y, float w, float h, float size)
 {
 	CG_AdjustFrom640(&x, &y, &w, &h);
-	size *= cgs.screenScale;
+	size *= cgs.screenYScale;
 	trap_R_DrawStretchPic(x, y, w, size, 0, 0, 0, 0, cgs.media.whiteShader);
 	trap_R_DrawStretchPic(x, y + h - size, w, size, 0, 0, 0, 0, cgs.media.whiteShader);
 }
@@ -216,7 +214,7 @@ void CG_DrawStringExt(int x, int y, const char *string, const float *setColor,
 		{
 			if(!forceColor)
 			{
-				memcpy(color, (float *)g_color_table[ColorIndex(*(s + 1))], sizeof(color));
+				memcpy(color, g_color_table[ColorIndex(*(s + 1))], sizeof(color));
 				color[3] = setColor[3];
 				trap_R_SetColor(color);
 			}
@@ -479,15 +477,13 @@ void CG_ColorForHealth(vec4_t hcolor)
 	CG_GetColorForHealth(cg.snap->ps.stats[STAT_HEALTH], cg.snap->ps.stats[STAT_ARMOR], hcolor);
 }
 
-// bk001205 - code below duplicated in q3_ui/ui-atoms.c
-// bk001205 - FIXME: does this belong in ui_shared.c?
+
 /*
 =================
 UI_DrawProportionalString2
 =================
 */
-// *INDENT-OFF*
-int	propMap1[128][3] = {
+static int      propMap[128][3] = {
 {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
 {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
 
@@ -597,7 +593,7 @@ int	propMap1[128][3] = {
 {0, 0, -1}		// DEL
 };
 
-static int propMap2[26][3] = {
+static int      propMapB[26][3] = {
 {11, 12, 33},
 {49, 12, 31},
 {85, 12, 31},
@@ -629,10 +625,9 @@ static int propMap2[26][3] = {
 {158, 139, 25},
 };
 
-#define PROP2_GAP_WIDTH		4
-#define PROP2_SPACE_WIDTH	12
-#define PROP2_HEIGHT		36
-// *INDENT-ON*
+#define PROPB_GAP_WIDTH		4
+#define PROPB_SPACE_WIDTH	12
+#define PROPB_HEIGHT		36
 
 /*
 =================
@@ -655,8 +650,8 @@ static void UI_DrawBannerString2(int x, int y, const char *str, vec4_t color)
 	// draw the colored text
 	trap_R_SetColor(color);
 
-	ax = x * cgs.screenScale + cgs.screenXBias;
-	ay = y * cgs.screenScale + cgs.screenYBias;
+	ax = x * cgs.screenXScale + cgs.screenXBias;
+	ay = y * cgs.screenYScale;
 
 	s = str;
 	while(*s)
@@ -664,20 +659,20 @@ static void UI_DrawBannerString2(int x, int y, const char *str, vec4_t color)
 		ch = *s & 127;
 		if(ch == ' ')
 		{
-			ax += ((float)PROP2_SPACE_WIDTH + (float)PROP2_GAP_WIDTH) * cgs.screenScale;
+			ax += ((float)PROPB_SPACE_WIDTH + (float)PROPB_GAP_WIDTH) * cgs.screenXScale;
 		}
 		else if(ch >= 'A' && ch <= 'Z')
 		{
 			ch -= 'A';
-			fcol = (float)propMap2[ch][0] / 256.0f;
-			frow = (float)propMap2[ch][1] / 256.0f;
-			fwidth = (float)propMap2[ch][2] / 256.0f;
-			fheight = (float)PROP2_HEIGHT / 256.0f;
-			aw = (float)propMap2[ch][2] * cgs.screenScale;
-			ah = (float)PROP2_HEIGHT *cgs.screenScale;
+			fcol = (float)propMapB[ch][0] / 256.0f;
+			frow = (float)propMapB[ch][1] / 256.0f;
+			fwidth = (float)propMapB[ch][2] / 256.0f;
+			fheight = (float)PROPB_HEIGHT / 256.0f;
+			aw = (float)propMapB[ch][2] * cgs.screenXScale;
+			ah = (float)PROPB_HEIGHT *cgs.screenYScale;
 
-			trap_R_DrawStretchPic(ax, ay, aw, ah, fcol, frow, fcol + fwidth, frow + fheight, cgs.media.charsetProp2);
-			ax += (aw + (float)PROP2_GAP_WIDTH * cgs.screenScale);
+			trap_R_DrawStretchPic(ax, ay, aw, ah, fcol, frow, fcol + fwidth, frow + fheight, cgs.media.charsetPropB);
+			ax += (aw + (float)PROPB_GAP_WIDTH * cgs.screenXScale);
 		}
 		s++;
 	}
@@ -700,15 +695,15 @@ void UI_DrawBannerString(int x, int y, const char *str, int style, vec4_t color)
 		ch = *s;
 		if(ch == ' ')
 		{
-			width += PROP2_SPACE_WIDTH;
+			width += PROPB_SPACE_WIDTH;
 		}
 		else if(ch >= 'A' && ch <= 'Z')
 		{
-			width += propMap2[ch - 'A'][2] + PROP2_GAP_WIDTH;
+			width += propMapB[ch - 'A'][2] + PROPB_GAP_WIDTH;
 		}
 		s++;
 	}
-	width -= PROP2_GAP_WIDTH;
+	width -= PROPB_GAP_WIDTH;
 
 	switch (style & UI_FORMATMASK)
 	{
@@ -748,7 +743,7 @@ int UI_ProportionalStringWidth(const char *str)
 	while(*s)
 	{
 		ch = *s & 127;
-		charWidth = propMap1[ch][2];
+		charWidth = propMap[ch][2];
 		if(charWidth != -1)
 		{
 			width += charWidth;
@@ -764,7 +759,7 @@ int UI_ProportionalStringWidth(const char *str)
 static void UI_DrawProportionalString2(int x, int y, const char *str, vec4_t color, float sizeScale, qhandle_t charset)
 {
 	const char     *s;
-	unsigned char   ch;			// bk001204 - unsigned
+	unsigned char   ch;
 	float           ax;
 	float           ay;
 	float           aw;
@@ -777,8 +772,8 @@ static void UI_DrawProportionalString2(int x, int y, const char *str, vec4_t col
 	// draw the colored text
 	trap_R_SetColor(color);
 
-	ax = x * cgs.screenScale + cgs.screenXBias;
-	ay = y * cgs.screenScale + cgs.screenYBias;
+	ax = x * cgs.screenXScale + cgs.screenXBias;
+	ay = y * cgs.screenYScale;
 
 	s = str;
 	while(*s)
@@ -786,16 +781,16 @@ static void UI_DrawProportionalString2(int x, int y, const char *str, vec4_t col
 		ch = *s & 127;
 		if(ch == ' ')
 		{
-			aw = (float)PROP_SPACE_WIDTH *cgs.screenScale * sizeScale;
+			aw = (float)PROP_SPACE_WIDTH *cgs.screenXScale * sizeScale;
 		}
-		else if(propMap1[ch][2] != -1)
+		else if(propMap[ch][2] != -1)
 		{
-			fcol = (float)propMap1[ch][0] / 256.0f;
-			frow = (float)propMap1[ch][1] / 256.0f;
-			fwidth = (float)propMap1[ch][2] / 256.0f;
+			fcol = (float)propMap[ch][0] / 256.0f;
+			frow = (float)propMap[ch][1] / 256.0f;
+			fwidth = (float)propMap[ch][2] / 256.0f;
 			fheight = (float)PROP_HEIGHT / 256.0f;
-			aw = (float)propMap1[ch][2] * cgs.screenScale * sizeScale;
-			ah = (float)PROP_HEIGHT *cgs.screenScale * sizeScale;
+			aw = (float)propMap[ch][2] * cgs.screenXScale * sizeScale;
+			ah = (float)PROP_HEIGHT *cgs.screenYScale * sizeScale;
 
 			trap_R_DrawStretchPic(ax, ay, aw, ah, fcol, frow, fcol + fwidth, frow + fheight, charset);
 		}
@@ -804,7 +799,7 @@ static void UI_DrawProportionalString2(int x, int y, const char *str, vec4_t col
 			aw = 0;
 		}
 
-		ax += (aw + (float)PROP_GAP_WIDTH * cgs.screenScale * sizeScale);
+		ax += (aw + (float)PROP_GAP_WIDTH * cgs.screenXScale * sizeScale);
 		s++;
 	}
 
@@ -861,7 +856,7 @@ void UI_DrawProportionalString(int x, int y, const char *str, int style, vec4_t 
 	{
 		drawcolor[0] = drawcolor[1] = drawcolor[2] = 0;
 		drawcolor[3] = color[3];
-		UI_DrawProportionalString2(x + 2, y + 2, str, drawcolor, sizeScale, cgs.media.charsetProp1);
+		UI_DrawProportionalString2(x + 2, y + 2, str, drawcolor, sizeScale, cgs.media.charsetProp);
 	}
 
 	if(style & UI_INVERSE)
@@ -870,7 +865,7 @@ void UI_DrawProportionalString(int x, int y, const char *str, int style, vec4_t 
 		drawcolor[1] = color[1] * 0.8;
 		drawcolor[2] = color[2] * 0.8;
 		drawcolor[3] = color[3];
-		UI_DrawProportionalString2(x, y, str, drawcolor, sizeScale, cgs.media.charsetProp1);
+		UI_DrawProportionalString2(x, y, str, drawcolor, sizeScale, cgs.media.charsetProp);
 		return;
 	}
 
@@ -880,15 +875,15 @@ void UI_DrawProportionalString(int x, int y, const char *str, int style, vec4_t 
 		drawcolor[1] = color[1] * 0.8;
 		drawcolor[2] = color[2] * 0.8;
 		drawcolor[3] = color[3];
-		UI_DrawProportionalString2(x, y, str, color, sizeScale, cgs.media.charsetProp1);
+		UI_DrawProportionalString2(x, y, str, color, sizeScale, cgs.media.charsetProp);
 
 		drawcolor[0] = color[0];
 		drawcolor[1] = color[1];
 		drawcolor[2] = color[2];
 		drawcolor[3] = 0.5 + 0.5 * sin(cg.time / PULSE_DIVISOR);
-		UI_DrawProportionalString2(x, y, str, drawcolor, sizeScale, cgs.media.charsetProp1Glow);
+		UI_DrawProportionalString2(x, y, str, drawcolor, sizeScale, cgs.media.charsetPropGlow);
 		return;
 	}
 
-	UI_DrawProportionalString2(x, y, str, color, sizeScale, cgs.media.charsetProp1);
+	UI_DrawProportionalString2(x, y, str, color, sizeScale, cgs.media.charsetProp);
 }

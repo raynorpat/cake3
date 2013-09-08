@@ -2698,7 +2698,37 @@ int PC_Directive_evalfloat(source_t * source)
 // Returns:                 -
 // Changes Globals:     -
 //============================================================================
-extern directive_t directives[20];
+directive_t     directives[20] = {
+	{"if", PC_Directive_if}
+	,
+	{"ifdef", PC_Directive_ifdef}
+	,
+	{"ifndef", PC_Directive_ifndef}
+	,
+	{"elif", PC_Directive_elif}
+	,
+	{"else", PC_Directive_else}
+	,
+	{"endif", PC_Directive_endif}
+	,
+	{"include", PC_Directive_include}
+	,
+	{"define", PC_Directive_define}
+	,
+	{"undef", PC_Directive_undef}
+	,
+	{"line", PC_Directive_line}
+	,
+	{"error", PC_Directive_error}
+	,
+	{"pragma", PC_Directive_pragma}
+	,
+	{"eval", PC_Directive_eval}
+	,
+	{"evalfloat", PC_Directive_evalfloat}
+	,
+	{NULL, NULL}
+};
 
 int PC_ReadDirective(source_t * source)
 {
@@ -2807,7 +2837,13 @@ int PC_DollarDirective_evalfloat(source_t * source)
 // Returns:                 -
 // Changes Globals:     -
 //============================================================================
-extern directive_t dollardirectives[20];
+directive_t     dollardirectives[20] = {
+	{"evalint", PC_DollarDirective_evalint}
+	,
+	{"evalfloat", PC_DollarDirective_evalfloat}
+	,
+	{NULL, NULL}
+};
 
 int PC_ReadDollarDirective(source_t * source)
 {

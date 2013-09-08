@@ -108,20 +108,6 @@ void SP_target_remove_powerups(gentity_t * ent)
 */
 void Think_Target_Delay(gentity_t * ent)
 {
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		if(ent->activator)
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ent->activator->s.number);
-		}
-		else
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ENTITYNUM_WORLD);
-		}
-	}
-#endif
 	G_UseTargets(ent, ent->activator);
 }
 
@@ -172,26 +158,28 @@ void SP_target_score(gentity_t * ent)
 
 //==========================================================
 
-/*QUAKED target_print (1 0 0) (-8 -8 -8) (8 8 8) red_only blue_only private
+/*QUAKED target_print (1 0 0) (-8 -8 -8) (8 8 8) redteam blueteam private
 "message"	text to print
 If "private", only the activator gets the message.  If no checks, all clients get the message.
 */
 void Use_Target_Print(gentity_t * ent, gentity_t * other, gentity_t * activator)
 {
-	if(activator->client && ent->priv)
+	if(activator->client && (ent->spawnflags & 4))
 	{
 		trap_SendServerCommand(activator - g_entities, va("cp \"%s\"", ent->message));
 		return;
 	}
 
-	if(ent->red_only)
+	if(ent->spawnflags & 3)
 	{
-		G_TeamCommand(TEAM_RED, va("cp \"%s\"", ent->message));
-		return;
-	}
-	if(ent->blue_only)
-	{
-		G_TeamCommand(TEAM_BLUE, va("cp \"%s\"", ent->message));
+		if(ent->spawnflags & 1)
+		{
+			G_TeamCommand(TEAM_RED, va("cp \"%s\"", ent->message));
+		}
+		if(ent->spawnflags & 2)
+		{
+			G_TeamCommand(TEAM_BLUE, va("cp \"%s\"", ent->message));
+		}
 		return;
 	}
 
@@ -200,10 +188,6 @@ void Use_Target_Print(gentity_t * ent, gentity_t * other, gentity_t * activator)
 
 void SP_target_print(gentity_t * ent)
 {
-	G_SpawnBoolean("red_only", "0", &ent->red_only);
-	G_SpawnBoolean("blue_only", "0", &ent->blue_only);
-	G_SpawnBoolean("private", "0", &ent->priv);
-
 	ent->use = Use_Target_Print;
 }
 
@@ -225,28 +209,26 @@ Multiple identical looping sounds will just increase volume without any speed co
 */
 void Use_Target_Speaker(gentity_t * ent, gentity_t * other, gentity_t * activator)
 {
-	if(ent->soundLooping)
-	{
-		// looping sound toggles
+	if(ent->spawnflags & 3)
+	{							// looping sound toggles
 		if(ent->s.loopSound)
 			ent->s.loopSound = 0;	// turn it off
 		else
-			ent->s.loopSound = ent->soundIndex;	// start it
+			ent->s.loopSound = ent->noise_index;	// start it
 	}
 	else
-	{
-		// normal sound
-		if(ent->soundActivator)
+	{							// normal sound
+		if(ent->spawnflags & 8)
 		{
-			G_AddEvent(activator, EV_GENERAL_SOUND, ent->soundIndex);
+			G_AddEvent(activator, EV_GENERAL_SOUND, ent->noise_index);
 		}
-		else if(ent->soundGlobal)
+		else if(ent->spawnflags & 4)
 		{
-			G_AddEvent(ent, EV_GLOBAL_SOUND, ent->soundIndex);
+			G_AddEvent(ent, EV_GLOBAL_SOUND, ent->noise_index);
 		}
 		else
 		{
-			G_AddEvent(ent, EV_GENERAL_SOUND, ent->soundIndex);
+			G_AddEvent(ent, EV_GENERAL_SOUND, ent->noise_index);
 		}
 	}
 }
@@ -256,67 +238,47 @@ void SP_target_speaker(gentity_t * ent)
 	char            buffer[MAX_QPATH];
 	char           *s;
 
-	if(G_SpawnString("s_sound", "NOSOUND", &s))
+	G_SpawnFloat("wait", "0", &ent->wait);
+	G_SpawnFloat("random", "0", &ent->random);
+
+	if(!G_SpawnString("noise", "NOSOUND", &s) && !G_SpawnString("s_shader", "NOSOUND", &s))
 	{
-		G_SpawnBoolean("s_looping", "0", &ent->soundLooping);
-		G_SpawnBoolean("s_waitfortrigger", "0", &ent->soundWaitForTrigger);
-		G_SpawnBoolean("s_global", "0", &ent->soundGlobal);
-		G_SpawnBoolean("s_activator", "0", &ent->soundActivator);
-		G_SpawnFloat("wait", "0", &ent->wait);
-		G_SpawnFloat("random", "0", &ent->random);
-	}
-	else if(G_SpawnString("s_shader", "NOSOUND", &s))
-	{
-		// Doom3 compatibility mode
-		G_SpawnBoolean("s_looping", "0", &ent->soundLooping);
-		G_SpawnBoolean("s_waitfortrigger", "0", &ent->soundWaitForTrigger);
-		G_SpawnBoolean("s_global", "0", &ent->soundGlobal);
-		G_SpawnBoolean("s_activator", "0", &ent->soundActivator);
-		G_SpawnFloat("wait", "0", &ent->wait);
-		G_SpawnFloat("random", "0", &ent->random);
-	}
-	else if(G_SpawnString("noise", "NOSOUND", &s))
-	{
-		// Q3A compatibility mode
-		ent->soundLooping = ent->spawnflags & 1 ? qtrue : qfalse;
-		ent->soundWaitForTrigger = ent->spawnflags & 2 ? qtrue : qfalse;
-		ent->soundGlobal = ent->spawnflags & 4 ? qtrue : qfalse;
-		ent->soundActivator = ent->spawnflags & 8 ? qtrue : qfalse;
-	}
-	else
-	{
-		//G_Error("speaker without a noise key at %s", vtos(ent->s.origin));
-		G_Printf(S_COLOR_YELLOW "WARNING: speaker '%s' without a noise key at %s", ent->name, vtos(ent->s.origin));
+		G_Error("target_speaker without a noise key at %s", vtos(ent->s.origin));
 	}
 
-	// force all client reletive sounds to be "activator" speakers that
+	// force all client relative sounds to be "activator" speakers that
 	// play on the entity that activates it
 	if(s[0] == '*')
 	{
-		ent->soundActivator = qtrue;
+		ent->spawnflags |= 8;
 	}
 
-	Q_strncpyz(buffer, s, sizeof(buffer));
-	Com_DefaultExtension(buffer, sizeof(buffer), ".wav");
-
-	ent->soundIndex = G_SoundIndex(buffer);
+	if(!strstr(s, ".wav"))
+	{
+		Com_sprintf(buffer, sizeof(buffer), "%s.wav", s);
+	}
+	else
+	{
+		Q_strncpyz(buffer, s, sizeof(buffer));
+	}
+	ent->noise_index = G_SoundIndex(buffer);
 
 	// a repeating speaker can be done completely client side
 	ent->s.eType = ET_SPEAKER;
-	ent->s.eventParm = ent->soundIndex;
+	ent->s.eventParm = ent->noise_index;
 	ent->s.frame = ent->wait * 10;
 	ent->s.clientNum = ent->random * 10;
 
 
 	// check for prestarted looping sound
-	if(ent->soundLooping && !ent->soundWaitForTrigger)
+	if(ent->spawnflags & 1)
 	{
-		ent->s.loopSound = ent->soundIndex;
+		ent->s.loopSound = ent->noise_index;
 	}
 
 	ent->use = Use_Target_Speaker;
 
-	if(ent->soundGlobal)
+	if(ent->spawnflags & 4)
 	{
 		ent->r.svFlags |= SVF_BROADCAST;
 	}
@@ -415,10 +377,10 @@ void target_laser_start(gentity_t * self)
 
 	if(!self->damage)
 	{
-		self->damage = 9999;
+		self->damage = 1;
 	}
 
-	if(self->start_on)
+	if(self->spawnflags & 1)
 		target_laser_on(self);
 	else
 		target_laser_off(self);
@@ -426,8 +388,6 @@ void target_laser_start(gentity_t * self)
 
 void SP_target_laser(gentity_t * self)
 {
-	G_SpawnBoolean("start_on", "0", &self->start_on);
-
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
 	self->nextthink = level.time + FRAMETIME;
@@ -473,17 +433,15 @@ if RANDOM is checked, only one of the targets will be fired, not all of them
 */
 void target_relay_use(gentity_t * self, gentity_t * other, gentity_t * activator)
 {
-	if(self->red_only && activator->client && activator->client->sess.sessionTeam != TEAM_RED)
+	if((self->spawnflags & 1) && activator->client && activator->client->sess.sessionTeam != TEAM_RED)
 	{
 		return;
 	}
-
-	if(self->blue_only && activator->client && activator->client->sess.sessionTeam != TEAM_BLUE)
+	if((self->spawnflags & 2) && activator->client && activator->client->sess.sessionTeam != TEAM_BLUE)
 	{
 		return;
 	}
-
-	if(self->random)
+	if(self->spawnflags & 4)
 	{
 		gentity_t      *ent;
 
@@ -499,10 +457,6 @@ void target_relay_use(gentity_t * self, gentity_t * other, gentity_t * activator
 
 void SP_target_relay(gentity_t * self)
 {
-	G_SpawnBoolean("red_only", "0", &self->red_only);
-	G_SpawnBoolean("blue_only", "0", &self->blue_only);
-	G_SpawnFloat("random", "0", &self->random);
-
 	self->use = target_relay_use;
 }
 
@@ -582,85 +536,4 @@ void SP_target_location(gentity_t * self)
 	self->nextthink = level.time + 200;	// Let them all spawn first
 
 	G_SetOrigin(self, self->s.origin);
-}
-
-//==========================================================
-
-/*
-===============
-target_fx_use
-
-Use function for effects system
-===============
-*/
-/*
-static void target_fx_use(gentity_t *self, gentity_t *other, gentity_t *activator)
-{
-	self->s.eFlags ^= EF_NODRAW;
-}
-*/
-
-static void target_fx_think(gentity_t * self)
-{
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, self->s.number);
-	}
-#endif
-
-	G_AddEvent(self, EV_EFFECT, self->s.modelindex);
-
-	if(self->wait > 0)
-	{
-		//ent->think = multi_wait;
-		self->nextthink = level.time + (self->wait + self->random * crandom()) * 1000;
-	}
-	else
-	{
-		// we can't just remove (self) here, because this is a touch function
-		// called while looping through area links...
-		self->touch = NULL;
-		self->nextthink = level.time + FRAMETIME;
-		self->think = G_FreeEntity;
-	}
-}
-
-
-/*QUAKED target_fx (0 0 1) (-8 -8 -8) (8 8 8)
-*/
-void SP_target_fx(gentity_t * self)
-{
-	char           *effectName;
-	int             startOn = 0;
-
-	self->s.eType = ET_INVISIBLE;
-
-	G_SpawnFloat("wait", "0.5", &self->wait);
-	G_SpawnFloat("random", "0", &self->random);
-
-	G_SpawnInt("start_on", "0", &startOn);
-	if(!startOn)
-		self->s.eFlags |= EF_NODRAW;
-
-	G_SpawnString("luaThink", "", &effectName);
-	self->s.modelindex = G_EffectIndex(effectName);
-
-	G_SetOrigin(self, self->s.origin);
-
-	// save angles
-	VectorCopy(self->s.angles, self->s.apos.trBase);
-	self->s.apos.trType = TR_STATIONARY;
-	self->s.apos.trTime = 0;
-	self->s.apos.trDuration = 0;
-	VectorClear(self->s.apos.trDelta);
-	//VectorCopy(origin, ent->r.currentAOrigin);
-
-	VectorClear(self->r.mins);
-	VectorClear(self->r.maxs);
-	trap_LinkEntity(self);
-
-	self->think = target_fx_think;
-	self->nextthink = level.time + 1000;
 }

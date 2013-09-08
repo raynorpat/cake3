@@ -54,7 +54,7 @@ void CG_CheckAmmo(void)
 		switch (i)
 		{
 			case WP_ROCKET_LAUNCHER:
-			case WP_FLAK_CANNON:
+			case WP_GRENADE_LAUNCHER:
 			case WP_RAILGUN:
 			case WP_SHOTGUN:
 #ifdef MISSIONPACK
@@ -222,7 +222,6 @@ void CG_Respawn(void)
 
 	// select the weapon the server says we are using
 	cg.weaponSelect = cg.snap->ps.weapon;
-
 }
 
 extern char    *eventnames[];
@@ -335,7 +334,11 @@ CG_CheckLocalSounds
 */
 void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 {
-	int             highScore, health, armor, reward;
+	int             highScore, reward;
+
+#ifdef MISSIONPACK
+	int             health, armor;
+#endif
 	sfxHandle_t     sfx;
 
 	// don't play the sounds if the player just changed teams
@@ -347,9 +350,9 @@ void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 	// hit changes
 	if(ps->persistant[PERS_HITS] > ops->persistant[PERS_HITS])
 	{
+#ifdef MISSIONPACK
 		armor = ps->persistant[PERS_ATTACKEE_ARMOR] & 0xff;
 		health = ps->persistant[PERS_ATTACKEE_ARMOR] >> 8;
-#ifdef MISSIONPACK
 		if(armor > 50)
 		{
 			trap_S_StartLocalSound(cgs.media.hitSoundHighArmor, CHAN_LOCAL_SOUND);
@@ -397,21 +400,54 @@ void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 	}
 	if(ps->persistant[PERS_IMPRESSIVE_COUNT] != ops->persistant[PERS_IMPRESSIVE_COUNT])
 	{
+#ifdef MISSIONPACK
+		if(ps->persistant[PERS_IMPRESSIVE_COUNT] == 1)
+		{
+			sfx = cgs.media.firstImpressiveSound;
+		}
+		else
+		{
+			sfx = cgs.media.impressiveSound;
+		}
+#else
 		sfx = cgs.media.impressiveSound;
+#endif
 		pushReward(sfx, cgs.media.medalImpressive, ps->persistant[PERS_IMPRESSIVE_COUNT]);
 		reward = qtrue;
 		//Com_Printf("impressive\n");
 	}
 	if(ps->persistant[PERS_EXCELLENT_COUNT] != ops->persistant[PERS_EXCELLENT_COUNT])
 	{
+#ifdef MISSIONPACK
+		if(ps->persistant[PERS_EXCELLENT_COUNT] == 1)
+		{
+			sfx = cgs.media.firstExcellentSound;
+		}
+		else
+		{
+			sfx = cgs.media.excellentSound;
+		}
+#else
 		sfx = cgs.media.excellentSound;
+#endif
 		pushReward(sfx, cgs.media.medalExcellent, ps->persistant[PERS_EXCELLENT_COUNT]);
 		reward = qtrue;
 		//Com_Printf("excellent\n");
 	}
 	if(ps->persistant[PERS_GAUNTLET_FRAG_COUNT] != ops->persistant[PERS_GAUNTLET_FRAG_COUNT])
 	{
+#ifdef MISSIONPACK
+		if(ps->persistant[PERS_GAUNTLET_FRAG_COUNT] == 1)
+		{
+			sfx = cgs.media.firstHumiliationSound;
+		}
+		else
+		{
+			sfx = cgs.media.humiliationSound;
+		}
+#else
 		sfx = cgs.media.humiliationSound;
+#endif
 		pushReward(sfx, cgs.media.medalGauntlet, ps->persistant[PERS_GAUNTLET_FRAG_COUNT]);
 		reward = qtrue;
 		//Com_Printf("guantlet frag\n");
@@ -427,13 +463,6 @@ void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 		pushReward(cgs.media.assistSound, cgs.media.medalAssist, ps->persistant[PERS_ASSIST_COUNT]);
 		reward = qtrue;
 		//Com_Printf("assist\n");
-	}
-	if(ps->persistant[PERS_TELEFRAG_FRAG_COUNT] != ops->persistant[PERS_TELEFRAG_FRAG_COUNT])
-	{
-		sfx = cgs.media.telefragSound;
-		pushReward(sfx, cgs.media.medalTelefrag, ps->persistant[PERS_TELEFRAG_FRAG_COUNT]);
-		reward = qtrue;
-		//Com_Printf("telefrag\n");
 	}
 	// if any of the player event bits changed
 	if(ps->persistant[PERS_PLAYEREVENTS] != ops->persistant[PERS_PLAYEREVENTS])
@@ -453,16 +482,11 @@ void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 		{
 			trap_S_StartLocalSound(cgs.media.holyShitSound, CHAN_ANNOUNCER);
 		}
-		else if((ps->persistant[PERS_PLAYEREVENTS] & PLAYEREVENT_TELEFRAGREWARD) !=
-				(ops->persistant[PERS_PLAYEREVENTS] & PLAYEREVENT_TELEFRAGREWARD))
-		{
-			trap_S_StartLocalSound(cgs.media.telefragSound, CHAN_ANNOUNCER);
-		}
 		reward = qtrue;
 	}
 
 	// check for flag pickup
-	if(cgs.gametype >= GT_TEAM)
+	if(cgs.gametype > GT_TEAM)
 	{
 		if((ps->powerups[PW_REDFLAG] != ops->powerups[PW_REDFLAG] && ps->powerups[PW_REDFLAG]) ||
 		   (ps->powerups[PW_BLUEFLAG] != ops->powerups[PW_BLUEFLAG] && ps->powerups[PW_BLUEFLAG]) ||
@@ -527,6 +551,12 @@ void CG_CheckLocalSounds(playerState_t * ps, playerState_t * ops)
 	if(cgs.fraglimit > 0 && cgs.gametype < GT_CTF)
 	{
 		highScore = cgs.scores1;
+
+		if(cgs.gametype == GT_TEAM && cgs.scores2 > highScore)
+		{
+			highScore = cgs.scores2;
+		}
+
 		if(!(cg.fraglimitWarnings & 4) && highScore == (cgs.fraglimit - 1))
 		{
 			cg.fraglimitWarnings |= 1 | 2 | 4;

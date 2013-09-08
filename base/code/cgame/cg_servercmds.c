@@ -26,7 +26,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // be a valid snapshot this frame
 
 #include "cg_local.h"
-#include "../ui/menudef.h"		// bk001205 - for Q3_ui as well
+#ifdef MISSIONPACK
+#include "../../ui/menudef.h"
 
 typedef struct
 {
@@ -46,9 +47,8 @@ static const orderTask_t validOrders[] = {
 	{VOICECHAT_FOLLOWFLAGCARRIER, TEAMTASK_ESCORT}
 };
 
-static const int numValidOrders = sizeof(validOrders) / sizeof(orderTask_t);
+static const int numValidOrders = ARRAY_LEN(validOrders);
 
-#ifdef MISSIONPACK				// bk001204
 static int CG_ValidOrder(const char *p)
 {
 	int             i;
@@ -129,10 +129,20 @@ static void CG_ParseTeamInfo(void)
 	int             client;
 
 	numSortedTeamPlayers = atoi(CG_Argv(1));
+	if(numSortedTeamPlayers < 0 || numSortedTeamPlayers > TEAM_MAXOVERLAY)
+	{
+		CG_Error("CG_ParseTeamInfo: numSortedTeamPlayers out of range (%d)", numSortedTeamPlayers);
+		return;
+	}
 
 	for(i = 0; i < numSortedTeamPlayers; i++)
 	{
 		client = atoi(CG_Argv(i * 6 + 2));
+		if(client < 0 || client >= MAX_CLIENTS)
+		{
+			CG_Error("CG_ParseTeamInfo: bad client number: %d", client);
+			return;
+		}
 
 		sortedTeamPlayers[i] = client;
 
@@ -196,7 +206,16 @@ static void CG_ParseWarmup(void)
 	}
 	else if(warmup > 0 && cg.warmup <= 0)
 	{
-		trap_S_StartLocalSound(cgs.media.countPrepareSound, CHAN_ANNOUNCER);
+#ifdef MISSIONPACK
+		if(cgs.gametype >= GT_CTF && cgs.gametype <= GT_HARVESTER)
+		{
+			trap_S_StartLocalSound(cgs.media.countPrepareTeamSound, CHAN_ANNOUNCER);
+		}
+		else
+#endif
+		{
+			trap_S_StartLocalSound(cgs.media.countPrepareSound, CHAN_ANNOUNCER);
+		}
 	}
 
 	cg.warmup = warmup;
@@ -222,12 +241,13 @@ void CG_SetConfigValues(void)
 		cgs.redflag = s[0] - '0';
 		cgs.blueflag = s[1] - '0';
 	}
+#ifdef MISSIONPACK
 	else if(cgs.gametype == GT_1FCTF)
 	{
 		s = CG_ConfigString(CS_FLAGSTATUS);
 		cgs.flagStatus = s[0] - '0';
 	}
-
+#endif
 	cg.warmup = atoi(CG_ConfigString(CS_WARMUP));
 }
 
@@ -343,8 +363,9 @@ static void CG_ConfigStringModified(void)
 	else if(num == CS_VOTE_STRING)
 	{
 		Q_strncpyz(cgs.voteString, str, sizeof(cgs.voteString));
-
+#ifdef MISSIONPACK
 		trap_S_StartLocalSound(cgs.media.voteNow, CHAN_ANNOUNCER);
+#endif							//MISSIONPACK
 	}
 	else if(num >= CS_TEAMVOTE_TIME && num <= CS_TEAMVOTE_TIME + 1)
 	{
@@ -364,8 +385,9 @@ static void CG_ConfigStringModified(void)
 	else if(num >= CS_TEAMVOTE_STRING && num <= CS_TEAMVOTE_STRING + 1)
 	{
 		Q_strncpyz(cgs.teamVoteString[num - CS_TEAMVOTE_STRING], str, sizeof(cgs.teamVoteString));
-
+#ifdef MISSIONPACK
 		trap_S_StartLocalSound(cgs.media.voteNow, CHAN_ANNOUNCER);
+#endif
 	}
 	else if(num == CS_INTERMISSION)
 	{
@@ -378,9 +400,8 @@ static void CG_ConfigStringModified(void)
 	else if(num >= CS_SOUNDS && num < CS_SOUNDS + MAX_SOUNDS)
 	{
 		if(str[0] != '*')
-		{
-			// player specific sounds don't register here
-			cgs.gameSounds[num - CS_SOUNDS] = trap_S_RegisterSound(str);
+		{						// player specific sounds don't register here
+			cgs.gameSounds[num - CS_SOUNDS] = trap_S_RegisterSound(str, qfalse);
 		}
 	}
 	else if(num >= CS_PLAYERS && num < CS_PLAYERS + MAX_CLIENTS)
@@ -396,10 +417,12 @@ static void CG_ConfigStringModified(void)
 			cgs.redflag = str[0] - '0';
 			cgs.blueflag = str[1] - '0';
 		}
+#ifdef MISSIONPACK
 		else if(cgs.gametype == GT_1FCTF)
 		{
 			cgs.flagStatus = str[0] - '0';
 		}
+#endif
 	}
 	else if(num == CS_SHADERSTATE)
 	{
@@ -512,14 +535,16 @@ static void CG_MapRestart(void)
 
 	CG_InitLocalEntities();
 	CG_InitMarkPolys();
-	CG_InitParticles();
+	CG_ClearParticles();
 
 	// make sure the "3 frags left" warnings play again
 	cg.fraglimitWarnings = 0;
 
 	cg.timelimitWarnings = 0;
-
+	cg.rewardTime = 0;
+	cg.rewardStack = 0;
 	cg.intermissionStarted = qfalse;
+	cg.levelShot = qfalse;
 
 	cgs.voteTime = 0;
 
@@ -547,10 +572,10 @@ static void CG_MapRestart(void)
 		}
 	}
 #endif
-
-	trap_Cvar_Set("cg_cameraOrbit", "0");
 	trap_Cvar_Set("cg_thirdPerson", "0");
 }
+
+#ifdef MISSIONPACK
 
 #define MAX_VOICEFILESIZE	16384
 #define MAX_VOICEFILES		8
@@ -614,7 +639,7 @@ int CG_ParseVoiceChats(const char *filename, voiceChatList_t * voiceChatList, in
 	}
 	if(len >= MAX_VOICEFILESIZE)
 	{
-		trap_Print(va(S_COLOR_RED "voice chat file too large: %s is %i, max allowed is %i", filename, len, MAX_VOICEFILESIZE));
+		trap_Print(va(S_COLOR_RED "voice chat file too large: %s is %i, max allowed is %i\n", filename, len, MAX_VOICEFILESIZE));
 		trap_FS_FCloseFile(f);
 		return qfalse;
 	}
@@ -679,12 +704,9 @@ int CG_ParseVoiceChats(const char *filename, voiceChatList_t * voiceChatList, in
 			{
 				return qtrue;
 			}
-
 			if(!Q_stricmp(token, "}"))
 				break;
-
-			sound = trap_S_RegisterSound(token);
-
+			sound = trap_S_RegisterSound(token, compress);
 			voiceChats[voiceChatList->numVoiceChats].sounds[voiceChats[voiceChatList->numVoiceChats].numSounds] = sound;
 			token = Com_ParseExt(p, qtrue);
 			if(!token || token[0] == 0)
@@ -747,7 +769,7 @@ int CG_HeadModelVoiceChats(char *filename)
 	}
 	if(len >= MAX_VOICEFILESIZE)
 	{
-		trap_Print(va(S_COLOR_RED "voice chat file too large: %s is %i, max allowed is %i", filename, len, MAX_VOICEFILESIZE));
+		trap_Print(va(S_COLOR_RED "voice chat file too large: %s is %i, max allowed is %i\n", filename, len, MAX_VOICEFILESIZE));
 		trap_FS_FCloseFile(f);
 		return -1;
 	}
@@ -808,7 +830,6 @@ CG_VoiceChatListForClient
 */
 voiceChatList_t *CG_VoiceChatListForClient(int clientNum)
 {
-#ifdef MISSIONPACK
 	clientInfo_t   *ci;
 	int             voiceChatNum, i, j, k, gender;
 	char            filename[MAX_QPATH], headModelName[MAX_QPATH];
@@ -843,7 +864,6 @@ voiceChatList_t *CG_VoiceChatListForClient(int clientNum)
 				Com_sprintf(headModelName, sizeof(headModelName), "%s", ci->headModelName);
 			}
 		}
-
 		// find the voice file for the head model the client uses
 		for(i = 0; i < MAX_HEADMODELS; i++)
 		{
@@ -913,9 +933,6 @@ voiceChatList_t *CG_VoiceChatListForClient(int clientNum)
 	}
 	// just return the first voice chat list
 	return &voiceChatLists[0];
-#else
-	return NULL;
-#endif
 }
 
 #define MAX_VOICECHATBUFFER		32
@@ -1082,7 +1099,6 @@ CG_VoiceChat
 */
 void CG_VoiceChat(int mode)
 {
-#ifdef MISSIONPACK
 	const char     *cmd;
 	int             clientNum, color;
 	qboolean        voiceOnly;
@@ -1102,36 +1118,8 @@ void CG_VoiceChat(int mode)
 	}
 
 	CG_VoiceChatLocal(mode, voiceOnly, clientNum, color, cmd);
-#endif
 }
-
-static void CG_spWin(void)
-{
-#ifdef MISSIONPACK
-	trap_Cvar_Set("cg_cameraOrbit", "2");
-	trap_Cvar_Set("cg_cameraOrbitDelay", "35");
-	trap_Cvar_Set("cg_thirdPerson", "1");
-	trap_Cvar_Set("cg_thirdPersonAngle", "0");
-	trap_Cvar_Set("cg_thirdPersonRange", "100");
-	//CG_AddBufferedSound(cgs.media.winnerSound);
-	//trap_S_StartLocalSound(cgs.media.winnerSound, CHAN_ANNOUNCER);
-	//CG_CenterPrint("YOU WIN!", SCREEN_HEIGHT * .30, 0);
 #endif
-}
-
-static void CG_spLose(void)
-{
-#ifdef MISSIONPACK
-	trap_Cvar_Set("cg_cameraOrbit", "2");
-	trap_Cvar_Set("cg_cameraOrbitDelay", "35");
-	trap_Cvar_Set("cg_thirdPerson", "1");
-	trap_Cvar_Set("cg_thirdPersonAngle", "0");
-	trap_Cvar_Set("cg_thirdPersonRange", "100");
-	//CG_AddBufferedSound(cgs.media.loserSound);
-	//trap_S_StartLocalSound(cgs.media.loserSound, CHAN_ANNOUNCER);
-	//CG_CenterPrint("YOU LOSE...", SCREEN_HEIGHT * .30, 0);
-#endif
-}
 
 /*
 =================
@@ -1188,7 +1176,7 @@ static void CG_ServerCommand(void)
 	if(!strcmp(cmd, "print"))
 	{
 		CG_Printf("%s", CG_Argv(1));
-
+#ifdef MISSIONPACK
 		cmd = CG_Argv(1);		// yes, this is obviously a hack, but so is the way we hear about
 		// votes passing or failing
 		if(!Q_stricmpn(cmd, "vote failed", 11) || !Q_stricmpn(cmd, "team vote failed", 16))
@@ -1199,6 +1187,7 @@ static void CG_ServerCommand(void)
 		{
 			trap_S_StartLocalSound(cgs.media.votePassed, CHAN_ANNOUNCER);
 		}
+#endif
 		return;
 	}
 
@@ -1223,6 +1212,8 @@ static void CG_ServerCommand(void)
 		CG_Printf("%s\n", text);
 		return;
 	}
+
+#ifdef MISSIONPACK
 	if(!strcmp(cmd, "vchat"))
 	{
 		CG_VoiceChat(SAY_ALL);
@@ -1240,6 +1231,7 @@ static void CG_ServerCommand(void)
 		CG_VoiceChat(SAY_TELL);
 		return;
 	}
+#endif
 
 	if(!strcmp(cmd, "scores"))
 	{
@@ -1263,14 +1255,14 @@ static void CG_ServerCommand(void)
 	{
 		if(trap_Argc() == 4)
 		{
-			char            shader1[MAX_QPATH];
-			char            shader2[MAX_QPATH];
-			char            shader3[MAX_QPATH];
+			char shader1[MAX_QPATH];
+			char shader2[MAX_QPATH];
+			char shader3[MAX_QPATH];
 
 			Q_strncpyz(shader1, CG_Argv(1), sizeof(shader1));
 			Q_strncpyz(shader2, CG_Argv(2), sizeof(shader2));
 			Q_strncpyz(shader3, CG_Argv(3), sizeof(shader3));
-
+			
 			trap_R_RemapShader(shader1, shader2, shader3);
 		}
 
@@ -1278,8 +1270,8 @@ static void CG_ServerCommand(void)
 	}
 
 	// loaddeferred can be both a servercmd and a consolecmd
-	if(!strcmp(cmd, "loaddeferred"))
-	{
+	if(!strcmp(cmd, "loaddefered"))
+	{							// FIXME: spelled wrong, but not changing for demo
 		CG_LoadDeferredPlayers();
 		return;
 	}
@@ -1289,18 +1281,6 @@ static void CG_ServerCommand(void)
 	if(!strcmp(cmd, "clientLevelShot"))
 	{
 		cg.levelShot = qtrue;
-		return;
-	}
-
-	if(!strcmp(cmd, "spWin"))
-	{
-		CG_spWin();
-		return;
-	}
-
-	if(!strcmp(cmd, "spLose"))
-	{
-		CG_spLose();
 		return;
 	}
 

@@ -6,7 +6,9 @@
    Read unzip.h for more info
 */
 
+#ifndef BSPC
 #include "../client/client.h"
+#endif
 #include "unzip.h"
 
 /* Decryption code comes from crypt.c by Info-ZIP but has been greatly reduced in terms of

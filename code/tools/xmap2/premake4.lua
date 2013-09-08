@@ -3,11 +3,8 @@ project "XMap2"
 	targetname  "XMap2"
 	language    "C++"
 	kind        "ConsoleApp"
-	flags       { "ExtraWarnings" }
 	files
-	{
-		"*.txt", 
-		
+	{		
 		"../common/cmdlib.c", "../common/cmdlib.h",
 		"../common/imagelib.c", "../common/imagelib.h",
 		"../common/inout.c", "../common/inout.h",

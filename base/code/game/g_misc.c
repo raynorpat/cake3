@@ -81,45 +81,12 @@ TELEPORTERS
 =================================================================================
 */
 
-// otty: teleporting a rocket is more expensive than freeing the old and creating a new one. just keep the owner and lifetime
-void TeleportEntity(gentity_t * ent, vec3_t origin, vec3_t angles)
-{
-	// Tr3B: this needs to be recoded for secondary firemode projectiles
-#if 0
-	vec3_t          dir;
-
-	gentity_t      *telep = NULL;
-
-	AngleVectors(angles, dir, NULL, NULL);
-
-	switch (ent->s.weapon)
-	{
-		default:
-			return;
-
-		case WP_ROCKET_LAUNCHER:
-			telep = fire_rocket(&g_entities[ent->r.ownerNum], origin, dir);
-			break;
-
-		/*
-		case WP_FLAK_CANNON:
-			telep = fire_grenade(&g_entities[ent->r.ownerNum], origin, dir);
-			break;
-		*/
-
-	}
-
-	if(telep)
-		telep->nextthink = ent->nextthink;
-
-	G_FreeEntity(ent);
-#endif
-}
-
 void TeleportPlayer(gentity_t * player, vec3_t origin, vec3_t angles)
 {
 	gentity_t      *tent;
+	qboolean        noAngles;
 
+	noAngles = (angles[0] > 999999.0);
 	// use temp events at source and destination to prevent the effect
 	// from getting dropped by a second player event
 	if(player->client->sess.sessionTeam != TEAM_SPECTATOR)
@@ -136,19 +103,18 @@ void TeleportPlayer(gentity_t * player, vec3_t origin, vec3_t angles)
 
 	VectorCopy(origin, player->client->ps.origin);
 	player->client->ps.origin[2] += 1;
-
-	// spit the player out
-	AngleVectors(angles, player->client->ps.velocity, NULL, NULL);
-	VectorScale(player->client->ps.velocity, 400, player->client->ps.velocity);
-	player->client->ps.pm_time = 160;	// hold time
-	player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-
+	if(!noAngles)
+	{
+		// spit the player out
+		AngleVectors(angles, player->client->ps.velocity, NULL, NULL);
+		VectorScale(player->client->ps.velocity, 400, player->client->ps.velocity);
+		player->client->ps.pm_time = 160;	// hold time
+		player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
+		// set angles
+		SetClientViewAngle(player, angles);
+	}
 	// toggle the teleport bit so the client knows to not lerp
 	player->client->ps.eFlags ^= EF_TELEPORT_BIT;
-
-	// set angles
-	SetClientViewAngle(player, angles);
-
 	// kill anything at the destination
 	if(player->client->sess.sessionTeam != TEAM_SPECTATOR)
 	{
@@ -217,17 +183,17 @@ void locateCamera(gentity_t * ent)
 	ent->r.ownerNum = owner->s.number;
 
 	// frame holds the rotate speed
-	if(owner->slowrotate)
+	if(owner->spawnflags & 1)
 	{
 		ent->s.frame = 25;
 	}
-	else if(owner->fastrotate)
+	else if(owner->spawnflags & 2)
 	{
 		ent->s.frame = 75;
 	}
 
 	// swing camera ?
-	if(owner->swing)
+	if(owner->spawnflags & 4)
 	{
 		// set to 0 for no rotation at all
 		ent->s.powerups = 0;
@@ -289,10 +255,6 @@ void SP_misc_portal_camera(gentity_t * ent)
 {
 	float           roll;
 
-	G_SpawnBoolean("slowrotate", "0", &ent->slowrotate);
-	G_SpawnBoolean("fastrotate", "0", &ent->fastrotate);
-	G_SpawnBoolean("swing", "0", &ent->swing);
-
 	VectorClear(ent->r.mins);
 	VectorClear(ent->r.maxs);
 	trap_LinkEntity(ent);
@@ -309,7 +271,7 @@ void SP_misc_portal_camera(gentity_t * ent)
 
 ======================================================================
 */
-/*
+
 void Use_Shooter(gentity_t * ent, gentity_t * other, gentity_t * activator)
 {
 	vec3_t          dir;
@@ -341,7 +303,7 @@ void Use_Shooter(gentity_t * ent, gentity_t * other, gentity_t * activator)
 
 	switch (ent->s.weapon)
 	{
-		case WP_FLAK_CANNON:
+		case WP_GRENADE_LAUNCHER:
 			fire_grenade(ent, ent->s.origin, dir);
 			break;
 		case WP_ROCKET_LAUNCHER:
@@ -385,40 +347,34 @@ void InitShooter(gentity_t * ent, int weapon)
 	}
 	trap_LinkEntity(ent);
 }
-*/
 
 /*QUAKED shooter_rocket (1 0 0) (-16 -16 -16) (16 16 16)
 Fires at either the target or the current direction.
 "random" the number of degrees of deviance from the taget. (1.0 default)
 */
-/*
 void SP_shooter_rocket(gentity_t * ent)
 {
 	InitShooter(ent, WP_ROCKET_LAUNCHER);
 }
-*/
 
 /*QUAKED shooter_plasma (1 0 0) (-16 -16 -16) (16 16 16)
 Fires at either the target or the current direction.
 "random" is the number of degrees of deviance from the taget. (1.0 default)
 */
-/*
 void SP_shooter_plasma(gentity_t * ent)
 {
 	InitShooter(ent, WP_PLASMAGUN);
 }
-*/
 
 /*QUAKED shooter_grenade (1 0 0) (-16 -16 -16) (16 16 16)
 Fires at either the target or the current direction.
 "random" is the number of degrees of deviance from the taget. (1.0 default)
 */
-/*
 void SP_shooter_grenade(gentity_t * ent)
 {
-	InitShooter(ent, WP_FLAK_CANNON);
+	InitShooter(ent, WP_GRENADE_LAUNCHER);
 }
-*/
+
 
 #ifdef MISSIONPACK
 static void PortalDie(gentity_t * self, gentity_t * inflictor, gentity_t * attacker, int damage, int mod)

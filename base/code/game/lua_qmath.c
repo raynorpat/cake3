@@ -21,9 +21,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // lua_qmath.c -- qmath library for Lua
 
-#include "g_lua.h"
-
-#if(defined(G_LUA) || defined(CG_LUA))
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include "g_local.h"
 
 static int qmath_abs(lua_State * L)
 {
@@ -195,7 +196,7 @@ static int qmath_max(lua_State * L)
 	return 1;
 }
 
-#if 0
+
 static int qmath_random(lua_State * L)
 {
 	/* the `%' avoids the (rare) case of r==1, and is needed also because on
@@ -238,25 +239,7 @@ static int qmath_randomseed(lua_State * L)
 	srand(luaL_checkint(L, 1));
 	return 0;
 }
-#endif
 
-static int qmath_rand(lua_State * L)
-{
-	lua_pushinteger(L, rand());
-	return 1;
-}
-
-static int qmath_random(lua_State * L)
-{
-	lua_pushnumber(L, random());
-	return 1;
-}
-
-static int qmath_crandom(lua_State * L)
-{
-	lua_pushnumber(L, crandom());
-	return 1;
-}
 
 static const luaL_reg qmathlib[] = {
 	{"abs", qmath_abs},
@@ -282,10 +265,8 @@ static const luaL_reg qmathlib[] = {
 	{"deg", qmath_deg},
 	{"pow", qmath_pow},
 	{"rad", qmath_rad},
-	{"rand", qmath_rand},
 	{"random", qmath_random},
-//  {"randomseed", qmath_randomseed},
-	{"crandom", qmath_crandom},
+	{"randomseed", qmath_randomseed},
 	{NULL, NULL}
 };
 
@@ -298,5 +279,3 @@ int luaopen_qmath(lua_State * L)
 	lua_setfield(L, -2, "huge");
 	return 1;
 }
-
-#endif

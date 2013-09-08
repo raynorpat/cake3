@@ -1,7 +1,6 @@
 /*
 ===========================================================================
 Copyright (C) 1999-2005 Id Software, Inc.
-Copyright (C) 2000-2006 Tim Angus
 Copyright (C) 2006 Robert Beckebans <trebor_7@users.sourceforge.net>
 
 This file is part of XreaL source code.
@@ -24,8 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 // cg_view.c -- setup all the parameters (position, angle, etc)
 // for a 3D rendering
-
-
 #include "cg_local.h"
 
 
@@ -39,7 +36,7 @@ enhanced into a single model testing facility.
 
 Model viewing can begin with either "testmodel <modelname>" or "testgun <modelname>".
 
-The names must be the full pathname after the basedir, like
+The names must be the full pathname after the basedir, like 
 "models/weapons/v_launch/tris.md3" or "players/male/tris.md3"
 
 Testmodel will create a fake entity 100 units in front of the current view
@@ -56,6 +53,10 @@ q3default.cfg.
 
 If a gun is being tested, the "gun_x", "gun_y", and "gun_z" variables will let
 you adjust the positioning.
+
+Note that none of the model testing features update while the game is paused, so
+it may be convenient to test with deathmatch set to 1 so that bringing down the
+console doesn't pause the game.
 
 =============================================================================
 */
@@ -75,7 +76,6 @@ void CG_TestModel_f(void)
 	memset(&cg.testModelEntity, 0, sizeof(cg.testModelEntity));
 	if(trap_Argc() < 2)
 	{
-		CG_Printf("usage: testModel <modelname> [lerp]\n");
 		return;
 	}
 
@@ -84,7 +84,7 @@ void CG_TestModel_f(void)
 
 	if(trap_Argc() == 3)
 	{
-		cg.testModelEntity.backlerp = 1.0f - atof(CG_Argv(2));
+		cg.testModelEntity.backlerp = atof(CG_Argv(2));
 		cg.testModelEntity.frame = 1;
 		cg.testModelEntity.oldframe = 0;
 	}
@@ -126,59 +126,55 @@ CG_TestAnimation_f
 */
 void CG_TestAnimation_f(void)
 {
-	if(trap_Argc() < 2)
-	{
-		CG_Printf("usage: testAnimation <animationname>\n");
-		return;
-	}
-
+	/*
 	Q_strncpyz(cg.testAnimationName, CG_Argv(1), MAX_QPATH);
 	cg.testAnimation = trap_R_RegisterAnimation(cg.testAnimationName);
-	//CG_RegisterAnimation
 
 	if(!cg.testAnimation)
 	{
 		CG_Printf("Can't register animation\n");
 		return;
 	}
-
-	// check the bones if they match
-	if(!trap_R_CheckSkeleton(&cg.testModelEntity.skeleton, cg.testModelEntity.hModel, cg.testAnimation))
+	
+	if(!trap_R_ResetSkeleton(&cg.testModelEntity.skeleton, cg.testModelEntity.hModel))
 	{
-		CG_Printf("Can't verify animation\n");
+		CG_Printf("Can't reset skeleton\n");
 		return;
 	}
-
+	
+//	CG_Printf("resetted %i bones\n", cg.testModelEntity.skeleton.numBones);
+	
 	// modify bones and set proper local bounds for culling
 	if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-							 cg.testAnimation,
-							 cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+						  cg.testAnimation,
+						  cg.testModelEntity.oldframe,
+						  cg.testModelEntity.frame,
+						  1.0 - cg.testModelEntity.backlerp))
 	{
 		CG_Printf("Can't build animation\n");
 		return;
 	}
+	
+	// tell renderer that skeleton is set up properly
+	cg.testModelEntity.renderfx |= RF_SKELETON;
+	*/
 }
 
 
 /*
 =================
-CG_TestBlend_f
+CG_TestAnimation2_f
 =================
 */
-void CG_TestBlend_f(void)
+void CG_TestAnimation2_f(void)
 {
-	if(trap_Argc() < 2)
-	{
-		CG_Printf("usage: testBlend <animationname> [lerp factor 0.0 - 1.0]\n");
-		return;
-	}
-
+	/*
 	if(!cg.testAnimation)
 	{
 		CG_Printf("Use testAnimation first to set a valid animation\n");
 		return;
 	}
-
+	
 	Q_strncpyz(cg.testAnimation2Name, CG_Argv(1), MAX_QPATH);
 	cg.testAnimation2 = trap_R_RegisterAnimation(cg.testAnimation2Name);
 
@@ -187,63 +183,65 @@ void CG_TestBlend_f(void)
 		CG_Printf("Can't register animation2 for blending\n");
 		return;
 	}
-
-	if(trap_Argc() == 3)
-	{
-		cg.testModelEntity.backlerp = 1.0f - atof(CG_Argv(2));
-	}
-
+	
 	// modify bones and set proper local bounds for culling
 	if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-							 cg.testAnimation,
-							 cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		cg.testAnimation,
+		cg.testModelEntity.oldframe,
+		cg.testModelEntity.frame,
+		1.0 - cg.testModelEntity.backlerp))
 	{
 		CG_Printf("Can't build animation\n");
 		return;
 	}
-
+	
 	if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
-							 cg.testAnimation2,
-							 cg.testModelEntity.oldframe, cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+		cg.testAnimation2,
+		cg.testModelEntity.oldframe,
+		cg.testModelEntity.frame,
+		1.0 - cg.testModelEntity.backlerp))
 	{
 		CG_Printf("Can't build animation2\n");
 		return;
 	}
-
+	
 	// lerp between first and second animation
-	if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
+	if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 0.5))
 	{
 		CG_Printf("Can't blend animation2\n");
 		return;
 	}
+	*/
 }
 
 void CG_TestModelNextFrame_f(void)
 {
 	cg.testModelEntity.frame++;
 	CG_Printf("frame %i\n", cg.testModelEntity.frame);
-
+	
 	if(cg.testAnimation)
 	{
 		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-								 cg.testAnimation,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+			cg.testAnimation,
+			cg.testModelEntity.oldframe,
+			cg.testModelEntity.frame,
+			1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't build animation\n");
 		}
 	}
-
+	
 	if(cg.testAnimation2)
 	{
 		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
-								 cg.testAnimation2,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+			cg.testAnimation2,
+			cg.testModelEntity.oldframe,
+			cg.testModelEntity.frame,
+			1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't build animation2\n");
 		}
-
+		
 		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 0.5))
 		{
 			CG_Printf("Can't blend animation2\n");
@@ -259,103 +257,31 @@ void CG_TestModelPrevFrame_f(void)
 		cg.testModelEntity.frame = 0;
 	}
 	CG_Printf("frame %i\n", cg.testModelEntity.frame);
-
+	
 	if(cg.testAnimation)
 	{
 		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-								 cg.testAnimation,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+			cg.testAnimation,
+			cg.testModelEntity.oldframe,
+			cg.testModelEntity.frame,
+			1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't build animation\n");
 		}
 	}
-
+	
 	if(cg.testAnimation2)
 	{
 		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
-								 cg.testAnimation2,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
+			cg.testAnimation2,
+			cg.testModelEntity.oldframe,
+			cg.testModelEntity.frame,
+			1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't build animation2\n");
 		}
-
+		
 		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 0.5))
-		{
-			CG_Printf("Can't blend animation2\n");
-		}
-	}
-}
-
-void CG_TestModelIncreaseLerp_f(void)
-{
-	cg.testModelEntity.backlerp -= 0.1f;
-	if(cg.testModelEntity.backlerp < 0)
-	{
-		cg.testModelEntity.backlerp = 0;
-	}
-	CG_Printf("lerp %f\n", 1.0f - cg.testModelEntity.backlerp);
-
-	if(cg.testAnimation)
-	{
-		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-								 cg.testAnimation,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
-		{
-			CG_Printf("Can't build animation\n");
-		}
-	}
-
-	if(cg.testAnimation2)
-	{
-		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
-								 cg.testAnimation2,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
-		{
-			CG_Printf("Can't build animation2\n");
-		}
-
-		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
-		{
-			CG_Printf("Can't blend animation2\n");
-		}
-	}
-}
-
-void CG_TestModelDecreaseLerp_f(void)
-{
-	cg.testModelEntity.backlerp += 0.1f;
-	if(cg.testModelEntity.backlerp > 1.0)
-	{
-		cg.testModelEntity.backlerp = 1;
-	}
-	CG_Printf("lerp %f\n", 1.0f - cg.testModelEntity.backlerp);
-
-	if(cg.testAnimation)
-	{
-		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-								 cg.testAnimation,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
-		{
-			CG_Printf("Can't build animation\n");
-		}
-	}
-
-	if(cg.testAnimation2)
-	{
-		if(!trap_R_BuildSkeleton(&cg.testAnimation2Skeleton,
-								 cg.testAnimation2,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
-		{
-			CG_Printf("Can't build animation2\n");
-		}
-
-		if(!trap_R_BlendSkeleton(&cg.testModelEntity.skeleton, &cg.testAnimation2Skeleton, 1.0 - cg.testModelEntity.backlerp))
 		{
 			CG_Printf("Can't blend animation2\n");
 		}
@@ -390,7 +316,7 @@ static void CG_AddTestModel(void)
 		return;
 	}
 
-	// if testing a gun, set the origin reletive to the view origin
+	// if testing a gun, set the origin relative to the view origin
 	if(cg.testGun)
 	{
 		VectorCopy(cg.refdef.vieworg, cg.testModelEntity.origin);
@@ -407,35 +333,6 @@ static void CG_AddTestModel(void)
 		}
 	}
 
-#if 0
-	if(cg.testAnimation)
-	{
-		int             max = trap_R_AnimNumFrames(cg.testAnimation);
-
-		cg.testModelEntity.oldframe = cg.testModelEntity.frame;
-
-		cg.testModelEntity.frame++;
-		if(cg.testModelEntity.frame >= max)
-		{
-			cg.testModelEntity.frame = 0;
-		}
-
-		if(!trap_R_BuildSkeleton(&cg.testModelEntity.skeleton,
-								 cg.testAnimation,
-								 cg.testModelEntity.oldframe,
-								 cg.testModelEntity.frame, 1.0 - cg.testModelEntity.backlerp, qfalse))
-		{
-			CG_Printf("Can't build animation\n");
-		}
-	}
-#endif
-
-	if(cg.testModelEntity.skeleton.type == SK_RELATIVE)
-	{
-		// transform relative bones to absolute ones required for vertex skinning
-		CG_TransformSkeleton(&cg.testModelEntity.skeleton, NULL);
-	}
-
 	trap_R_AddRefEntityToScene(&cg.testModelEntity);
 }
 
@@ -449,6 +346,7 @@ Creates a omni-directional light in front of the current position, which can the
 */
 void CG_TestOmniLight_f(void)
 {
+/*
 	vec3_t          angles;
 
 	memset(&cg.testLight, 0, sizeof(cg.testLight));
@@ -460,33 +358,34 @@ void CG_TestOmniLight_f(void)
 
 	Q_strncpyz(cg.testLightName, CG_Argv(1), sizeof(cg.testLightName));
 	cg.testLight.attenuationShader = trap_R_RegisterShaderLightAttenuation(cg.testLightName);
-
+	
 	if(!cg.testLight.attenuationShader)
 	{
 		CG_Printf("Can't register attenuation shader\n");
 		return;
 	}
-
+	
 	cg.testLight.rlType = RL_OMNI;
-//  cg.testLight.lightfx = LF_ROTATION;
+//	cg.testLight.lightfx = LF_ROTATION;
 
 	VectorMA(cg.refdef.vieworg, 100, cg.refdef.viewaxis[0], cg.testLight.origin);
-
+	
 	cg.testLight.color[0] = 1.0;
 	cg.testLight.color[1] = 1.0;
 	cg.testLight.color[2] = 1.0;
-
-	cg.testLight.radius[0] = 300;
-	cg.testLight.radius[1] = 300;
-	cg.testLight.radius[2] = 300;
+	
+	cg.testLight.radius[0] = 200;
+	cg.testLight.radius[1] = 200;
+	cg.testLight.radius[2] = 200;
 
 	angles[PITCH] = cg.refdefViewAngles[PITCH];
-	angles[YAW] = cg.refdefViewAngles[YAW];	// + 180;
+	angles[YAW] = cg.refdefViewAngles[YAW];// + 180;
 	angles[ROLL] = 0;
 
-	AnglesToQuat(angles, cg.testLight.rotation);
-
+	AnglesToAxis(angles, cg.testLight.axis);
+	
 	cg.testFlashLight = qfalse;
+	*/
 }
 
 
@@ -499,8 +398,7 @@ Creates a projective light in front of the current position, which can then be m
 */
 void CG_TestProjLight_f(void)
 {
-	float           fov_x;
-
+	/*
 	memset(&cg.testLight, 0, sizeof(cg.testLight));
 	if(trap_Argc() < 2)
 	{
@@ -510,32 +408,40 @@ void CG_TestProjLight_f(void)
 
 	Q_strncpyz(cg.testLightName, CG_Argv(1), sizeof(cg.testLightName));
 	cg.testLight.attenuationShader = trap_R_RegisterShaderLightAttenuation(cg.testLightName);
-
+	
 	if(!cg.testLight.attenuationShader)
 	{
 		CG_Printf("Can't register attenuation shader\n");
 		return;
 	}
-
+	
 	cg.testLight.rlType = RL_PROJ;
-//  cg.testLight.lightfx = LF_ROTATION;
+//	cg.testLight.lightfx = LF_ROTATION;
 
-	VectorCopy(cg.refdef.vieworg, cg.testLight.origin);
-
+	VectorMA(cg.refdef.vieworg, 10, cg.refdef.viewaxis[0], cg.testLight.origin);
+	
 	cg.testLight.color[0] = 1.0;
 	cg.testLight.color[1] = 1.0;
 	cg.testLight.color[2] = 1.0;
-
-	QuatClear(cg.testLight.rotation);
-
-	fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
-	VectorCopy(cg.refdef.viewaxis[0], cg.testLight.projTarget);
-	VectorScale(cg.refdef.viewaxis[1], -fov_x, cg.testLight.projRight);
-	VectorScale(cg.refdef.viewaxis[2], fov_x, cg.testLight.projUp);
-	VectorScale(cg.refdef.viewaxis[0], 10, cg.testLight.projStart);
-	VectorScale(cg.refdef.viewaxis[0], 1000, cg.testLight.projEnd);
-
+	
+	cg.testLight.radius[0] = 500;
+	cg.testLight.radius[1] = 100;
+	cg.testLight.radius[2] = 100;
+	
+#if 1
+	VectorCopy(cg.refdef.viewaxis[0], cg.testLight.axis[0]);
+	VectorCopy(cg.refdef.viewaxis[1], cg.testLight.axis[1]);
+	VectorCopy(cg.refdef.viewaxis[2], cg.testLight.axis[2]);
+#else
+	AxisClear(cg.testLight.axis);
+#endif
+	
+	VectorSet(cg.testLight.target, 500, 0, 0);
+	VectorSet(cg.testLight.right, 0, -35, 0);
+	VectorSet(cg.testLight.up, 0, 0, 35);
+	
 	cg.testFlashLight = qfalse;
+	*/
 }
 
 /*
@@ -550,7 +456,7 @@ void CG_TestFlashLight_f(void)
 		CG_Printf("usage: testFlashLight <lightShaderName>\n");
 		return;
 	}
-
+	
 	CG_TestProjLight_f();
 	cg.testFlashLight = qtrue;
 }
@@ -558,7 +464,8 @@ void CG_TestFlashLight_f(void)
 
 static void CG_AddTestLight(void)
 {
-	float           fov_x;
+	/*
+//	int             i;
 
 	// re-register the model, because the level may have changed
 	cg.testLight.attenuationShader = trap_R_RegisterShaderLightAttenuation(cg.testLightName);
@@ -571,36 +478,18 @@ static void CG_AddTestLight(void)
 	// if testing a flashlight, set the projection direction reletive to the view direction
 	if(cg.testFlashLight)
 	{
-		VectorCopy(cg.refdef.vieworg, cg.testLight.origin);
-
-		fov_x = tanf(DEG2RAD(cg.refdef.fov_x * 0.5f));
-		VectorCopy(cg.refdef.viewaxis[0], cg.testLight.projTarget);
-		VectorScale(cg.refdef.viewaxis[1], -fov_x, cg.testLight.projRight);
-		VectorScale(cg.refdef.viewaxis[2], fov_x, cg.testLight.projUp);
-		VectorScale(cg.refdef.viewaxis[0], 10, cg.testLight.projStart);
-		VectorScale(cg.refdef.viewaxis[0], 1000, cg.testLight.projEnd);
+		VectorMA(cg.refdef.vieworg, 10, cg.refdef.viewaxis[0], cg.testLight.origin);
+		
+		VectorCopy(cg.refdef.viewaxis[0], cg.testLight.axis[0]);
+		VectorCopy(cg.refdef.viewaxis[1], cg.testLight.axis[1]);
+		VectorCopy(cg.refdef.viewaxis[2], cg.testLight.axis[2]);
 	}
 
 	trap_R_AddRefLightToScene(&cg.testLight);
+	*/
 }
 
 
-/*
-=================
-CG_TestGib_f
-=================
-*/
-void CG_TestGib_f(void)
-{
-	vec3_t          origin;
-
-	// raynorpat: spawn the gibs out in front of the testing player :)
-	VectorMA(cg.refdef.vieworg, 100, cg.refdef.viewaxis[0], origin);
-
-	CG_GibPlayer(origin);
-//  CG_ParticleBloodCloud(cg.testModelEntity.origin, cg.refdef.viewaxis[0]);
-//  CG_BloodPool(cgs.media.bloodSpurtShader, cg.testModelEntity.origin);
-}
 
 
 //============================================================================
@@ -639,8 +528,8 @@ static void CG_CalcVrect(void)
 		{
 			size = cg_viewsize.integer;
 		}
-	}
 
+	}
 	cg.refdef.width = cgs.glconfig.vidWidth * size / 100;
 	cg.refdef.width &= ~1;
 
@@ -667,24 +556,13 @@ static void CG_OffsetThirdPersonView(void)
 	vec3_t          view;
 	vec3_t          focusAngles;
 	trace_t         trace;
-	static vec3_t   mins = { -8, -8, -8 };
-	static vec3_t   maxs = { 8, 8, 8 };
+	static vec3_t   mins = { -4, -4, -4 };
+	static vec3_t   maxs = { 4, 4, 4 };
 	vec3_t          focusPoint;
 	float           focusDist;
 	float           forwardScale, sideScale;
-	vec3_t          surfNormal;
 
-	if(cg.predictedPlayerState.pm_flags & PMF_WALLCLIMBING)
-	{
-		if(cg.predictedPlayerState.pm_flags & PMF_WALLCLIMBINGCEILING)
-			VectorSet(surfNormal, 0.0f, 0.0f, -1.0f);
-		else
-			VectorCopy(cg.predictedPlayerState.grapplePoint, surfNormal);
-	}
-	else
-		VectorSet(surfNormal, 0.0f, 0.0f, 1.0f);
-
-	VectorMA(cg.refdef.vieworg, cg.predictedPlayerState.viewheight, surfNormal, cg.refdef.vieworg);
+	cg.refdef.vieworg[2] += cg.predictedPlayerState.viewheight;
 
 	VectorCopy(cg.refdefViewAngles, focusAngles);
 
@@ -695,15 +573,19 @@ static void CG_OffsetThirdPersonView(void)
 		cg.refdefViewAngles[YAW] = cg.predictedPlayerState.stats[STAT_DEAD_YAW];
 	}
 
+	if(focusAngles[PITCH] > 45)
+	{
+		focusAngles[PITCH] = 45;	// don't go too far overhead
+	}
 	AngleVectors(focusAngles, forward, NULL, NULL);
 
 	VectorMA(cg.refdef.vieworg, FOCUS_DISTANCE, forward, focusPoint);
 
 	VectorCopy(cg.refdef.vieworg, view);
 
-	VectorMA(view, 12, surfNormal, view);
+	view[2] += 8;
 
-	//cg.refdefViewAngles[PITCH] *= 0.5;
+	cg.refdefViewAngles[PITCH] *= 0.5;
 
 	AngleVectors(cg.refdefViewAngles, forward, right, up);
 
@@ -731,20 +613,12 @@ static void CG_OffsetThirdPersonView(void)
 		}
 	}
 
+
 	VectorCopy(view, cg.refdef.vieworg);
 
 	// select pitch to look at focus point from vieword
 	VectorSubtract(focusPoint, cg.refdef.vieworg, focusPoint);
-#if 0
-	if(cg.predictedPlayerState.pm_flags & PMF_WALLCLIMBING)
-	{
-		focusDist = VectorLength(focusPoint);
-	}
-	else
-#endif
-	{
-		focusDist = sqrt(focusPoint[0] * focusPoint[0] + focusPoint[1] * focusPoint[1]);
-	}
+	focusDist = sqrt(focusPoint[0] * focusPoint[0] + focusPoint[1] * focusPoint[1]);
 	if(focusDist < 1)
 	{
 		focusDist = 1;			// should never happen
@@ -757,39 +631,20 @@ static void CG_OffsetThirdPersonView(void)
 // this causes a compiler bug on mac MrC compiler
 static void CG_StepOffset(void)
 {
-	float           steptime;
 	int             timeDelta;
-	vec3_t          normal;
-	playerState_t  *ps = &cg.predictedPlayerState;
-
-	if(ps->pm_flags & PMF_WALLCLIMBING)
-	{
-		if(ps->pm_flags & PMF_WALLCLIMBINGCEILING)
-			VectorSet(normal, 0.0f, 0.0f, -1.0f);
-		else
-			VectorCopy(ps->grapplePoint, normal);
-	}
-	else
-		VectorSet(normal, 0.0f, 0.0f, 1.0f);
-
-	steptime = STEP_TIME;
 
 	// smooth out stair climbing
 	timeDelta = cg.time - cg.stepTime;
-	if(timeDelta < steptime)
+	if(timeDelta < STEP_TIME)
 	{
-		float           stepChange = cg.stepChange * (steptime - timeDelta) / steptime;
-
-		if(ps->pm_flags & PMF_WALLCLIMBING)
-			VectorMA(cg.refdef.vieworg, -stepChange, normal, cg.refdef.vieworg);
-		else
-			cg.refdef.vieworg[2] -= stepChange;
+		cg.refdef.vieworg[2] -= cg.stepChange * (STEP_TIME - timeDelta) / STEP_TIME;
 	}
 }
 
 /*
 ===============
 CG_OffsetFirstPersonView
+
 ===============
 */
 static void CG_OffsetFirstPersonView(void)
@@ -803,19 +658,6 @@ static void CG_OffsetFirstPersonView(void)
 	float           f;
 	vec3_t          predictedVelocity;
 	int             timeDelta;
-	vec3_t          normal;
-	playerState_t  *ps = &cg.predictedPlayerState;
-
-	if(ps->pm_flags & PMF_WALLCLIMBING)
-	{
-		if(ps->pm_flags & PMF_WALLCLIMBINGCEILING)
-			VectorSet(normal, 0.0f, 0.0f, -1.0f);
-		else
-			VectorCopy(ps->grapplePoint, normal);
-	}
-	else
-		VectorSet(normal, 0.0f, 0.0f, 1.0f);
-
 
 	if(cg.snap->ps.pm_type == PM_INTERMISSION)
 	{
@@ -834,9 +676,6 @@ static void CG_OffsetFirstPersonView(void)
 		origin[2] += cg.predictedPlayerState.viewheight;
 		return;
 	}
-
-	// add angles based on weapon kick
-	VectorAdd(angles, cg.kick_angles, angles);
 
 	// add angles based on damage kick
 	if(cg.damageTime)
@@ -895,11 +734,7 @@ static void CG_OffsetFirstPersonView(void)
 //===================================
 
 	// add view height
-	// TA: when wall climbing the viewheight is not straight up
-	if(cg.predictedPlayerState.pm_flags & PMF_WALLCLIMBING)
-		VectorMA(origin, ps->viewheight, normal, origin);
-	else
-		origin[2] += cg.predictedPlayerState.viewheight;
+	origin[2] += cg.predictedPlayerState.viewheight;
 
 	// smooth out duck height changes
 	timeDelta = cg.time - cg.duckTime;
@@ -910,22 +745,16 @@ static void CG_OffsetFirstPersonView(void)
 
 	// add bob height
 	bob = cg.bobfracsin * cg.xyspeed * cg_bobup.value;
-
 	if(bob > 6)
 	{
 		bob = 6;
 	}
 
-	// TA: likewise for bob
-	if(cg.predictedPlayerState.pm_flags & PMF_WALLCLIMBING)
-		VectorMA(origin, bob, normal, origin);
-	else
-		origin[2] += bob;
+	origin[2] += bob;
 
 
 	// add fall height
 	delta = cg.time - cg.landTime;
-
 	if(delta < LAND_DEFLECT_TIME)
 	{
 		f = delta / LAND_DEFLECT_TIME;
@@ -940,10 +769,6 @@ static void CG_OffsetFirstPersonView(void)
 
 	// add step offset
 	CG_StepOffset();
-
-	// add kick offset
-
-	VectorAdd(origin, cg.kick_origin, origin);
 
 	// pivot the eye based on a neck length
 #if 0
@@ -963,13 +788,6 @@ static void CG_OffsetFirstPersonView(void)
 
 void CG_ZoomDown_f(void)
 {
-
-	if(cg.osd.input)
-	{
-		CG_OSDInput();
-		return;
-	}
-
 	if(cg.zoomed)
 	{
 		return;
@@ -1013,11 +831,6 @@ static int CG_CalcFov(void)
 	if(cg.predictedPlayerState.pm_type == PM_INTERMISSION)
 	{
 		// if in intermission, use a fixed value
-		fov_x = 90;
-	}
-	else if(cg.predictedPlayerState.pm_type == PM_SPECTATOR)
-	{
-		// if a spectator, use a fixed value
 		fov_x = 90;
 	}
 	else
@@ -1067,11 +880,7 @@ static int CG_CalcFov(void)
 		else
 		{
 			f = (cg.time - cg.zoomTime) / (float)ZOOM_TIME;
-			if(f > 1.0)
-			{
-				fov_x = fov_x;
-			}
-			else
+			if(f <= 1.0)
 			{
 				fov_x = zoomFov + f * (fov_x - zoomFov);
 			}
@@ -1084,7 +893,6 @@ static int CG_CalcFov(void)
 
 	// warp if underwater
 	contents = CG_PointContents(cg.refdef.vieworg, -1);
-
 	if(contents & (CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA))
 	{
 		phase = cg.time / 1000.0 * WAVE_FREQUENCY * M_PI * 2;
@@ -1120,14 +928,19 @@ static int CG_CalcFov(void)
 /*
 ===============
 CG_DamageBlendBlob
+
 ===============
 */
 static void CG_DamageBlendBlob(void)
 {
-#if 0
 	int             t;
 	int             maxTime;
 	refEntity_t     ent;
+
+	if(!cg_blood.integer)
+	{
+		return;
+	}
 
 	if(!cg.damageValue)
 	{
@@ -1138,19 +951,12 @@ static void CG_DamageBlendBlob(void)
 	//  return;
 	//}
 
-	// ragePro systems can't fade blends, so don't obscure the screen
-	if(cgs.glconfig.hardwareType == GLHW_RAGEPRO)
-	{
-		return;
-	}
-
 	maxTime = DAMAGE_TIME;
 	t = cg.time - cg.damageTime;
 	if(t <= 0 || t >= maxTime)
 	{
 		return;
 	}
-
 
 	memset(&ent, 0, sizeof(ent));
 	ent.reType = RT_SPRITE;
@@ -1167,229 +973,7 @@ static void CG_DamageBlendBlob(void)
 	ent.shaderRGBA[2] = 255;
 	ent.shaderRGBA[3] = 200 * (1.0 - ((float)t / maxTime));
 	trap_R_AddRefEntityToScene(&ent);
-#endif
 }
-
-#define NORMAL_HEIGHT 64.0f
-#define NORMAL_WIDTH  6.0f
-
-/*
-===============
-CG_DrawSurfNormal
-
-Draws a vector against
-the surface player is looking at
-===============
-*/
-/*static void CG_DrawSurfNormal(void)
-{
-	trace_t         tr;
-	vec3_t          end, temp;
-	polyVert_t      normal[4];
-	vec4_t          color = { 0.0f, 255.0f, 0.0f, 128.0f };
-
-	VectorMA(cg.refdef.vieworg, 8192, cg.refdef.viewaxis[0], end);
-
-	CG_Trace(&tr, cg.refdef.vieworg, NULL, NULL, end, cg.predictedPlayerState.clientNum, MASK_SOLID);
-
-	VectorCopy(tr.endpos, normal[0].xyz);
-	normal[0].st[0] = 0;
-	normal[0].st[1] = 0;
-	Vector4Copy(color, normal[0].modulate);
-
-	VectorMA(tr.endpos, NORMAL_WIDTH, cg.refdef.viewaxis[1], temp);
-	VectorCopy(temp, normal[1].xyz);
-	normal[1].st[0] = 0;
-	normal[1].st[1] = 1;
-	Vector4Copy(color, normal[1].modulate);
-
-	VectorMA(tr.endpos, NORMAL_HEIGHT, tr.plane.normal, temp);
-	VectorMA(temp, NORMAL_WIDTH, cg.refdef.viewaxis[1], temp);
-	VectorCopy(temp, normal[2].xyz);
-	normal[2].st[0] = 1;
-	normal[2].st[1] = 1;
-	Vector4Copy(color, normal[2].modulate);
-
-	VectorMA(tr.endpos, NORMAL_HEIGHT, tr.plane.normal, temp);
-	VectorCopy(temp, normal[3].xyz);
-	normal[3].st[0] = 1;
-	normal[3].st[1] = 0;
-	Vector4Copy(color, normal[3].modulate);
-
-	trap_R_AddPolyToScene(cgs.media.debugPlayerAABB_twoSided, 4, normal);
-}*/
-
-/*
-===============
-CG_addSmoothOp
-===============
-*/
-void CG_addSmoothOp(vec3_t rotAxis, float rotAngle, float timeMod)
-{
-	int             i;
-
-	//iterate through smooth array
-	for(i = 0; i < MAXSMOOTHS; i++)
-	{
-		//found an unused index in the smooth array
-		if(cg.sList[i].time + cg_wallWalkSmoothTime.integer < cg.time)
-		{
-			//copy to array and stop
-			VectorCopy(rotAxis, cg.sList[i].rotAxis);
-			cg.sList[i].rotAngle = rotAngle;
-			cg.sList[i].time = cg.time;
-			cg.sList[i].timeMod = timeMod;
-			return;
-		}
-	}
-
-	//no free indices in the smooth array
-}
-
-/*
-===============
-CG_smoothWWTransitions
-===============
-*/
-static void CG_smoothWWTransitions(playerState_t * ps, const vec3_t in, vec3_t out)
-{
-	vec3_t          surfNormal, rotAxis, temp;
-	vec3_t          refNormal = { 0.0f, 0.0f, 1.0f };
-	vec3_t          ceilingNormal = { 0.0f, 0.0f, -1.0f };
-	int             i;
-	float           stLocal, sFraction, rotAngle;
-	float           smoothTime, timeMod;
-	qboolean        performed = qfalse;
-	vec3_t          inAxis[3], lastAxis[3], outAxis[3];
-
-	if(cg.snap->ps.pm_flags & PMF_FOLLOW)
-	{
-		VectorCopy(in, out);
-		return;
-	}
-
-	//set surfNormal
-	if(!(ps->pm_flags & PMF_WALLCLIMBINGCEILING))
-		VectorCopy(ps->grapplePoint, surfNormal);
-	else
-		VectorCopy(ceilingNormal, surfNormal);
-
-	AnglesToAxis(in, inAxis);
-
-	//if we are moving from one surface to another smooth the transition
-	if(!VectorCompare(surfNormal, cg.lastNormal))
-	{
-		//if we moving from the ceiling to the floor special case
-		//( x product of colinear vectors is undefined)
-		if(VectorCompare(ceilingNormal, cg.lastNormal) && VectorCompare(refNormal, surfNormal))
-		{
-			AngleVectors(in, temp, NULL, NULL);
-			ProjectPointOnPlane(rotAxis, temp, refNormal);
-			VectorNormalize(rotAxis);
-			rotAngle = 180.0f;
-			timeMod = 1.5f;
-		}
-		else
-		{
-			AnglesToAxis(cg.lastVangles, lastAxis);
-			rotAngle = DotProduct(inAxis[0], lastAxis[0]) +
-				DotProduct(inAxis[1], lastAxis[1]) + DotProduct(inAxis[2], lastAxis[2]);
-
-			rotAngle = RAD2DEG(acos((rotAngle - 1.0f) / 2.0f));
-
-			CrossProduct(lastAxis[0], inAxis[0], temp);
-			VectorCopy(temp, rotAxis);
-			CrossProduct(lastAxis[1], inAxis[1], temp);
-			VectorAdd(rotAxis, temp, rotAxis);
-			CrossProduct(lastAxis[2], inAxis[2], temp);
-			VectorAdd(rotAxis, temp, rotAxis);
-
-			VectorNormalize(rotAxis);
-
-			timeMod = 1.0f;
-		}
-
-		//add the op
-		CG_addSmoothOp(rotAxis, rotAngle, timeMod);
-	}
-
-	//iterate through ops
-	for(i = MAXSMOOTHS - 1; i >= 0; i--)
-	{
-		smoothTime = (int)(cg_wallWalkSmoothTime.integer * cg.sList[i].timeMod);
-
-		//if this op has time remaining, perform it
-		if(cg.time < cg.sList[i].time + smoothTime)
-		{
-			stLocal = 1.0f - (((cg.sList[i].time + smoothTime) - cg.time) / smoothTime);
-			sFraction = -(cos(stLocal * M_PI) + 1.0f) / 2.0f;
-
-			RotatePointAroundVector(outAxis[0], cg.sList[i].rotAxis, inAxis[0], sFraction * cg.sList[i].rotAngle);
-			RotatePointAroundVector(outAxis[1], cg.sList[i].rotAxis, inAxis[1], sFraction * cg.sList[i].rotAngle);
-			RotatePointAroundVector(outAxis[2], cg.sList[i].rotAxis, inAxis[2], sFraction * cg.sList[i].rotAngle);
-
-			AxisCopy(outAxis, inAxis);
-			performed = qtrue;
-		}
-	}
-
-	//if we performed any ops then return the smoothed angles
-	//otherwise simply return the in angles
-	if(performed)
-		AxisToAngles(outAxis, out);
-	else
-		VectorCopy(in, out);
-
-	//copy the current normal to the lastNormal
-	VectorCopy(in, cg.lastVangles);
-	VectorCopy(surfNormal, cg.lastNormal);
-}
-
-/*
-===============
-CG_smoothWJTransitions
-===============
-*/
-/*static void CG_smoothWJTransitions(playerState_t * ps, const vec3_t in, vec3_t out)
-{
-	int             i;
-	float           stLocal, sFraction;
-	qboolean        performed = qfalse;
-	vec3_t          inAxis[3], outAxis[3];
-
-	if(cg.snap->ps.pm_flags & PMF_FOLLOW)
-	{
-		VectorCopy(in, out);
-		return;
-	}
-
-	AnglesToAxis(in, inAxis);
-
-	//iterate through ops
-	for(i = MAXSMOOTHS - 1; i >= 0; i--)
-	{
-		//if this op has time remaining, perform it
-		if(cg.time < cg.sList[i].time + cg_wallWalkSmoothTime.integer)
-		{
-			stLocal = ((cg.sList[i].time + cg_wallWalkSmoothTime.integer) - cg.time) / cg_wallWalkSmoothTime.integer;
-			sFraction = 1.0f - ((cos(stLocal * M_PI * 2.0f) + 1.0f) / 2.0f);
-
-			RotatePointAroundVector(outAxis[0], cg.sList[i].rotAxis, inAxis[0], sFraction * cg.sList[i].rotAngle);
-			RotatePointAroundVector(outAxis[1], cg.sList[i].rotAxis, inAxis[1], sFraction * cg.sList[i].rotAngle);
-			RotatePointAroundVector(outAxis[2], cg.sList[i].rotAxis, inAxis[2], sFraction * cg.sList[i].rotAngle);
-
-			AxisCopy(outAxis, inAxis);
-			performed = qtrue;
-		}
-	}
-
-	//if we performed any ops then return the smoothed angles
-	//otherwise simply return the in angles
-	if(performed)
-		AxisToAngles(outAxis, out);
-	else
-		VectorCopy(in, out);
-}*/
 
 
 /*
@@ -1404,6 +988,10 @@ static int CG_CalcViewValues(void)
 	playerState_t  *ps;
 
 	memset(&cg.refdef, 0, sizeof(cg.refdef));
+
+	// strings for in game rendering
+	// Q_strncpyz( cg.refdef.text[0], "Park Ranger", sizeof(cg.refdef.text[0]) );
+	// Q_strncpyz( cg.refdef.text[1], "19", sizeof(cg.refdef.text[1]) );
 
 	// calculate size of 3D view
 	CG_CalcVrect();
@@ -1423,14 +1011,12 @@ static int CG_CalcViewValues(void)
 		}
 	}
 */
-
 	// intermission view
 	if(ps->pm_type == PM_INTERMISSION)
 	{
 		VectorCopy(ps->origin, cg.refdef.vieworg);
 		VectorCopy(ps->viewangles, cg.refdefViewAngles);
 		AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
-
 		return CG_CalcFov();
 	}
 
@@ -1438,30 +1024,9 @@ static int CG_CalcViewValues(void)
 	cg.bobfracsin = fabs(sin((ps->bobCycle & 127) / 127.0 * M_PI));
 	cg.xyspeed = sqrt(ps->velocity[0] * ps->velocity[0] + ps->velocity[1] * ps->velocity[1]);
 
+
 	VectorCopy(ps->origin, cg.refdef.vieworg);
-
-	//if(BG_ClassHasAbility(ps->stats[STAT_PCLASS], SCA_WALLCLIMBER))
-	{
-		CG_smoothWWTransitions(ps, ps->viewangles, cg.refdefViewAngles);
-	}
-//	else if(BG_ClassHasAbility(ps->stats[STAT_PCLASS], SCA_WALLJUMPER))
-//	{
-//		CG_smoothWJTransitions(ps, ps->viewangles, cg.refdefViewAngles);
-//	}
-//	else
-//	{
-//		VectorCopy(ps->viewangles, cg.refdefViewAngles);
-//	}
-
-	// clumsy logic, but it needs to be this way round because the CS propogation
-	// delay screws things up otherwise
-#if 0
-	if(!BG_ClassHasAbility(ps->stats[STAT_PCLASS], SCA_WALLJUMPER))
-	{
-		if(!(ps->stats[STAT_STATE] & SS_WALLCLIMBING))
-			VectorSet(cg.lastNormal, 0.0f, 0.0f, 1.0f);
-	}
-#endif
+	VectorCopy(ps->viewangles, cg.refdefViewAngles);
 
 	if(cg_cameraOrbit.integer)
 	{
@@ -1479,7 +1044,6 @@ static int CG_CalcViewValues(void)
 
 		t = cg.time - cg.predictedErrorTime;
 		f = (cg_errorDecay.value - t) / cg_errorDecay.value;
-
 		if(f > 0 && f < 1)
 		{
 			VectorMA(cg.refdef.vieworg, f, cg.predictedError, cg.refdef.vieworg);
@@ -1501,7 +1065,7 @@ static int CG_CalcViewValues(void)
 		CG_OffsetFirstPersonView();
 	}
 
-	// position eye reletive to origin
+	// position eye relative to origin
 	AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
 
 	if(cg.hyperspace)
@@ -1600,7 +1164,7 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 
 	// if we are only updating the screen as a loading
 	// pacifier, don't even try to read snapshots
-	if(cg.progress > 0)
+	if(cg.infoScreenText[0] != 0)
 	{
 		CG_DrawInformation();
 		return;
@@ -1638,10 +1202,6 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 
 	// build cg.refdef
 	inwater = CG_CalcViewValues();
-	if(inwater)
-	{
-		cg.refdef.rdflags |= RDF_UNDERWATER;
-	}
 
 	// first person blend blobs, done after AnglesToAxis
 	if(!cg.renderingThirdPerson)
@@ -1662,21 +1222,23 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 	// add buffered sounds
 	CG_PlayBufferedSounds();
 
+#ifdef MISSIONPACK
 	// play buffered voice chats
 	CG_PlayBufferedVoiceChats();
+#endif
 
 	// finish up the rest of the refdef
 	if(cg.testModelEntity.hModel)
 	{
 		CG_AddTestModel();
 	}
-
+	
 	// Tr3B - test light to preview Doom3 style light attenuation shaders
 	if(cg.testLight.attenuationShader)
 	{
 		CG_AddTestLight();
 	}
-
+	
 	cg.refdef.time = cg.time;
 	memcpy(cg.refdef.areamask, cg.snap->areamask, sizeof(cg.refdef.areamask));
 
@@ -1690,7 +1252,6 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 	if(stereoView != STEREO_RIGHT)
 	{
 		cg.frametime = cg.time - cg.oldTime;
-
 		if(cg.frametime < 0)
 		{
 			cg.frametime = 0;
@@ -1698,7 +1259,6 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 		cg.oldTime = cg.time;
 		CG_AddLagometerFrameInfo();
 	}
-
 	if(cg_timescale.value != cg_timescaleFadeEnd.value)
 	{
 		if(cg_timescale.value < cg_timescaleFadeEnd.value)
@@ -1713,7 +1273,6 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 			if(cg_timescale.value < cg_timescaleFadeEnd.value)
 				cg_timescale.value = cg_timescaleFadeEnd.value;
 		}
-
 		if(cg_timescaleFadeSpeed.value)
 		{
 			trap_Cvar_Set("timescale", va("%f", cg_timescale.value));
@@ -1727,4 +1286,6 @@ void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoP
 	{
 		CG_Printf("cg.clientFrame:%i\n", cg.clientFrame);
 	}
+
+
 }

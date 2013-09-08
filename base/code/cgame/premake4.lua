@@ -1,5 +1,3 @@
-
-
 project "base_cgame"
 	targetname  "cgame"
 	targetdir 	"../.."
@@ -16,7 +14,6 @@ project "base_cgame"
 		
 		--"**.c", "**.cpp", "**.h",
 		
-		"cg_animation.c",
 		"cg_consolecmds.c",
 		"cg_draw.c",
 		"cg_drawtools.c",
@@ -26,10 +23,9 @@ project "base_cgame"
 		"cg_info.c",
 		"cg_local.h",
 		"cg_localents.c",
-		"cg_lua.c",
 		"cg_main.c",
 		"cg_marks.c",
-		"cg_osd.c",
+		"cg_newdraw.c",
 		"cg_particles.c",
 		"cg_players.c",
 		"cg_playerstate.c",
@@ -41,9 +37,8 @@ project "base_cgame"
 		"cg_view.c",
 		"cg_weapons.c",
 		
-		"lua_cgame.c",
-		"lua_particle.c",
-		
+		"../ui/ui_parse.c",
+
 		"../game/bg_**.c", "../game/bg_**.cpp", "../game/bg_**.h",
 		
 		"../game/lua_qmath.c",
@@ -79,12 +74,6 @@ project "base_cgame"
 		"../../../code/libs/lua/src/linit.c",
 		"../../../code/libs/lua/src/loslib.c",
 	}
-	--excludes
-	--{
-	--	"cg_unlagged.c",
-	--	"cg_newdraw.c",
-	--	"g_bullet.cpp",
-	--}
 	includedirs
 	{
 		"../../../code/shared",
@@ -92,6 +81,7 @@ project "base_cgame"
 	}
 	defines
 	{ 
+		"CGAME",
 		"LUA",
 	}
 

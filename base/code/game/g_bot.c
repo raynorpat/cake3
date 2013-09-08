@@ -25,12 +25,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
-
 #if defined(BRAINWORKS) || defined(GLADIATOR)
-
 static int      g_numBots;
 static char    *g_botInfos[MAX_BOTS];
-
 
 int             g_numArenas;
 static char    *g_arenaInfos[MAX_ARENAS];
@@ -150,8 +147,8 @@ static void G_LoadArenasFromFile(char *filename)
 	}
 	if(len >= MAX_ARENAS_TEXT)
 	{
-		trap_Printf(va(S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_ARENAS_TEXT));
 		trap_FS_FCloseFile(f);
+		trap_Printf(va(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n", filename, len, MAX_ARENAS_TEXT));
 		return;
 	}
 
@@ -240,7 +237,7 @@ static void PlayerIntroSound(const char *modelAndSkin)
 	char           *skin;
 
 	Q_strncpyz(model, modelAndSkin, sizeof(model));
-	skin = Q_strrchr(model, '/');
+	skin = strrchr(model, '/');
 	if(skin)
 	{
 		*skin++ = '\0';
@@ -282,7 +279,7 @@ void G_AddRandomBot(int team)
 			{
 				continue;
 			}
-			if(!(g_entities[cl->ps.clientNum].r.svFlags & SVF_BOT))
+			if(!(g_entities[i].r.svFlags & SVF_BOT))
 			{
 				continue;
 			}
@@ -312,7 +309,7 @@ void G_AddRandomBot(int team)
 			{
 				continue;
 			}
-			if(!(g_entities[cl->ps.clientNum].r.svFlags & SVF_BOT))
+			if(!(g_entities[i].r.svFlags & SVF_BOT))
 			{
 				continue;
 			}
@@ -337,8 +334,7 @@ void G_AddRandomBot(int team)
 					teamstr = "blue";
 				else
 					teamstr = "";
-				strncpy(netname, value, sizeof(netname) - 1);
-				netname[sizeof(netname) - 1] = '\0';
+				Q_strncpyz(netname, value, sizeof(netname));
 				Q_CleanStr(netname);
 				trap_SendConsoleCommand(EXEC_INSERT, va("addbot %s %f %s %i\n", netname, skill, teamstr, 0));
 				return;
@@ -364,7 +360,7 @@ int G_RemoveRandomBot(int team)
 		{
 			continue;
 		}
-		if(!(g_entities[cl->ps.clientNum].r.svFlags & SVF_BOT))
+		if(!(g_entities[i].r.svFlags & SVF_BOT))
 		{
 			continue;
 		}
@@ -372,7 +368,7 @@ int G_RemoveRandomBot(int team)
 		{
 			continue;
 		}
-		trap_SendConsoleCommand(EXEC_INSERT, va("clientkick %d\n", cl->ps.clientNum));
+		trap_SendConsoleCommand(EXEC_INSERT, va("clientkick %d\n", i));
 		return qtrue;
 	}
 	return qfalse;
@@ -396,7 +392,7 @@ int G_CountHumanPlayers(int team)
 		{
 			continue;
 		}
-		if(g_entities[cl->ps.clientNum].r.svFlags & SVF_BOT)
+		if(g_entities[i].r.svFlags & SVF_BOT)
 		{
 			continue;
 		}
@@ -427,7 +423,7 @@ int G_CountBotPlayers(int team)
 		{
 			continue;
 		}
-		if(!(g_entities[cl->ps.clientNum].r.svFlags & SVF_BOT))
+		if(!(g_entities[i].r.svFlags & SVF_BOT))
 		{
 			continue;
 		}
@@ -666,13 +662,21 @@ static void G_AddBot(const char *name, float skill, const char *team, int delay,
 {
 	int             clientNum;
 	char           *botinfo;
-	gentity_t      *bot;
 	char           *key;
 	char           *s;
 	char           *botname;
 	char           *model;
 	char           *headmodel;
 	char            userinfo[MAX_INFO_STRING];
+
+	// have the server allocate a client slot
+	clientNum = trap_BotAllocateClient();
+	if(clientNum == -1)
+	{
+		G_Printf(S_COLOR_RED "Unable to add bot. All player slots are in use.\n");
+		G_Printf(S_COLOR_RED "Start server with more 'open' slots (or check setting of sv_maxclients cvar).\n");
+		return;
+	}
 
 	// get the botinfo from bots.txt
 	botinfo = G_GetBotInfoByName(name);
@@ -698,8 +702,7 @@ static void G_AddBot(const char *name, float skill, const char *team, int delay,
 	Info_SetValueForKey(userinfo, "name", botname);
 	Info_SetValueForKey(userinfo, "rate", "25000");
 	Info_SetValueForKey(userinfo, "snaps", "20");
-	Info_SetValueForKey(userinfo, "skill", va("%1.2f", skill));
-
+	Info_SetValueForKey(userinfo, "skill", va("%.2f", skill));
 
 #if defined(GLADIATOR)
 	// outcommented for brainworks
@@ -724,6 +727,18 @@ static void G_AddBot(const char *name, float skill, const char *team, int delay,
 		model = "visor/default";
 	}
 	Info_SetValueForKey(userinfo, key, model);
+	key = "team_model";
+	Info_SetValueForKey(userinfo, key, model);
+
+	key = "headmodel";
+	headmodel = Info_ValueForKey(botinfo, key);
+	if(!*headmodel)
+	{
+		headmodel = model;
+	}
+	Info_SetValueForKey(userinfo, key, headmodel);
+	key = "team_headmodel";
+	Info_SetValueForKey(userinfo, key, headmodel);
 
 	key = "gender";
 	s = Info_ValueForKey(botinfo, key);
@@ -755,17 +770,8 @@ static void G_AddBot(const char *name, float skill, const char *team, int delay,
 		trap_Printf(S_COLOR_RED "Error: bot has no aifile specified\n");
 		return;
 	}
+	Info_SetValueForKey(userinfo, "characterfile", s);
 
-	// have the server allocate a client slot
-	clientNum = trap_BotAllocateClient();
-	if(clientNum == -1)
-	{
-		G_Printf(S_COLOR_RED "Unable to add bot.  All player slots are in use.\n");
-		G_Printf(S_COLOR_RED "Start server with more 'open' slots (or check setting of sv_maxclients cvar).\n");
-		return;
-	}
-
-	// initialize the bot settings
 	if(!team || !*team)
 	{
 		if(g_gametype.integer >= GT_TEAM)
@@ -784,13 +790,7 @@ static void G_AddBot(const char *name, float skill, const char *team, int delay,
 			team = "red";
 		}
 	}
-	Info_SetValueForKey(userinfo, "characterfile", Info_ValueForKey(botinfo, "aifile"));
-	Info_SetValueForKey(userinfo, "skill", va("%5.2f", skill));
 	Info_SetValueForKey(userinfo, "team", team);
-
-	bot = &g_entities[clientNum];
-	bot->r.svFlags |= SVF_BOT;
-	bot->inuse = qtrue;
 
 	// register the userinfo
 	trap_SetUserinfo(clientNum, userinfo);
@@ -873,7 +873,7 @@ void Svcmd_AddBot_f(void)
 	// go ahead and load the bot's media immediately
 	if(level.time - level.startTime > 1000 && trap_Cvar_VariableIntegerValue("cl_running"))
 	{
-		trap_SendServerCommand(-1, "loaddeferred\n");
+		trap_SendServerCommand(-1, "loaddefered\n");	// FIXME: spelled wrong, but not changing for demo
 	}
 }
 

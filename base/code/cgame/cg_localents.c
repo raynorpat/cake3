@@ -133,7 +133,7 @@ void CG_BloodTrail(localEntity_t * le)
 	vec3_t          newOrigin;
 	localEntity_t  *blood;
 
-	step = 75;
+	step = 150;
 	t = step * ((cg.time - cg.frametime + step) / step);
 	t2 = step * (cg.time / step);
 
@@ -141,17 +141,15 @@ void CG_BloodTrail(localEntity_t * le)
 	{
 		BG_EvaluateTrajectory(&le->pos, t, newOrigin);
 
-		blood = CG_SmokePuff(newOrigin, vec3_origin, 10,	// radius
+		blood = CG_SmokePuff(newOrigin, vec3_origin, 20,	// radius
 							 1, 1, 1, 1,	// color
 							 2000,	// trailTime
 							 t,	// startTime
 							 0,	// fadeInTime
 							 0,	// flags
 							 cgs.media.bloodTrailShader);
-
 		// use the optimized version
 		blood->leType = LE_FALL_SCALE_FADE;
-
 		// drop a total of 40 units over its lifetime
 		blood->pos.trDelta[2] = 40;
 	}
@@ -165,28 +163,14 @@ CG_FragmentBounceMark
 */
 void CG_FragmentBounceMark(localEntity_t * le, trace_t * trace)
 {
-	int             radius, r = 0;
-	qhandle_t       h;
+	int             radius;
 
 	if(le->leMarkType == LEMT_BLOOD)
 	{
 
 		radius = 16 + (rand() & 31);
-		r = rand() & 3;
-
-		if(r == 0)
-		{
-			h = cgs.media.bloodMarkShader;
-		}
-		else if(r == 1)
-		{
-			h = cgs.media.bloodMark2Shader;
-		}
-		else
-		{
-			h = cgs.media.bloodMark3Shader;
-		}
-		CG_ImpactMark(h, trace->endpos, trace->plane.normal, random() * 360, 1, 1, 1, 1, qtrue, radius, qfalse);
+		CG_ImpactMark(cgs.media.bloodMarkShader, trace->endpos, trace->plane.normal, random() * 360,
+					  1, 1, 1, 1, qtrue, radius, qfalse);
 	}
 	else if(le->leMarkType == LEMT_BURN)
 	{
@@ -381,7 +365,7 @@ void CG_AddFragment(localEntity_t * le)
 	// if it is in a nodrop zone, remove it
 	// this keeps gibs from waiting at the bottom of pits of death
 	// and floating levels
-	if(trap_CM_PointContents(trace.endpos, 0) & CONTENTS_NODROP)
+	if(CG_PointContents(trace.endpos, 0) & CONTENTS_NODROP)
 	{
 		CG_FreeLocalEntity(le);
 		return;
@@ -641,6 +625,7 @@ static void CG_AddSpriteExplosion(localEntity_t * le)
 }
 
 
+#ifdef MISSIONPACK
 /*
 ====================
 CG_AddKamikaze
@@ -673,7 +658,7 @@ void CG_AddKamikaze(localEntity_t * le)
 		memset(&shockwave, 0, sizeof(shockwave));
 		shockwave.hModel = cgs.media.kamikazeShockWave;
 		shockwave.reType = RT_MODEL;
-		shockwave.shaderTime = -re->shaderTime;
+		shockwave.shaderTime = re->shaderTime;
 		VectorCopy(re->origin, shockwave.origin);
 
 		c = (float)(t - KAMI_SHOCKWAVE_STARTTIME) / (float)(KAMI_SHOCKWAVE_ENDTIME - KAMI_SHOCKWAVE_STARTTIME);
@@ -742,14 +727,10 @@ void CG_AddKamikaze(localEntity_t * le)
 			le->angles.trBase[1] = random() * 360;
 			le->angles.trBase[2] = random() * 360;
 		}
-		else
-		{
-			c = 0;
-		}
 		memset(&shockwave, 0, sizeof(shockwave));
 		shockwave.hModel = cgs.media.kamikazeShockWave;
 		shockwave.reType = RT_MODEL;
-		shockwave.shaderTime = -re->shaderTime;
+		shockwave.shaderTime = re->shaderTime;
 		VectorCopy(re->origin, shockwave.origin);
 
 		test[0] = le->angles.trBase[0];
@@ -781,149 +762,6 @@ void CG_AddKamikaze(localEntity_t * le)
 	}
 }
 
-
-/*
-====================
-CG_AddRailExplosion
-====================
-*/
-static void CG_AddRailExplosion(localEntity_t * le)
-{
-	refEntity_t    *re;
-	refEntity_t     shockwave;
-	float           c;
-	vec3_t          test, axis[3];
-	int             t;
-
-	re = &le->refEntity;
-
-	t = cg.time - le->startTime;
-	VectorClear(test);
-	AnglesToAxis(test, axis);
-
-	if(t > RAILGUN_SHOCKWAVE_STARTTIME && t < RAILGUN_SHOCKWAVE_ENDTIME)
-	{
-
-		if(!(le->leFlags & LEF_SOUND1))
-		{
-//          trap_S_StartSound (re->origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.kamikazeExplodeSound );
-			trap_S_StartLocalSound(cgs.media.kamikazeExplodeSound, CHAN_AUTO);
-			le->leFlags |= LEF_SOUND1;
-		}
-		// 1st kamikaze shockwave
-		memset(&shockwave, 0, sizeof(shockwave));
-		shockwave.hModel = cgs.media.kamikazeShockWave;
-		shockwave.reType = RT_MODEL;
-		shockwave.shaderTime = -re->shaderTime;
-		VectorCopy(re->origin, shockwave.origin);
-
-		c = (float)(t - RAILGUN_SHOCKWAVE_STARTTIME) / (float)(RAILGUN_SHOCKWAVE_ENDTIME - RAILGUN_SHOCKWAVE_STARTTIME);
-		VectorScale(axis[0], c * RAILGUN_SHOCKWAVE_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[0]);
-		VectorScale(axis[1], c * RAILGUN_SHOCKWAVE_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[1]);
-		VectorScale(axis[2], c * RAILGUN_SHOCKWAVE_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[2]);
-		shockwave.nonNormalizedAxes = qtrue;
-
-		if(t > RAILGUN_SHOCKWAVEFADE_STARTTIME)
-		{
-			c = (float)(t - RAILGUN_SHOCKWAVEFADE_STARTTIME) / (float)(RAILGUN_SHOCKWAVE_ENDTIME - RAILGUN_SHOCKWAVEFADE_STARTTIME);
-		}
-		else
-		{
-			c = 0;
-		}
-		c *= 0xff;
-		shockwave.shaderRGBA[0] = 0xff - c;
-		shockwave.shaderRGBA[1] = 0xff - c;
-		shockwave.shaderRGBA[2] = 0xff - c;
-		shockwave.shaderRGBA[3] = 0xff - c;
-
-		trap_R_AddRefEntityToScene(&shockwave);
-	}
-
-	if(t > RAILGUN_EXPLODE_STARTTIME && t < RAILGUN_IMPLODE_ENDTIME)
-	{
-		// explosion and implosion
-		c = (le->endTime - cg.time) * le->lifeRate;
-		c *= 0xff;
-		re->shaderRGBA[0] = le->color[0] * c;
-		re->shaderRGBA[1] = le->color[1] * c;
-		re->shaderRGBA[2] = le->color[2] * c;
-		re->shaderRGBA[3] = le->color[3] * c;
-
-		if(t < RAILGUN_IMPLODE_STARTTIME)
-		{
-			c = (float)(t - RAILGUN_EXPLODE_STARTTIME) / (float)(RAILGUN_IMPLODE_STARTTIME - RAILGUN_EXPLODE_STARTTIME);
-		}
-		else
-		{
-			if(!(le->leFlags & LEF_SOUND2))
-			{
-//              trap_S_StartSound (re->origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.kamikazeImplodeSound );
-				trap_S_StartLocalSound(cgs.media.kamikazeImplodeSound, CHAN_AUTO);
-				le->leFlags |= LEF_SOUND2;
-			}
-			c = (float)(RAILGUN_IMPLODE_ENDTIME - t) / (float)(RAILGUN_IMPLODE_ENDTIME - RAILGUN_IMPLODE_STARTTIME);
-		}
-		VectorScale(axis[0], c * RAILGUN_BOOMSPHERE_MAXRADIUS / RAILGUN_BOOMSPHEREMODEL_RADIUS, re->axis[0]);
-		VectorScale(axis[1], c * RAILGUN_BOOMSPHERE_MAXRADIUS / RAILGUN_BOOMSPHEREMODEL_RADIUS, re->axis[1]);
-		VectorScale(axis[2], c * RAILGUN_BOOMSPHERE_MAXRADIUS / RAILGUN_BOOMSPHEREMODEL_RADIUS, re->axis[2]);
-		re->nonNormalizedAxes = qtrue;
-
-		trap_R_AddRefEntityToScene(re);
-		// add the light
-		trap_R_AddLightToScene(re->origin, c * 1000.0, 1.0, 1.0, c);
-	}
-
-	if(t > RAILGUN_SHOCKWAVE2_STARTTIME && t < RAILGUN_SHOCKWAVE2_ENDTIME)
-	{
-		// 2nd kamikaze shockwave
-		if(le->angles.trBase[0] == 0 && le->angles.trBase[1] == 0 && le->angles.trBase[2] == 0)
-		{
-			le->angles.trBase[0] = random() * 360;
-			le->angles.trBase[1] = random() * 360;
-			le->angles.trBase[2] = random() * 360;
-		}
-		else
-		{
-			c = 0;
-		}
-		memset(&shockwave, 0, sizeof(shockwave));
-		shockwave.hModel = cgs.media.kamikazeShockWave;
-		shockwave.reType = RT_MODEL;
-		shockwave.shaderTime = -re->shaderTime;
-		VectorCopy(re->origin, shockwave.origin);
-
-		test[0] = le->angles.trBase[0];
-		test[1] = le->angles.trBase[1];
-		test[2] = le->angles.trBase[2];
-		AnglesToAxis(test, axis);
-
-		c = (float)(t - RAILGUN_SHOCKWAVE2_STARTTIME) / (float)(RAILGUN_SHOCKWAVE2_ENDTIME - RAILGUN_SHOCKWAVE2_STARTTIME);
-		VectorScale(axis[0], c * RAILGUN_SHOCKWAVE2_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[0]);
-		VectorScale(axis[1], c * RAILGUN_SHOCKWAVE2_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[1]);
-		VectorScale(axis[2], c * RAILGUN_SHOCKWAVE2_MAXRADIUS / RAILGUN_SHOCKWAVEMODEL_RADIUS, shockwave.axis[2]);
-		shockwave.nonNormalizedAxes = qtrue;
-
-		if(t > RAILGUN_SHOCKWAVE2FADE_STARTTIME)
-		{
-			c = (float)(t - RAILGUN_SHOCKWAVE2FADE_STARTTIME) / (float)(RAILGUN_SHOCKWAVE2_ENDTIME - RAILGUN_SHOCKWAVE2FADE_STARTTIME);
-		}
-		else
-		{
-			c = 0;
-		}
-		c *= 0xff;
-		shockwave.shaderRGBA[0] = 0xff - c;
-		shockwave.shaderRGBA[1] = 0xff - c;
-		shockwave.shaderRGBA[2] = 0xff - c;
-		shockwave.shaderRGBA[3] = 0xff - c;
-
-		trap_R_AddRefEntityToScene(&shockwave);
-	}
-}
-
-
-#ifdef MISSIONPACK
 /*
 ===================
 CG_AddInvulnerabilityImpact
@@ -1148,27 +986,16 @@ void CG_AddLocalEntities(void)
 				CG_AddScorePlum(le);
 				break;
 
+#ifdef MISSIONPACK
 			case LE_KAMIKAZE:
 				CG_AddKamikaze(le);
 				break;
-
-			case LE_RAILEXPLOSION:
-				CG_AddRailExplosion(le);
-				break;
-
-			case LE_FIRE:
-				CG_AddFire(le);
-				break;
-
-#ifdef MISSIONPACK
 			case LE_INVULIMPACT:
 				CG_AddInvulnerabilityImpact(le);
 				break;
-
 			case LE_INVULJUICED:
 				CG_AddInvulnerabilityJuiced(le);
 				break;
-
 			case LE_SHOWREFENTITY:
 				CG_AddRefEntity(le);
 				break;

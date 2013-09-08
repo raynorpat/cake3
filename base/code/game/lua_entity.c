@@ -21,174 +21,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // lua_entity.c -- entity library for Lua
 
-#include "g_lua.h"
 
-#if(defined(G_LUA))
-
-static int entity_Target(lua_State * L)
-{
-	lua_Entity     *lent;
-	lua_Entity     *target;
-	gentity_t      *t = NULL;
-
-	target = lua_newuserdata(L, sizeof(lua_Entity));
-	luaL_getmetatable(L, "game.entity");
-	lua_setmetatable(L, -2);
-
-	lent = lua_getentity(L, 1);
-
-
-	if(!lent->e)
-	{
-		Com_Printf("entity_Target: invalid entity!\n");
-		return 0;
-	}
-	if(!lent->e->target)
-	{
-		Com_Printf("entity_Target: no target!\n");
-		return 0;
-	}
-
-	t = G_PickTarget(lent->e->target);
-	if(!t)
-	{
-		G_Printf("entity_Target: Couldn't find target %s\n", lent->e->target);
-		return 0;
-	}
-
-	target->e = t;
-
-	return 1;
-}
-
-static int entity_FindNumber(lua_State * L)
-{
-	lua_Entity     *lent;
-	int             entnum;
-	gentity_t      *ent;
-
-	entnum = luaL_checkint(L, 1);
-	DEBUG_LUA("entity_FindNumber: start: ent=%d", entnum);
-
-	lent = lua_newuserdata(L, sizeof(lua_Entity));
-
-	luaL_getmetatable(L, "game.entity");
-	lua_setmetatable(L, -2);
-
-	lent->e = NULL;
-
-	ent = &g_entities[entnum];
-	if(ent)
-	{
-		if(ent->inuse)
-		{
-			lent->e = ent;
-			return 1;
-		}
-	}
-	return 0;
-}
-
-static int entity_Find(lua_State * L)
-{
-	char           *s;
-	lua_Entity     *lent;
-	int             i;
-	gentity_t      *t;
-
-	lent = lua_newuserdata(L, sizeof(lua_Entity));
-
-	luaL_getmetatable(L, "game.entity");
-	lua_setmetatable(L, -2);
-
-	s = (char *)luaL_checkstring(L, 1);
-
-	lent->e = NULL;
-
-	for(i = 0; i < level.numEntities; i++)
-	{
-		// Here we use tent to point to potential targets
-		t = &g_entities[i];
-
-		if(!t->inuse)
-			continue;
-
-		if(Q_stricmp(t->name, s) == 0)
-		{
-			lent->e = t;
-			break;
-		}
-
-	}
-
-	if(!lent->e)
-	{
-		Com_Printf("entity_Find: entity '%s' not found!\n", s);
-		return 0;
-	}
-
-	return 1;
-}
-
-
-static int entity_Teleport(lua_State * L)
-{
-	lua_Entity     *lent;
-	lua_Entity     *target;
-
-
-	lent = lua_getentity(L, 1);
-	target = lua_getentity(L, 2);
-
-	if(!lent->e)
-	{
-		Com_Printf("entity_Teleport: invalid entity!\n");
-		return 0;
-	}
-	if(!target->e)
-	{
-		Com_Printf("entity_Teleport: invalid target!\n");
-		return 0;
-	}
-
-	if(lent->e->client)
-		TeleportPlayer(lent->e, target->e->s.origin, target->e->s.angles);
-	else
-		TeleportEntity(lent->e, target->e->s.origin, target->e->s.angles);
-	return 1;
-}
-
-
-
-static int entity_IsRocket(lua_State * L)
-{
-	lua_Entity     *lent;
-	qboolean        rocket = qfalse;
-
-	lent = lua_getentity(L, 1);
-
-	if(Q_stricmp(lent->e->classname, "rocket"))
-		rocket = qtrue;
-
-	lua_pushboolean(L, rocket);
-
-	return 1;
-}
-static int entity_IsGrenade(lua_State * L)
-{
-	lua_Entity     *lent;
-	qboolean        grenade = qfalse;
-
-	lent = lua_getentity(L, 1);
-
-	if(Q_stricmp(lent->e->classname, "grenade"))
-		grenade = qtrue;
-
-	lua_pushboolean(L, grenade);
-
-	return 1;
-}
-
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include "g_local.h"
 
 static int entity_Spawn(lua_State * L)
 {
@@ -198,7 +35,7 @@ static int entity_Spawn(lua_State * L)
 
 	luaL_getmetatable(L, "game.entity");
 	lua_setmetatable(L, -2);
-
+	
 	lent->e = G_Spawn();
 
 	return 1;
@@ -210,7 +47,7 @@ static int entity_GetNumber(lua_State * L)
 
 	lent = lua_getentity(L, 1);
 	lua_pushnumber(L, lent->e - g_entities);
-//  lua_pushnumber(L, lent->e->s.number);
+//	lua_pushnumber(L, lent->e->s.number);
 
 	return 1;
 }
@@ -241,7 +78,7 @@ static int entity_Print(lua_State * L)
 	int             i;
 	char            buf[MAX_STRING_CHARS];
 	int             n = lua_gettop(L);	// number of arguments
-
+	
 	lent = lua_getentity(L, 1);
 	if(!lent->e->client)
 		return luaL_error(L, "`Print' must be used with a client entity");
@@ -257,17 +94,17 @@ static int entity_Print(lua_State * L)
 		lua_pushvalue(L, i);	// value to print
 		lua_call(L, 1, 1);
 		s = lua_tostring(L, -1);	// get result
-
+		
 		if(s == NULL)
 			return luaL_error(L, "`tostring' must return a string to `print'");
-
+		
 		Q_strcat(buf, sizeof(buf), s);
-
+		
 		lua_pop(L, 1);			// pop result
 	}
-
+	
 	trap_SendServerCommand(lent->e - g_entities, va("print \"%s\n\"", buf));
-
+	
 	return 0;
 }
 
@@ -277,7 +114,7 @@ static int entity_CenterPrint(lua_State * L)
 	int             i;
 	char            buf[MAX_STRING_CHARS];
 	int             n = lua_gettop(L);	// number of arguments
-
+	
 	lent = lua_getentity(L, 1);
 	if(!lent->e->client)
 		return luaL_error(L, "`CenterPrint' must be used with a client entity");
@@ -293,17 +130,17 @@ static int entity_CenterPrint(lua_State * L)
 		lua_pushvalue(L, i);	// value to print
 		lua_call(L, 1, 1);
 		s = lua_tostring(L, -1);	// get result
-
+		
 		if(s == NULL)
 			return luaL_error(L, "`tostring' must return a string to `print'");
-
+		
 		Q_strcat(buf, sizeof(buf), s);
-
+		
 		lua_pop(L, 1);			// pop result
 	}
-
+	
 	trap_SendServerCommand(lent->e - g_entities, va("cp \"" S_COLOR_WHITE "%s\n\"", buf));
-
+	
 	return 0;
 }
 
@@ -320,13 +157,12 @@ static int entity_GetClassName(lua_State * L)
 static int entity_SetClassName(lua_State * L)
 {
 	lua_Entity     *lent;
-
-//  char           *classname;
+//	char           *classname;
 
 	lent = lua_getentity(L, 1);
-	lent->e->classname = (char *)luaL_checkstring(L, 2);
-
-//  lent->e->classname = classname;
+	lent->e->classname = (char *) luaL_checkstring(L, 2);
+	
+//	lent->e->classname = classname;
 
 	return 1;
 }
@@ -348,7 +184,7 @@ static int entity_Rotate(lua_State * L)
 
 	lent = lua_getentity(L, 1);
 	vec = lua_getvector(L, 2);
-
+	
 	lent->e->s.apos.trType = TR_LINEAR;
 	lent->e->s.apos.trDelta[0] = vec[0];
 	lent->e->s.apos.trDelta[1] = vec[1];
@@ -359,8 +195,8 @@ static int entity_Rotate(lua_State * L)
 
 static int entity_GC(lua_State * L)
 {
-//  G_Printf("Lua says bye to entity = %p\n", lua_getentity(L));
-
+//	G_Printf("Lua says bye to entity = %p\n", lua_getentity(L));
+	
 	return 0;
 }
 
@@ -369,23 +205,17 @@ static int entity_ToString(lua_State * L)
 	lua_Entity     *lent;
 	gentity_t      *gent;
 	char            buf[MAX_STRING_CHARS];
-
+	
 	lent = lua_getentity(L, 1);
 	gent = lent->e;
-	Com_sprintf(buf, sizeof(buf), "entity: class=%s name=%s id=%i pointer=%p\n", gent->classname, gent->name, gent - g_entities,
-				gent);
+	Com_sprintf(buf, sizeof(buf), "entity: class=%s name=%s id=%i pointer=%p\n", gent->classname, gent->name, gent - g_entities, gent);
 	lua_pushstring(L, buf);
-
+	
 	return 1;
 }
 
 static const luaL_reg entity_ctor[] = {
 	{"Spawn", entity_Spawn},
-
-	{"Find", entity_Find},		//find an entity by name e.g ent = entity.Find("myentity");
-	{"FindNumber", entity_FindNumber},	//find an entity by number, ent = entity.FindNumber(entnum);
-	{"Target", entity_Target},	//find an entitys target, e.g target = entity.Target(ent);
-
 	{NULL, NULL}
 };
 
@@ -401,22 +231,17 @@ static const luaL_reg entity_meta[] = {
 	{"SetClassName", entity_SetClassName},
 	{"GetTargetName", entity_GetTargetName},
 	{"Rotate", entity_Rotate},
-
-	{"IsRocket", entity_IsRocket},
-	{"IsGrenade", entity_IsGrenade},
-	{"Teleport", entity_Teleport},
-
 	{NULL, NULL}
 };
 
 int luaopen_entity(lua_State * L)
 {
 	luaL_newmetatable(L, "game.entity");
-
+	
 	lua_pushstring(L, "__index");
-	lua_pushvalue(L, -2);		// pushes the metatable
-	lua_settable(L, -3);		// metatable.__index = metatable
-
+	lua_pushvalue(L, -2);  // pushes the metatable
+	lua_settable(L, -3);  // metatable.__index = metatable
+	
 	luaL_register(L, NULL, entity_meta);
 	luaL_register(L, "entity", entity_ctor);
 
@@ -431,11 +256,11 @@ void lua_pushentity(lua_State * L, gentity_t * ent)
 
 	luaL_getmetatable(L, "game.entity");
 	lua_setmetatable(L, -2);
-
+	
 	lent->e = ent;
 }
 
-lua_Entity     *lua_getentity(lua_State * L, int argNum)
+lua_Entity *lua_getentity(lua_State * L, int argNum)
 {
 	void           *ud;
 
@@ -443,5 +268,3 @@ lua_Entity     *lua_getentity(lua_State * L, int argNum)
 	luaL_argcheck(L, ud != NULL, argNum, "`entity' expected");
 	return (lua_Entity *) ud;
 }
-
-#endif

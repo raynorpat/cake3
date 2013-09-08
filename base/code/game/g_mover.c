@@ -159,7 +159,7 @@ qboolean G_TryPushingEntity(gentity_t * check, gentity_t * pusher, vec3_t move, 
 	}
 	pushed_p++;
 
-	// try moving the contacted entity
+	// try moving the contacted entity 
 	// figure movement due to the pusher's amove
 	G_CreateRotationMatrix(amove, transpose);
 	G_TransposeMatrix(transpose, matrix);
@@ -188,7 +188,7 @@ qboolean G_TryPushingEntity(gentity_t * check, gentity_t * pusher, vec3_t move, 
 	// may have pushed them off an edge
 	if(check->s.groundEntityNum != pusher->s.number)
 	{
-		check->s.groundEntityNum = -1;
+		check->s.groundEntityNum = ENTITYNUM_NONE;
 	}
 
 	block = G_TestEntityPosition(check);
@@ -219,7 +219,7 @@ qboolean G_TryPushingEntity(gentity_t * check, gentity_t * pusher, vec3_t move, 
 	block = G_TestEntityPosition(check);
 	if(!block)
 	{
-		check->s.groundEntityNum = -1;
+		check->s.groundEntityNum = ENTITYNUM_NONE;
 		pushed_p--;
 		return qtrue;
 	}
@@ -263,7 +263,7 @@ qboolean G_TryPushingProxMine(gentity_t * check, gentity_t * pusher, vec3_t move
 	VectorSubtract(vec3_origin, amove, org);
 	AngleVectors(org, forward, right, up);
 
-	// try moving the contacted entity
+	// try moving the contacted entity 
 	VectorAdd(check->s.pos.trBase, move, check->s.pos.trBase);
 
 	// figure movement due to the pusher's amove
@@ -350,7 +350,7 @@ qboolean G_MoverPush(gentity_t * pusher, vec3_t move, vec3_t amove, gentity_t **
 
 	listedEntities = trap_EntitiesInBox(totalMins, totalMaxs, entityList, MAX_GENTITIES);
 
-	// move the pusher to it's final position
+	// move the pusher to its final position
 	VectorAdd(pusher->r.currentOrigin, move, pusher->r.currentOrigin);
 	VectorAdd(pusher->r.currentAngles, amove, pusher->r.currentAngles);
 	trap_LinkEntity(pusher);
@@ -608,8 +608,6 @@ void SetMoverState(gentity_t * ent, moverState_t moverState, int time)
 			VectorScale(delta, f, ent->s.pos.trDelta);
 			ent->s.pos.trType = TR_LINEAR_STOP;
 			break;
-		case MOVER_MISC:
-			break;
 	}
 	BG_EvaluateTrajectory(&ent->s.pos, level.time, ent->r.currentOrigin);
 	trap_LinkEntity(ent);
@@ -666,21 +664,6 @@ void Reached_BinaryMover(gentity_t * ent)
 	// stop the looping sound
 	ent->s.loopSound = ent->soundLoop;
 
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		if(ent->activator)
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ent->activator->s.number);
-		}
-		else
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ENTITYNUM_WORLD);
-		}
-	}
-#endif
-
 	if(ent->moverState == MOVER_1TO2)
 	{
 		// reached pos2
@@ -720,10 +703,6 @@ void Reached_BinaryMover(gentity_t * ent)
 			trap_AdjustAreaPortalState(ent, qfalse);
 		}
 	}
-	else if(ent->moverState == MOVER_MISC)
-	{
-		//Movement was set by lua, its fine.
-	}
 	else
 	{
 		G_Error("Reached_BinaryMover: bad moverState");
@@ -749,14 +728,6 @@ void Use_BinaryMover(gentity_t * ent, gentity_t * other, gentity_t * activator)
 	}
 
 	ent->activator = activator;
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, activator->s.number);
-	}
-#endif
 
 	if(ent->moverState == MOVER_POS1)
 	{
@@ -954,7 +925,7 @@ void Blocked_Door(gentity_t * ent, gentity_t * other)
 	{
 		G_Damage(other, ent, ent, NULL, NULL, ent->damage, 0, MOD_CRUSH);
 	}
-	if(ent->crusher)
+	if(ent->spawnflags & 4)
 	{
 		return;					// crushers don't reverse
 	}
@@ -1103,25 +1074,19 @@ void SP_func_door(gentity_t * ent)
 	vec3_t          size, sizeRotated;
 	float           lip;
 	matrix_t        rotation;
-	qboolean        start_open;
 
-	ent->sound1to2 = ent->sound2to1 = G_SoundIndex("sound/movers/doors/dr1_strt.ogg");
-	ent->soundPos1 = ent->soundPos2 = G_SoundIndex("sound/movers/doors/dr1_end.ogg");
+	ent->sound1to2 = ent->sound2to1 = G_SoundIndex("sound/movers/doors/dr1_strt.wav");
+	ent->soundPos1 = ent->soundPos2 = G_SoundIndex("sound/movers/doors/dr1_end.wav");
 
 	ent->blocked = Blocked_Door;
-	ent->activate = G_ActivateUseFirst;
 
 	// default speed of 400
 	if(!ent->speed)
-	{
 		ent->speed = 400;
-	}
 
 	// default wait of 2 seconds
 	if(!ent->wait)
-	{
 		ent->wait = 2;
-	}
 	ent->wait *= 1000;
 
 	// default lip of 8 units
@@ -1130,14 +1095,12 @@ void SP_func_door(gentity_t * ent)
 	// default damage of 2 points
 	G_SpawnInt("dmg", "2", &ent->damage);
 
-	G_SpawnBoolean("crusher", "0,", &ent->crusher);
-
 	// first position at start
 	VectorCopy(ent->s.origin, ent->pos1);
 
 	// calculate second position
 	trap_SetBrushModel(ent, ent->model);
-
+	
 	if(VectorCompare(ent->movedir, vec3_origin))
 	{
 		// movedir was not set directly so use entity's angles
@@ -1146,18 +1109,17 @@ void SP_func_door(gentity_t * ent)
 	abs_movedir[0] = fabs(ent->movedir[0]);
 	abs_movedir[1] = fabs(ent->movedir[1]);
 	abs_movedir[2] = fabs(ent->movedir[2]);
-
+	
 	VectorSubtract(ent->r.maxs, ent->r.mins, size);
-
+	
 	AnglesToMatrix(ent->s.angles, rotation);
 	MatrixTransformNormal(rotation, size, sizeRotated);
-
+	
 	distance = DotProduct(abs_movedir, sizeRotated) - lip;
 	VectorMA(ent->pos1, distance, ent->movedir, ent->pos2);
 
 	// if "start_open", reverse position 1 and 2
-	G_SpawnBoolean("start_open", "0", &start_open);
-	if(start_open)
+	if(ent->spawnflags & 1)
 	{
 		vec3_t          temp;
 
@@ -1167,7 +1129,7 @@ void SP_func_door(gentity_t * ent)
 	}
 
 	InitMover(ent);
-
+	
 	VectorCopy(ent->s.angles, ent->s.apos.trBase);
 	VectorCopy(ent->s.angles, ent->r.currentAngles);
 
@@ -1178,12 +1140,12 @@ void SP_func_door(gentity_t * ent)
 		int             health;
 
 		G_SpawnInt("health", "0", &health);
-
+		
 		// Tr3B - Doom3 entities have always a name
 		if(health)
 		{
 			ent->takedamage = qtrue;
-
+		
 			// non touch/shoot doors
 			ent->think = Think_MatchTeam;
 		}
@@ -1307,8 +1269,8 @@ void SP_func_plat(gentity_t * ent)
 {
 	float           lip, height;
 
-	ent->sound1to2 = ent->sound2to1 = G_SoundIndex("sound/movers/plats/pt1_strt.ogg");
-	ent->soundPos1 = ent->soundPos2 = G_SoundIndex("sound/movers/plats/pt1_end.ogg");
+	ent->sound1to2 = ent->sound2to1 = G_SoundIndex("sound/movers/plats/pt1_strt.wav");
+	ent->soundPos1 = ent->soundPos2 = G_SoundIndex("sound/movers/plats/pt1_end.wav");
 
 	VectorClear(ent->s.angles);
 
@@ -1343,7 +1305,7 @@ void SP_func_plat(gentity_t * ent)
 	ent->parent = ent;			// so it can be treated as a door
 
 	// spawn the trigger if one hasn't been custom made
-
+	
 	// Tr3B - Doom3 entities have always a name
 	//if(!ent->name)
 	{
@@ -1489,27 +1451,9 @@ void Reached_Train(gentity_t * ent)
 
 	// copy the apropriate values
 	next = ent->nextTrain;
-
 	if(!next || !next->nextTrain)
 	{
 		return;					// just stop
-	}
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, -1);
-	}
-	if(next->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(next->luaTrigger, next->s.number, ent->s.number);
-	}
-#endif
-
-	if(!ent->nextTrain)
-	{
-		return;					// check for stopped by lua
 	}
 
 	// fire all other targets
@@ -1541,6 +1485,26 @@ void Reached_Train(gentity_t * ent)
 
 	ent->s.pos.trDuration = length * 1000 / speed;
 
+	// Tequila comment: Be sure to send to clients after any fast move case
+	ent->r.svFlags &= ~SVF_NOCLIENT;
+
+	// Tequila comment: Fast move case
+	if(ent->s.pos.trDuration < 1)
+	{
+		// Tequila comment: As trDuration is used later in a division, we need to avoid that case now
+		// With null trDuration,
+		// the calculated rocks bounding box becomes infinite and the engine think for a short time
+		// any entity is riding that mover but not the world entity... In rare case, I found it
+		// can also stuck every map entities after func_door are used.
+		// The desired effect with very very big speed is to have instant move, so any not null duration
+		// lower than a frame duration should be sufficient.
+		// Afaik, the negative case don't have to be supported.
+		ent->s.pos.trDuration = 1;
+
+		// Tequila comment: Don't send entity to clients so it becomes really invisible 
+		ent->r.svFlags |= SVF_NOCLIENT;
+	}
+
 	// looping sound
 	ent->s.loopSound = next->soundLoop;
 
@@ -1556,14 +1520,24 @@ void Reached_Train(gentity_t * ent)
 	}
 }
 
+
 /*
 ===============
+Think_SetupTrainTargets
+
 Link all the corners together
 ===============
 */
-void SetupTrainPath(gentity_t * ent, qboolean allowNoTarget)
+void Think_SetupTrainTargets(gentity_t * ent)
 {
 	gentity_t      *path, *next, *start;
+
+	ent->nextTrain = G_Find(NULL, FOFS(name), ent->target);
+	if(!ent->nextTrain)
+	{
+		G_Printf("func_train at %s with an unfound target\n", vtos(ent->r.absmin));
+		return;
+	}
 
 	start = NULL;
 	for(path = ent->nextTrain; path != start; path = next)
@@ -1573,14 +1547,9 @@ void SetupTrainPath(gentity_t * ent, qboolean allowNoTarget)
 			start = path;
 		}
 
-		path->nextTrain = NULL;
-
 		if(!path->target)
 		{
-			if(!allowNoTarget)
-			{
-				G_Printf("Train corner at %s without a target\n", vtos(path->s.origin));
-			}
+			G_Printf("Train corner at %s without a target\n", vtos(path->s.origin));
 			return;
 		}
 
@@ -1593,33 +1562,13 @@ void SetupTrainPath(gentity_t * ent, qboolean allowNoTarget)
 			next = G_Find(next, FOFS(name), path->target);
 			if(!next)
 			{
-				if(!allowNoTarget)
-				{
-					G_Printf("Train corner at %s without a target path_corner\n", vtos(path->s.origin));
-				}
+				G_Printf("Train corner at %s without a target path_corner\n", vtos(path->s.origin));
 				return;
 			}
 		} while(strcmp(next->classname, "path_corner"));
 
 		path->nextTrain = next;
 	}
-}
-
-/*
-===============
-Think_SetupTrainTargets
-===============
-*/
-void Think_SetupTrainTargets(gentity_t * ent)
-{
-	ent->nextTrain = G_Find(NULL, FOFS(name), ent->target);
-	if(!ent->nextTrain)
-	{
-		G_Printf("func_train at %s with an unfound target\n", vtos(ent->r.absmin));
-		return;
-	}
-
-	SetupTrainPath(ent, qfalse);
 
 	// start the train moving from the first corner
 	Reached_Train(ent);
@@ -1715,15 +1664,15 @@ A bmodel that just sits there, doing nothing.  Can be used for conditional walls
 void SP_func_static(gentity_t * ent)
 {
 	trap_SetBrushModel(ent, ent->model);
-
+	
 	InitMover(ent);
-
+	
 	VectorCopy(ent->s.origin, ent->s.pos.trBase);
 	VectorCopy(ent->s.origin, ent->r.currentOrigin);
-
+	
 	VectorCopy(ent->s.angles, ent->s.apos.trBase);
 	VectorCopy(ent->s.angles, ent->r.currentAngles);
-
+	
 	trap_LinkEntity(ent);
 }
 
@@ -1750,12 +1699,6 @@ check either the X_AXIS or Y_AXIS box to change that.
 */
 void SP_func_rotating(gentity_t * ent)
 {
-	qboolean        x_axis;
-	qboolean        y_axis;
-
-	G_SpawnBoolean("x_axis", "0", &x_axis);
-	G_SpawnBoolean("y_axis", "0", &y_axis);
-
 	if(!ent->speed)
 	{
 		ent->speed = 100;
@@ -1763,11 +1706,11 @@ void SP_func_rotating(gentity_t * ent)
 
 	// set the axis of rotation
 	ent->s.apos.trType = TR_LINEAR;
-	if(x_axis)
+	if(ent->spawnflags & 4)
 	{
 		ent->s.apos.trDelta[2] = ent->speed;
 	}
-	else if(y_axis)
+	else if(ent->spawnflags & 8)
 	{
 		ent->s.apos.trDelta[0] = ent->speed;
 	}
@@ -1815,16 +1758,11 @@ void SP_func_bobbing(gentity_t * ent)
 {
 	float           height;
 	float           phase;
-	qboolean        x_axis;
-	qboolean        y_axis;
 
 	G_SpawnFloat("speed", "4", &ent->speed);
 	G_SpawnFloat("height", "32", &height);
 	G_SpawnInt("dmg", "2", &ent->damage);
 	G_SpawnFloat("phase", "0", &phase);
-	G_SpawnBoolean("x_axis", "0", &x_axis);
-	G_SpawnBoolean("y_axis", "0", &y_axis);
-
 
 	trap_SetBrushModel(ent, ent->model);
 	InitMover(ent);
@@ -1837,11 +1775,11 @@ void SP_func_bobbing(gentity_t * ent)
 	ent->s.pos.trType = TR_SINE;
 
 	// set the axis of bobbing
-	if(x_axis)
+	if(ent->spawnflags & 1)
 	{
 		ent->s.pos.trDelta[0] = height;
 	}
-	else if(y_axis)
+	else if(ent->spawnflags & 2)
 	{
 		ent->s.pos.trDelta[1] = height;
 	}
@@ -1891,7 +1829,7 @@ void SP_func_pendulum(gentity_t * ent)
 		length = 8;
 	}
 
-	freq = 1 / (M_PI * 2) * sqrt(-g_gravityZ.value / (3 * length));
+	freq = 1 / (M_PI * 2) * sqrt(g_gravity.value / (3 * length));
 
 	ent->s.pos.trDuration = (1000 / freq);
 
@@ -1918,7 +1856,11 @@ MOVER
 
 void Think_Mover(gentity_t * self)
 {
-//  self->nextthink = level.time + FRAMETIME;
+#ifdef LUA
+	G_RunLuaFunction(self->luaThink, "e>", self);
+#endif
+
+//	self->nextthink = level.time + FRAMETIME;
 }
 
 
@@ -1930,15 +1872,15 @@ void Think_Mover(gentity_t * self)
 void SP_func_mover(gentity_t * self)
 {
 	trap_SetBrushModel(self, self->model);
-
+	
 	InitMover(self);
-
+	
 	VectorCopy(self->s.origin, self->s.pos.trBase);
 	VectorCopy(self->s.origin, self->r.currentOrigin);
 
 	self->nextthink = level.time + FRAMETIME;
 	self->think = Think_Mover;
-
+	
 	trap_LinkEntity(self);
 }
 

@@ -25,7 +25,6 @@ project "XreaL"
 		"qcommon/vm.c",
 		"qcommon/net_*.c",
 		"qcommon/unzip.c",
-		"qcommon/parse.c",
 
 		"qcommon/cm_load.c",
 		"qcommon/cm_patch.c",

@@ -30,7 +30,8 @@ qboolean G_SpawnString(const char *key, const char *defaultString, char **out)
 
 	if(!level.spawning)
 	{
-		G_Error( "G_SpawnString() called while not spawning" );
+		*out = (char *)defaultString;
+//      G_Error( "G_SpawnString() called while not spawning" );
 	}
 
 	for(i = 0; i < level.numSpawnVars; i++)
@@ -63,28 +64,6 @@ qboolean G_SpawnInt(const char *key, const char *defaultString, int *out)
 
 	present = G_SpawnString(key, defaultString, &s);
 	*out = atoi(s);
-	return present;
-}
-
-qboolean G_SpawnBoolean(const char *key, const char *defaultString, qboolean * out)
-{
-	char           *s;
-	qboolean        present;
-
-	present = G_SpawnString(key, defaultString, &s);
-
-	if(!Q_stricmp(s, "qfalse") || !Q_stricmp(s, "false") || !Q_stricmp(s, "0"))
-	{
-		*out = qfalse;
-	}
-	else if(!Q_stricmp(s, "qtrue") || !Q_stricmp(s, "true") || !Q_stricmp(s, "1"))
-	{
-		*out = qtrue;
-	}
-	else
-	{
-		*out = qfalse;
-	}
 	return present;
 }
 
@@ -122,7 +101,7 @@ typedef enum
 typedef struct
 {
 	char           *name;
-	int             ofs;
+	size_t          ofs;
 	fieldtype_t     type;
 	int             flags;
 } field_t;
@@ -144,7 +123,6 @@ field_t         fields[] = {
 	{"random", FOFS(random), F_FLOAT},
 	{"count", FOFS(count), F_INT},
 	{"health", FOFS(health), F_INT},
-	{"group", FOFS(group), F_INT},
 	{"light", 0, F_IGNORE},
 	{"dmg", FOFS(damage), F_INT},
 	{"angles", FOFS(s.angles), F_VECTOR},
@@ -153,21 +131,10 @@ field_t         fields[] = {
 	{"rotation", FOFS(s.angles), F_ROTATIONHACK},
 	{"targetShaderName", FOFS(targetShaderName), F_LSTRING},
 	{"targetShaderNewName", FOFS(targetShaderNewName), F_LSTRING},
-
-#ifdef G_LUA
+	
+#ifdef LUA
 	{"luaThink", FOFS(luaThink), F_LSTRING},
 	{"luaTouch", FOFS(luaTouch), F_LSTRING},
-	{"luaUse", FOFS(luaUse), F_LSTRING},
-	{"luaHurt", FOFS(luaHurt), F_LSTRING},
-	{"luaDie", FOFS(luaDie), F_LSTRING},
-	{"luaFree", FOFS(luaFree), F_LSTRING},
-	{"luaTrigger", FOFS(luaTrigger), F_LSTRING},
-	{"luaSpawn", FOFS(luaSpawn), F_LSTRING},
-
-	{"luaParam1", FOFS(luaParam1), F_LSTRING},
-	{"luaParam2", FOFS(luaParam2), F_LSTRING},
-	{"luaParam3", FOFS(luaParam3), F_LSTRING},
-	{"luaParam4", FOFS(luaParam4), F_LSTRING},
 #endif
 
 	{NULL}
@@ -200,14 +167,12 @@ void            SP_func_train(gentity_t * ent);
 void            SP_func_timer(gentity_t * self);
 void            SP_func_mover(gentity_t * self);
 void            SP_func_teleporter(gentity_t * self);
-void            SP_func_explosive(gentity_t * self);
 
 void            SP_trigger_always(gentity_t * ent);
 void            SP_trigger_multiple(gentity_t * ent);
 void            SP_trigger_push(gentity_t * ent);
 void            SP_trigger_teleport(gentity_t * ent);
 void            SP_trigger_hurt(gentity_t * ent);
-void            SP_trigger_flagonly_multiple(gentity_t * ent);
 
 void            SP_target_remove_powerups(gentity_t * ent);
 void            SP_target_give(gentity_t * ent);
@@ -224,7 +189,6 @@ void            SP_target_position(gentity_t * ent);
 void            SP_target_null(gentity_t * ent);
 void            SP_target_location(gentity_t * ent);
 void            SP_target_push(gentity_t * ent);
-void            SP_target_fx(gentity_t * ent);
 
 void            SP_light(gentity_t * self);
 void            SP_info_null(gentity_t * self);
@@ -236,11 +200,10 @@ void            SP_misc_teleporter_dest(gentity_t * self);
 void            SP_misc_model(gentity_t * ent);
 void            SP_misc_portal_camera(gentity_t * ent);
 void            SP_misc_portal_surface(gentity_t * ent);
-void            SP_misc_fire(gentity_t * ent);
 
-//void            SP_shooter_rocket(gentity_t * ent);
-//void            SP_shooter_plasma(gentity_t * ent);
-//void            SP_shooter_grenade(gentity_t * ent);
+void            SP_shooter_rocket(gentity_t * ent);
+void            SP_shooter_plasma(gentity_t * ent);
+void            SP_shooter_grenade(gentity_t * ent);
 
 void            SP_team_CTF_redplayer(gentity_t * ent);
 void            SP_team_CTF_blueplayer(gentity_t * ent);
@@ -248,11 +211,11 @@ void            SP_team_CTF_blueplayer(gentity_t * ent);
 void            SP_team_CTF_redspawn(gentity_t * ent);
 void            SP_team_CTF_bluespawn(gentity_t * ent);
 
-
+#ifdef MISSIONPACK
 void            SP_team_blueobelisk(gentity_t * ent);
 void            SP_team_redobelisk(gentity_t * ent);
 void            SP_team_neutralobelisk(gentity_t * ent);
-
+#endif
 void SP_item_botroam(gentity_t * ent)
 {
 }
@@ -280,7 +243,6 @@ spawn_t         spawns[] = {
 	{"func_timer", SP_func_timer},	// rename trigger_timer?
 	{"func_mover", SP_func_mover},
 	{"func_teleporter", SP_func_teleporter},
-	{"func_explosive", SP_func_explosive},
 
 	// Triggers are brush objects that cause an effect when contacted
 	// by a living player, usually involving firing targets.
@@ -292,13 +254,13 @@ spawn_t         spawns[] = {
 	{"trigger_push", SP_trigger_push},
 	{"trigger_teleport", SP_trigger_teleport},
 	{"trigger_hurt", SP_trigger_hurt},
-	{"trigger_flagonly_multiple", SP_trigger_flagonly_multiple},
 
 	// targets perform no action by themselves, but must be triggered
 	// by another entity
 	{"target_give", SP_target_give},
 	{"target_remove_powerups", SP_target_remove_powerups},
 	{"target_delay", SP_target_delay},
+	{"target_speaker", SP_target_speaker},
 	{"target_print", SP_target_print},
 	{"target_laser", SP_target_laser},
 	{"target_score", SP_target_score},
@@ -309,10 +271,6 @@ spawn_t         spawns[] = {
 	{"target_null", SP_target_null},
 	{"target_location", SP_target_location},
 	{"target_push", SP_target_push},
-	{"target_fx", SP_target_fx},
-
-	{"target_speaker", SP_target_speaker},
-	{"speaker", SP_target_speaker},
 
 	{"light", SP_light},
 	{"path_corner", SP_path_corner},
@@ -321,11 +279,10 @@ spawn_t         spawns[] = {
 	{"misc_model", SP_misc_model},
 	{"misc_portal_surface", SP_misc_portal_surface},
 	{"misc_portal_camera", SP_misc_portal_camera},
-	{"misc_fire", SP_misc_fire},
 
-//	{"shooter_rocket", SP_shooter_rocket},
-//	{"shooter_grenade", SP_shooter_grenade},
-//	{"shooter_plasma", SP_shooter_plasma},
+	{"shooter_rocket", SP_shooter_rocket},
+	{"shooter_grenade", SP_shooter_grenade},
+	{"shooter_plasma", SP_shooter_plasma},
 
 	{"team_CTF_redplayer", SP_team_CTF_redplayer},
 	{"team_CTF_blueplayer", SP_team_CTF_blueplayer},
@@ -333,10 +290,11 @@ spawn_t         spawns[] = {
 	{"team_CTF_redspawn", SP_team_CTF_redspawn},
 	{"team_CTF_bluespawn", SP_team_CTF_bluespawn},
 
+#ifdef MISSIONPACK
 	{"team_redobelisk", SP_team_redobelisk},
 	{"team_blueobelisk", SP_team_blueobelisk},
 	{"team_neutralobelisk", SP_team_neutralobelisk},
-
+#endif
 	{"item_botroam", SP_item_botroam},
 
 	{NULL, 0}
@@ -364,27 +322,9 @@ qboolean G_CallSpawn(gentity_t * ent)
 	// check item spawn functions
 	for(item = bg_itemlist + 1; item->classname; item++)
 	{
-		if(!Q_stricmp(item->classname, ent->classname))
+		if(!strcmp(item->classname, ent->classname))
 		{
-			// found it
-			if(ent->name)
-			{
-				G_Printf("...spawning %s\n", ent->name);
-			}
-			else
-			{
-				G_Printf("...spawning %s\n", ent->classname);
-			}
-
 			G_SpawnItem(ent, item);
-
-#ifdef G_LUA
-			// Lua API callbacks
-			if(ent->luaSpawn)
-			{
-				G_LuaHook_EntitySpawn(ent->luaSpawn, ent->s.number);
-			}
-#endif
 			return qtrue;
 		}
 	}
@@ -392,26 +332,10 @@ qboolean G_CallSpawn(gentity_t * ent)
 	// check normal spawn functions
 	for(s = spawns; s->name; s++)
 	{
-		if(!Q_stricmp(s->name, ent->classname))
+		if(!strcmp(s->name, ent->classname))
 		{
 			// found it
-			if(ent->name)
-			{
-				G_Printf("...spawning %s\n", ent->name);
-			}
-			else
-			{
-				G_Printf("...spawning %s\n", ent->classname);
-			}
 			s->spawn(ent);
-
-#ifdef G_LUA
-			// Lua API callbacks
-			if(ent->luaSpawn)
-			{
-				G_LuaHook_EntitySpawn(ent->luaSpawn, ent->s.number);
-			}
-#endif
 			return qtrue;
 		}
 	}
@@ -480,7 +404,7 @@ void G_ParseField(const char *key, const char *value, gentity_t * ent)
 	float           v;
 	vec3_t          vec;
 	vec3_t          angles;
-	matrix_t        rotation;
+	matrix_t		rotation;
 	int             i;
 	char           *p;
 	char           *token;
@@ -497,61 +421,62 @@ void G_ParseField(const char *key, const char *value, gentity_t * ent)
 				case F_LSTRING:
 					*(char **)(b + f->ofs) = G_NewString(value);
 					break;
-
+				
 				case F_VECTOR:
 					sscanf(value, "%f %f %f", &vec[0], &vec[1], &vec[2]);
 					((float *)(b + f->ofs))[0] = vec[0];
 					((float *)(b + f->ofs))[1] = vec[1];
 					((float *)(b + f->ofs))[2] = vec[2];
 					break;
-
+				
 				case F_INT:
 					*(int *)(b + f->ofs) = atoi(value);
 					break;
-
+				
 				case F_FLOAT:
 					*(float *)(b + f->ofs) = atof(value);
 					break;
-
+				
 				case F_ANGLEHACK:
 					v = atof(value);
 					((float *)(b + f->ofs))[0] = 0;
 					((float *)(b + f->ofs))[1] = v;
 					((float *)(b + f->ofs))[2] = 0;
 					break;
-
+					
 				case F_MOVEDIRHACK:
 					v = atof(value);
 					angles[0] = 0;
 					angles[1] = v;
 					angles[2] = 0;
-
+					
 					G_SetMovedir(angles, vec);
-
+					
 					((float *)(b + f->ofs))[0] = vec[0];
 					((float *)(b + f->ofs))[1] = vec[1];
 					((float *)(b + f->ofs))[2] = vec[2];
 					break;
-
+					
 				case F_ROTATIONHACK:
 					MatrixIdentity(rotation);
-#if 0
-					sscanf(value, "%f %f %f %f %f %f %f %f %f", &rotation[0], &rotation[1], &rotation[2],
-						   &rotation[4], &rotation[5], &rotation[6], &rotation[8], &rotation[9], &rotation[10]);
-#else
+					#if 0
+					sscanf(value, "%f %f %f %f %f %f %f %f %f",	&rotation[ 0], &rotation[ 1], &rotation[ 2],
+						   										&rotation[ 4], &rotation[ 5], &rotation[ 6],
+						   										&rotation[ 8], &rotation[ 9], &rotation[10]);
+					#else
 					p = (char *)value;
 					for(i = 0; i < 9; i++)
 					{
 						token = Com_Parse(&p);
 						rotation[i] = atof(token);
 					}
-#endif
+					#endif
 					MatrixToAngles(rotation, vec);
 					((float *)(b + f->ofs))[0] = vec[0];
 					((float *)(b + f->ofs))[1] = vec[1];
 					((float *)(b + f->ofs))[2] = vec[2];
 					break;
-
+					
 				default:
 				case F_IGNORE:
 					break;
@@ -561,8 +486,12 @@ void G_ParseField(const char *key, const char *value, gentity_t * ent)
 	}
 }
 
-
-
+#define ADJUST_AREAPORTAL() \
+	if(ent->s.eType == ET_MOVER) \
+	{ \
+		trap_LinkEntity(ent); \
+		trap_AdjustAreaPortalState(ent, qtrue); \
+	}
 
 /*
 ===================
@@ -577,8 +506,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 	int             i;
 	gentity_t      *ent;
 	char           *s, *value, *gametypeName;
-	static char    *gametypeNames[] =
-		{ "ffa", "tournament", "single", "team", "ctf", "oneflag", "obelisk", "harvester", "teamtournament" };
+	static char    *gametypeNames[] = { "ffa", "tournament", "single", "team", "ctf", "oneflag", "obelisk", "harvester" };
 
 	// get the next free entity
 	ent = G_Spawn();
@@ -594,6 +522,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 		G_SpawnInt("notsingle", "0", &i);
 		if(i)
 		{
+			ADJUST_AREAPORTAL();
 			G_FreeEntity(ent);
 			return;
 		}
@@ -604,6 +533,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 		G_SpawnInt("notteam", "0", &i);
 		if(i)
 		{
+			ADJUST_AREAPORTAL();
 			G_FreeEntity(ent);
 			return;
 		}
@@ -613,6 +543,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 		G_SpawnInt("notfree", "0", &i);
 		if(i)
 		{
+			ADJUST_AREAPORTAL();
 			G_FreeEntity(ent);
 			return;
 		}
@@ -622,6 +553,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 	G_SpawnInt("notta", "0", &i);
 	if(i)
 	{
+		ADJUST_AREAPORTAL();
 		G_FreeEntity(ent);
 		return;
 	}
@@ -629,6 +561,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 	G_SpawnInt("notq3a", "0", &i);
 	if(i)
 	{
+		ADJUST_AREAPORTAL();
 		G_FreeEntity(ent);
 		return;
 	}
@@ -643,6 +576,7 @@ void G_SpawnGEntityFromSpawnVars(void)
 			s = strstr(value, gametypeName);
 			if(!s)
 			{
+				ADJUST_AREAPORTAL();
 				G_FreeEntity(ent);
 				return;
 			}
@@ -675,7 +609,7 @@ char           *G_AddSpawnVarToken(const char *string)
 	l = strlen(string);
 	if(level.numSpawnVarChars + l + 1 > MAX_SPAWN_VARS_CHARS)
 	{
-		G_Error("G_AddSpawnVarToken: MAX_SPAWN_CHARS");
+		G_Error("G_AddSpawnVarToken: MAX_SPAWN_VARS_CHARS");
 	}
 
 	dest = level.spawnVarChars + level.numSpawnVarChars;
@@ -729,7 +663,7 @@ qboolean G_ParseSpawnVars(void)
 			break;
 		}
 
-		// parse value
+		// parse value  
 		if(!trap_GetEntityToken(com_token, sizeof(com_token)))
 		{
 			G_Error("G_ParseSpawnVars: EOF without closing brace");
@@ -763,8 +697,6 @@ Every map should have exactly one worldspawn.
 void SP_worldspawn(void)
 {
 	char           *s;
-	float			gravity;
-	char           *gravityStr;
 
 	G_SpawnString("classname", "", &s);
 	if(Q_stricmp(s, "worldspawn"))
@@ -785,9 +717,8 @@ void SP_worldspawn(void)
 
 	trap_SetConfigstring(CS_MOTD, g_motd.string);	// message of the day
 
-	G_SpawnFloat("gravity", "800", &gravity);
-	gravityStr = va("%i", Q_ftol(-gravity));
-	trap_Cvar_Set("g_gravityZ", gravityStr);
+	G_SpawnString("gravity", "800", &s);
+	trap_Cvar_Set("g_gravity", s);
 
 	G_SpawnString("enableDust", "0", &s);
 	trap_Cvar_Set("g_enableDust", s);
@@ -796,7 +727,12 @@ void SP_worldspawn(void)
 	trap_Cvar_Set("g_enableBreath", s);
 
 	g_entities[ENTITYNUM_WORLD].s.number = ENTITYNUM_WORLD;
+	g_entities[ENTITYNUM_WORLD].r.ownerNum = ENTITYNUM_NONE;
 	g_entities[ENTITYNUM_WORLD].classname = "worldspawn";
+
+	g_entities[ENTITYNUM_NONE].s.number = ENTITYNUM_NONE;
+	g_entities[ENTITYNUM_NONE].r.ownerNum = ENTITYNUM_NONE;
+	g_entities[ENTITYNUM_NONE].classname = "nothing";
 
 	// see if we want a warmup time
 	trap_SetConfigstring(CS_WARMUP, "");

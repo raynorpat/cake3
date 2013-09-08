@@ -89,6 +89,69 @@ void LAN_SaveServersToCache(void)
 	FS_FCloseFile(fileOut);
 }
 
+/*
+====================
+GetNews
+====================
+*/
+qboolean GetNews(qboolean begin)
+{
+	fileHandle_t fileIn;
+	int readSize;
+#ifdef USE_CURL
+	qboolean finished = qfalse;
+
+	if(begin)
+	{
+		// if not already using curl, start the download
+		if(!clc.downloadCURLM)
+		{ 
+			if(!CL_cURL_Init())
+			{
+				Cvar_Set("cl_newsString", "^1Error: Could not load cURL library");
+				return qtrue;
+			}
+			clc.activeCURLNotGameRelated = qtrue;
+			CL_cURL_BeginDownload("news.dat", "http://areslabs.com/projects/cake3/clientnews.txt");
+			return qfalse;
+		}
+	}
+
+	if(!clc.downloadCURLM && FS_SV_FOpenFileRead("news.dat", &fileIn))
+	{
+		readSize = FS_Read(clc.newsString, sizeof( clc.newsString ), fileIn);
+		FS_FCloseFile(fileIn);
+		clc.newsString[ readSize ] = '\0';
+		if(readSize > 0)
+		{
+			finished = qtrue;
+			clc.cURLUsed = qfalse;
+			CL_cURL_Shutdown();
+			clc.activeCURLNotGameRelated = qfalse;
+		}
+	}
+	if(!finished) 
+		strcpy(clc.newsString, "Retrieving...");
+	Cvar_Set("cl_newsString", clc.newsString);
+	return finished;
+#else
+	if(FS_SV_FOpenFileRead("news.dat", &fileIn))
+	{
+		readSize = FS_Read(clc.newsString, sizeof(clc.newsString), fileIn);
+		FS_FCloseFile(fileIn);
+		clc.newsString[readSize] = '\0';
+		if(readSize > 0)
+		{
+			Cvar_Set("cl_newsString", clc.newsString);
+		}
+	}
+	else
+	{
+		Cvar_Set("cl_newsString", "^1You must compile your client with CURL support to use this feature");
+	}
+	return qtrue;
+#endif
+}
 
 /*
 ====================
@@ -328,6 +391,7 @@ static void LAN_GetServerInfo(int source, int n, char *buf, int buflen)
 		buf[0] = '\0';
 		Info_SetValueForKey(info, "hostname", server->hostName);
 		Info_SetValueForKey(info, "mapname", server->mapName);
+		Info_SetValueForKey(info, "label", server->label);
 		Info_SetValueForKey(info, "clients", va("%i", server->clients));
 		Info_SetValueForKey(info, "sv_maxclients", va("%i", server->maxClients));
 		Info_SetValueForKey(info, "ping", va("%i", server->ping));
@@ -418,6 +482,7 @@ static serverInfo_t *LAN_GetServerPtr(int source, int n)
 	return NULL;
 }
 
+#define FEATURED_MAXPING 200
 /*
 ====================
 LAN_CompareServers
@@ -435,13 +500,44 @@ static int LAN_CompareServers(int source, int sortKey, int sortDir, int s1, int 
 		return 0;
 	}
 
+	// featured servers on top
+	if((server1->label[0] && server1->ping <= FEATURED_MAXPING) || ( server2->label[0] && server2->ping <= FEATURED_MAXPING))
+	{
+		res = Q_stricmpn(server1->label, server2->label, MAX_FEATLABEL_CHARS);
+		if(res)
+			return -res;
+	}
+ 
 	res = 0;
 	switch (sortKey)
 	{
 		case SORT_HOST:
-			res = Q_stricmp(server1->hostName, server2->hostName);
-			break;
+			{
+				char	hostName1[MAX_HOSTNAME_LENGTH];
+				char	hostName2[MAX_HOSTNAME_LENGTH];
+				char	*p;
+				int		i;
 
+				for(p = server1->hostName, i = 0; *p != '\0'; p++)
+				{
+					if(Q_isalpha(*p))
+						hostName1[i++] = *p;
+				}
+				hostName1[i] = '\0';
+
+				for(p = server2->hostName, i = 0; *p != '\0'; p++)
+				{
+					if(Q_isalpha(*p))
+						hostName2[i++] = *p;
+				}
+				hostName2[i] = '\0';
+
+				res = Q_stricmp(hostName1, hostName2);
+			}
+			break;
+		case SORT_GAME:
+			res = Q_stricmp(server1->game, server2->game);
+			break;
 		case SORT_MAP:
 			res = Q_stricmp(server1->mapName, server2->mapName);
 			break;
@@ -451,20 +547,6 @@ static int LAN_CompareServers(int source, int sortKey, int sortDir, int s1, int 
 				res = -1;
 			}
 			else if(server1->clients > server2->clients)
-			{
-				res = 1;
-			}
-			else
-			{
-				res = 0;
-			}
-			break;
-		case SORT_GAME:
-			if(server1->gameType < server2->gameType)
-			{
-				res = -1;
-			}
-			else if(server1->gameType > server2->gameType)
 			{
 				res = 1;
 			}
@@ -729,56 +811,6 @@ static void Key_GetBindingBuf(int keynum, char *buf, int buflen)
 
 /*
 ====================
-CLUI_GetCDKey
-====================
-*/
-#ifndef STANDALONE
-static void CLUI_GetCDKey(char *buf, int buflen)
-{
-	cvar_t         *fs;
-
-	fs = Cvar_Get("fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO);
-	if(UI_usesUniqueCDKey() && fs && fs->string[0] != 0)
-	{
-		Com_Memcpy(buf, &cl_cdkey[16], 16);
-		buf[16] = 0;
-	}
-	else
-	{
-		Com_Memcpy(buf, cl_cdkey, 16);
-		buf[16] = 0;
-	}
-}
-
-
-/*
-====================
-CLUI_SetCDKey
-====================
-*/
-static void CLUI_SetCDKey(char *buf)
-{
-	cvar_t         *fs;
-
-	fs = Cvar_Get("fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO);
-	if(UI_usesUniqueCDKey() && fs && fs->string[0] != 0)
-	{
-		Com_Memcpy(&cl_cdkey[16], buf, 16);
-		cl_cdkey[32] = 0;
-		// set the flag so the fle will be written at the next opportunity
-		cvar_modifiedFlags |= CVAR_ARCHIVE;
-	}
-	else
-	{
-		Com_Memcpy(cl_cdkey, buf, 16);
-		// set the flag so the fle will be written at the next opportunity
-		cvar_modifiedFlags |= CVAR_ARCHIVE;
-	}
-}
-#endif
-
-/*
-====================
 GetConfigString
 ====================
 */
@@ -963,6 +995,10 @@ intptr_t CL_UISystemCalls(intptr_t * args)
 			re.SetColor(VMA(1));
 			return 0;
 
+		case UI_R_SETCLIPREGION:
+			//re.SetClipRegion(VMA(1));
+			return 0;
+
 		case UI_R_DRAWSTRETCHPIC:
 			re.DrawStretchPic(VMF(1), VMF(2), VMF(3), VMF(4), VMF(5), VMF(6), VMF(7), VMF(8), args[9]);
 			return 0;
@@ -1100,21 +1136,14 @@ intptr_t CL_UISystemCalls(intptr_t * args)
 		case UI_LAN_SERVERSTATUS:
 			return LAN_GetServerStatus(VMA(1), VMA(2), args[3]);
 
+		case UI_GETNEWS:
+			return GetNews(args[1]);
+
 		case UI_LAN_COMPARESERVERS:
 			return LAN_CompareServers(args[1], args[2], args[3], args[4], args[5]);
 
 		case UI_MEMORY_REMAINING:
 			return Hunk_MemoryRemaining();
-
-#ifndef STANDALONE
-		case UI_GET_CDKEY:
-			CLUI_GetCDKey(VMA(1), args[2]);
-			return 0;
-
-		case UI_SET_CDKEY:
-			CLUI_SetCDKey(VMA(1));
-			return 0;
-#endif
 
 		case UI_R_REGISTERFONT:
 			re.RegisterFont(VMA(1), args[2], VMA(3));
@@ -1150,17 +1179,6 @@ intptr_t CL_UISystemCalls(intptr_t * args)
 		case UI_CEIL:
 			return FloatAsInt(ceil(VMF(1)));
 
-		case UI_PC_ADD_GLOBAL_DEFINE:
-			return Parse_AddGlobalDefine(VMA(1));
-		case UI_PC_LOAD_SOURCE:
-			return Parse_LoadSourceHandle(VMA(1));
-		case UI_PC_FREE_SOURCE:
-			return Parse_FreeSourceHandle(args[1]);
-		case UI_PC_READ_TOKEN:
-			return Parse_ReadTokenHandle(args[1], VMA(2));
-		case UI_PC_SOURCE_FILE_AND_LINE:
-			return Parse_SourceFileAndLine(args[1], VMA(2), VMA(3));
-
 		case UI_S_STOPBACKGROUNDTRACK:
 			S_StopBackgroundTrack();
 			return 0;
@@ -1193,12 +1211,6 @@ intptr_t CL_UISystemCalls(intptr_t * args)
 			re.RemapShader(VMA(1), VMA(2), VMA(3));
 			return 0;
 
-#ifndef STANDALONE
-		case UI_VERIFY_CDKEY:
-			return CL_CDKeyValidate(VMA(1), VMA(2));
-#endif
-
-
 		default:
 			Com_Error(ERR_DROP, "Bad UI system trap: %ld", (long int)args[0]);
 
@@ -1230,8 +1242,6 @@ void CL_ShutdownUI(void)
 CL_InitUI
 ====================
 */
-#define UI_OLD_API_VERSION	4
-
 void CL_InitUI(void)
 {
 	int             v;
@@ -1257,13 +1267,7 @@ void CL_InitUI(void)
 
 	// sanity check
 	v = VM_Call(uivm, UI_GETAPIVERSION);
-	if(v == UI_OLD_API_VERSION)
-	{
-//      Com_Printf(S_COLOR_YELLOW "WARNING: loading old Quake III Arena User Interface version %d\n", v );
-		// init for this gamestate
-		VM_Call(uivm, UI_INIT, (cls.state >= CA_AUTHORIZING && cls.state < CA_ACTIVE));
-	}
-	else if(v != UI_API_VERSION)
+	if(v != UI_API_VERSION)
 	{
 		Com_Error(ERR_DROP, "User Interface is version %d, expected %d", v, UI_API_VERSION);
 		cls.uiStarted = qfalse;
@@ -1277,6 +1281,8 @@ void CL_InitUI(void)
 	// reset any CVAR_CHEAT cvars registered by ui
 	if(!clc.demoplaying && !cl_connectedToCheatServer)
 		Cvar_SetCheatState();
+
+	clc.newsString[ 0 ] = '\0';
 }
 
 /*
@@ -1289,9 +1295,7 @@ See if the current console command is claimed by the ui
 qboolean UI_GameCommand(void)
 {
 	if(!uivm)
-	{
 		return qfalse;
-	}
 
 	return VM_Call(uivm, UI_CONSOLE_COMMAND, cls.realtime);
 }

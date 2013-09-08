@@ -46,6 +46,8 @@ void trap_Print(const char *string)
 void trap_Error(const char *string)
 {
 	syscall(UI_ERROR, string);
+  // shut up GCC warning about returning functions, because we know better
+  exit(1);
 }
 
 int trap_Milliseconds(void)
@@ -215,6 +217,11 @@ void trap_R_SetColor(const float *rgba)
 	syscall(UI_R_SETCOLOR, rgba);
 }
 
+void trap_R_SetClipRegion(const float *region)
+{
+  syscall(UI_R_SETCLIPREGION, region);
+}
+
 void trap_R_DrawStretchPic(float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader)
 {
 	syscall(UI_R_DRAWSTRETCHPIC, PASSFLOAT(x), PASSFLOAT(y), PASSFLOAT(w), PASSFLOAT(h), PASSFLOAT(s1), PASSFLOAT(t1),
@@ -353,12 +360,12 @@ int trap_LAN_ServerStatus(const char *serverAddress, char *serverStatus, int max
 	return syscall(UI_LAN_SERVERSTATUS, serverAddress, serverStatus, maxLen);
 }
 
-void trap_LAN_SaveCachedServers()
+void trap_LAN_SaveCachedServers(void)
 {
 	syscall(UI_LAN_SAVECACHEDSERVERS);
 }
 
-void trap_LAN_LoadCachedServers()
+void trap_LAN_LoadCachedServers(void)
 {
 	syscall(UI_LAN_LOADCACHEDSERVERS);
 }
@@ -418,6 +425,37 @@ int trap_MemoryRemaining(void)
 	return syscall(UI_MEMORY_REMAINING);
 }
 
+int Parse_AddGlobalDefine(char *string);
+int Parse_LoadSourceHandle(const char *filename);
+int Parse_FreeSourceHandle(int handle);
+int Parse_ReadTokenHandle(int handle, pc_token_t * pc_token);
+int Parse_SourceFileAndLine(int handle, char *filename, int *line);
+
+int trap_Parse_AddGlobalDefine( char *define )
+{
+	return Parse_AddGlobalDefine( define );
+}
+
+int trap_Parse_LoadSource( const char *filename )
+{
+	return Parse_LoadSourceHandle( filename );
+}
+
+int trap_Parse_FreeSource( int handle )
+{
+	return Parse_FreeSourceHandle( handle );
+}
+
+int trap_Parse_ReadToken( int handle, pc_token_t *pc_token )
+{
+	return Parse_ReadTokenHandle( handle, pc_token );
+}
+
+int trap_Parse_SourceFileAndLine( int handle, char *filename, int *line )
+{
+	return Parse_SourceFileAndLine( handle, filename, line );
+}
+
 void trap_S_StopBackgroundTrack(void)
 {
 	syscall(UI_S_STOPBACKGROUNDTRACK);
@@ -471,4 +509,9 @@ void trap_CIN_SetExtents(int handle, int x, int y, int w, int h)
 void trap_R_RemapShader(const char *oldShader, const char *newShader, const char *timeOffset)
 {
 	syscall(UI_R_REMAP_SHADER, oldShader, newShader, timeOffset);
+}
+
+qboolean trap_GetNews(qboolean force)
+{
+	return syscall(UI_GETNEWS, force);
 }

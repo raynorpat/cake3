@@ -1,8 +1,7 @@
 /*
 ===========================================================================
 Copyright (C) 1999-2005 Id Software, Inc.
-Copyright (C) 2000-2006 Tim Angus
-Copyright (C) 2006-2009 Robert Beckebans <trebor_7@users.sourceforge.net>
+Copyright (C) 2006 Robert Beckebans <trebor_7@users.sourceforge.net>
 
 This file is part of XreaL source code.
 
@@ -24,9 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 // bg_slidemove.c -- part of bg_pmove functionality
 
-#include <q_shared.h>
-#include <bg_public.h>
-
+#include "q_shared.h"
+#include "bg_public.h"
 #include "bg_local.h"
 
 /*
@@ -47,7 +45,7 @@ Returns qtrue if the velocity was clipped in some way
 #define	MAX_CLIP_PLANES	5
 qboolean PM_SlideMove(qboolean gravity)
 {
-	int             bumpcount, numbumps, extrabumps;
+	int             bumpcount, numbumps;
 	vec3_t          dir;
 	float           d;
 	int             numplanes;
@@ -63,7 +61,6 @@ qboolean PM_SlideMove(qboolean gravity)
 	vec3_t          endClipVelocity;
 
 	numbumps = 4;
-	extrabumps = 0;
 
 	VectorCopy(pm->ps->velocity, primal_velocity);
 
@@ -79,12 +76,6 @@ qboolean PM_SlideMove(qboolean gravity)
 			PM_ClipVelocity(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
 		}
 	}
-#if 0
-	else
-	{
-		VectorClear(endVelocity);
-	}
-#endif
 
 	time_left = pml.frametime;
 
@@ -105,16 +96,12 @@ qboolean PM_SlideMove(qboolean gravity)
 
 	for(bumpcount = 0; bumpcount < numbumps; bumpcount++)
 	{
+
 		// calculate position we are trying to move to
 		VectorMA(pm->ps->origin, time_left, pm->ps->velocity, end);
 
 		// see if we can make it there
-		PM_TraceAll(&trace, pm->ps->origin, end);
-		if(pm->debugLevel > 1)
-		{
-			Com_Printf("%i:%d %d (%f %f %f)\n",
-					   c_pmove, trace.allsolid, trace.startsolid, trace.endpos[0], trace.endpos[1], trace.endpos[2]);
-		}
+		pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask);
 
 		if(trace.allsolid)
 		{
@@ -155,35 +142,10 @@ qboolean PM_SlideMove(qboolean gravity)
 		{
 			if(DotProduct(trace.plane.normal, planes[i]) > 0.99)
 			{
-#if 0
-				if(extrabumps <= 0)
-				{
-					VectorAdd(trace.plane.normal, pm->ps->velocity, pm->ps->velocity);
-					extrabumps++;
-					numbumps++;
-
-					if(pm->debugLevel)
-						Com_Printf("%i:planevelocitynudge\n", c_pmove);
-				}
-				else
-				{
-					// zinx - if it happens again, nudge the origin instead,
-					// and trace it, to make sure we don't end up in a solid
-
-					VectorAdd(pm->ps->origin, trace.plane.normal, end);
-					PM_TraceAll(&trace, pm->ps->origin, end);
-					VectorCopy(trace.endpos, pm->ps->origin);
-
-					if(pm->debugLevel)
-						Com_Printf("%i:planeoriginnudge\n", c_pmove);
-				}
-#else
 				VectorAdd(trace.plane.normal, pm->ps->velocity, pm->ps->velocity);
-#endif
 				break;
 			}
 		}
-
 		if(i < numplanes)
 		{
 			continue;
@@ -290,186 +252,119 @@ qboolean PM_SlideMove(qboolean gravity)
 
 /*
 ==================
-PM_StepEvent
-==================
-*/
-void PM_StepEvent(vec3_t from, vec3_t to, vec3_t normal)
-{
-	float           size;
-	vec3_t          delta, dNormal;
-
-	VectorSubtract(from, to, delta);
-	VectorCopy(delta, dNormal);
-	VectorNormalize(dNormal);
-
-	size = DotProduct(normal, dNormal) * VectorLength(delta);
-
-	if(size > 0.0f)
-	{
-		if(size > 2.0f)
-		{
-			if(size < 7.0f)
-				PM_AddEvent(EV_STEPDN_4);
-			else if(size < 11.0f)
-				PM_AddEvent(EV_STEPDN_8);
-			else if(size < 15.0f)
-				PM_AddEvent(EV_STEPDN_12);
-			else
-				PM_AddEvent(EV_STEPDN_16);
-		}
-	}
-	else
-	{
-		size = fabs(size);
-
-		if(size > 2.0f)
-		{
-			if(size < 7.0f)
-				PM_AddEvent(EV_STEP_4);
-			else if(size < 11.0f)
-				PM_AddEvent(EV_STEP_8);
-			else if(size < 15.0f)
-				PM_AddEvent(EV_STEP_12);
-			else
-				PM_AddEvent(EV_STEP_16);
-		}
-	}
-
-	if(pm->debugLevel)
-		Com_Printf("%i:stepped\n", c_pmove);
-}
-
-/*
-==================
 PM_StepSlideMove
+
 ==================
 */
-qboolean PM_StepSlideMove(qboolean gravity, qboolean predictive)
+void PM_StepSlideMove(qboolean gravity)
 {
 	vec3_t          start_o, start_v;
-	vec3_t          down_o, down_v;
+
+//  vec3_t      down_o, down_v;
 	trace_t         trace;
-	vec3_t          normal;
-	vec3_t          step_v, step_vNormal;
+
+//  float       down_dist, up_dist;
+//  vec3_t      delta, delta2;
 	vec3_t          up, down;
 	float           stepSize;
-	qboolean        stepped = qfalse;
-
-	if(pm->ps->pm_flags & PMF_WALLCLIMBING)
-	{
-		if(pm->ps->pm_flags & PMF_WALLCLIMBINGCEILING)
-			VectorSet(normal, 0.0f, 0.0f, -1.0f);
-		else
-			VectorCopy(pm->ps->grapplePoint, normal);
-	}
-	else
-		VectorSet(normal, 0.0f, 0.0f, 1.0f);
 
 	VectorCopy(pm->ps->origin, start_o);
 	VectorCopy(pm->ps->velocity, start_v);
 
 	if(PM_SlideMove(gravity) == 0)
 	{
-		VectorCopy(start_o, down);
-		VectorMA(down, -STEPSIZE, normal, down);
-		PM_TraceAll(&trace, start_o, down);
+		return;					// we got exactly where we wanted to go first try   
+	}
 
-		// we can step down
-		if(trace.fraction > 0.01f && trace.fraction < 1.0f && !trace.allsolid && pml.groundPlane != qfalse)
+	VectorCopy(start_o, down);
+	down[2] -= STEPSIZE;
+	pm->trace(&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
+	VectorSet(up, 0, 0, 1);
+	// never step up when you still have up velocity
+	if(pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7))
+	{
+		return;
+	}
+
+	//VectorCopy (pm->ps->origin, down_o);
+	//VectorCopy (pm->ps->velocity, down_v);
+
+	VectorCopy(start_o, up);
+	up[2] += STEPSIZE;
+
+	// test the player position if they were a stepheight higher
+	pm->trace(&trace, start_o, pm->mins, pm->maxs, up, pm->ps->clientNum, pm->tracemask);
+	if(trace.allsolid)
+	{
+		if(pm->debugLevel)
 		{
-			if(pm->debugLevel)
-				Com_Printf("%d: step down\n", c_pmove);
+			Com_Printf("%i:bend can't step\n", c_pmove);
+		}
+		return;					// can't step up
+	}
 
-			stepped = qtrue;
+	stepSize = trace.endpos[2] - start_o[2];
+	// try slidemove from this position
+	VectorCopy(trace.endpos, pm->ps->origin);
+	VectorCopy(start_v, pm->ps->velocity);
+
+	PM_SlideMove(gravity);
+
+	// push down the final amount
+	VectorCopy(pm->ps->origin, down);
+	down[2] -= stepSize;
+	pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
+	if(!trace.allsolid)
+	{
+		VectorCopy(trace.endpos, pm->ps->origin);
+	}
+	if(trace.fraction < 1.0)
+	{
+		PM_ClipVelocity(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP);
+	}
+
+#if 0
+	// if the down trace can trace back to the original position directly, don't step
+	pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, start_o, pm->ps->clientNum, pm->tracemask);
+	if(trace.fraction == 1.0)
+	{
+		// use the original move
+		VectorCopy(down_o, pm->ps->origin);
+		VectorCopy(down_v, pm->ps->velocity);
+		if(pm->debugLevel)
+		{
+			Com_Printf("%i:bend\n", c_pmove);
 		}
 	}
 	else
+#endif
 	{
-		VectorCopy(start_o, down);
-		VectorMA(down, -STEPSIZE, normal, down);
-		PM_TraceAll(&trace, start_o, down);
-		// never step up when you still have up velocity
-		if(DotProduct(trace.plane.normal, pm->ps->velocity) > 0.0f &&
-		   (trace.fraction == 1.0f || DotProduct(trace.plane.normal, normal) < 0.7f))
+		// use the step move
+		float           delta;
+
+		delta = pm->ps->origin[2] - start_o[2];
+		if(delta > 2)
 		{
-			return stepped;
+			if(delta < 7)
+			{
+				PM_AddEvent(EV_STEP_4);
+			}
+			else if(delta < 11)
+			{
+				PM_AddEvent(EV_STEP_8);
+			}
+			else if(delta < 15)
+			{
+				PM_AddEvent(EV_STEP_12);
+			}
+			else
+			{
+				PM_AddEvent(EV_STEP_16);
+			}
 		}
-
-		VectorCopy(pm->ps->origin, down_o);
-		VectorCopy(pm->ps->velocity, down_v);
-
-		VectorCopy(start_o, up);
-		VectorMA(up, STEPSIZE, normal, up);
-
-		// test the player position if they were a stepheight higher
-		PM_TraceAll(&trace, start_o, up);
-		if(trace.allsolid)
+		if(pm->debugLevel)
 		{
-			if(pm->debugLevel)
-				Com_Printf("%i:bend can't step\n", c_pmove);
-
-			return stepped;		// can't step up
+			Com_Printf("%i:stepped\n", c_pmove);
 		}
-
-		VectorSubtract(trace.endpos, start_o, step_v);
-		VectorCopy(step_v, step_vNormal);
-		VectorNormalize(step_vNormal);
-
-		stepSize = DotProduct(normal, step_vNormal) * VectorLength(step_v);
-		// try slidemove from this position
-		VectorCopy(trace.endpos, pm->ps->origin);
-		VectorCopy(start_v, pm->ps->velocity);
-
-		if(PM_SlideMove(gravity) == 0)
-		{
-			if(pm->debugLevel)
-				Com_Printf("%d: step up\n", c_pmove);
-
-			stepped = qtrue;
-		}
-
-		// push down the final amount
-		VectorCopy(pm->ps->origin, down);
-		VectorMA(down, -stepSize, normal, down);
-		PM_TraceAll(&trace, pm->ps->origin, down);
-
-		if(!trace.allsolid)
-			VectorCopy(trace.endpos, pm->ps->origin);
-
-		if(trace.fraction < 1.0f)
-			PM_ClipVelocity(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP);
 	}
-
-	if(!predictive && stepped)
-		PM_StepEvent(start_o, pm->ps->origin, normal);
-
-	return stepped;
 }
-
-
-/*
-==================
-PM_PredictStepMove
-==================
-*/
-qboolean PM_PredictStepMove(void)
-{
-	vec3_t          velocity, origin;
-	float           impactSpeed;
-	qboolean        stepped = qfalse;
-
-	VectorCopy(pm->ps->velocity, velocity);
-	VectorCopy(pm->ps->origin, origin);
-	impactSpeed = pml.impactSpeed;
-
-	if(PM_StepSlideMove(qfalse, qtrue))
-		stepped = qtrue;
-
-	VectorCopy(velocity, pm->ps->velocity);
-	VectorCopy(origin, pm->ps->origin);
-	pml.impactSpeed = impactSpeed;
-
-	return stepped;
-}
-
-

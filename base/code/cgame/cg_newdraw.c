@@ -21,9 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-#ifndef MISSIONPACK
-#error This file not be used for classic Q3A.
-#endif
+#ifdef MISSIONPACK
 
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
@@ -41,7 +39,7 @@ int             drawTeamOverlayModificationCount = -1;
 //static char teamChat1[256];
 //static char teamChat2[256];
 
-void CG_InitTeamChat()
+void CG_InitTeamChat(void)
 {
 	memset(teamChat1, 0, sizeof(teamChat1));
 	memset(teamChat2, 0, sizeof(teamChat2));
@@ -61,7 +59,7 @@ void CG_SetPrintString(int type, const char *p)
 	}
 }
 
-void CG_CheckOrderPending()
+void CG_CheckOrderPending(void)
 {
 	if(cgs.gametype < GT_CTF)
 	{
@@ -137,7 +135,7 @@ void CG_CheckOrderPending()
 	}
 }
 
-static void CG_SetSelectedPlayerName()
+static void CG_SetSelectedPlayerName(void)
 {
 	if(cg_currentSelectedPlayer.integer >= 0 && cg_currentSelectedPlayer.integer < numSortedTeamPlayers)
 	{
@@ -155,7 +153,7 @@ static void CG_SetSelectedPlayerName()
 		trap_Cvar_Set("cg_selectedPlayerName", "Everyone");
 	}
 }
-int CG_GetSelectedPlayer()
+int CG_GetSelectedPlayer(void)
 {
 	if(cg_currentSelectedPlayer.integer < 0 || cg_currentSelectedPlayer.integer >= numSortedTeamPlayers)
 	{
@@ -164,7 +162,7 @@ int CG_GetSelectedPlayer()
 	return cg_currentSelectedPlayer.integer;
 }
 
-void CG_SelectNextPlayer()
+void CG_SelectNextPlayer(void)
 {
 	CG_CheckOrderPending();
 	if(cg_currentSelectedPlayer.integer >= 0 && cg_currentSelectedPlayer.integer < numSortedTeamPlayers)
@@ -178,7 +176,7 @@ void CG_SelectNextPlayer()
 	CG_SetSelectedPlayerName();
 }
 
-void CG_SelectPrevPlayer()
+void CG_SelectPrevPlayer(void)
 {
 	CG_CheckOrderPending();
 	if(cg_currentSelectedPlayer.integer > 0 && cg_currentSelectedPlayer.integer < numSortedTeamPlayers)
@@ -195,8 +193,6 @@ void CG_SelectPrevPlayer()
 
 static void CG_DrawPlayerArmorIcon(rectDef_t * rect, qboolean draw2D)
 {
-	centity_t      *cent;
-	playerState_t  *ps;
 	vec3_t          angles;
 	vec3_t          origin;
 
@@ -204,9 +200,6 @@ static void CG_DrawPlayerArmorIcon(rectDef_t * rect, qboolean draw2D)
 	{
 		return;
 	}
-
-	cent = &cg_entities[cg.snap->ps.clientNum];
-	ps = &cg.snap->ps;
 
 	if(draw2D || (!cg_draw3dIcons.integer && cg_drawIcons.integer))
 	{
@@ -218,8 +211,7 @@ static void CG_DrawPlayerArmorIcon(rectDef_t * rect, qboolean draw2D)
 		origin[0] = 90;
 		origin[1] = 0;
 		origin[2] = -10;
-		angles[YAW] = (cg.time & 2047) * 360 / 2048.0;
-
+		angles[YAW] = (cg.time & 2047) * 360 / 2048.0f;
 		CG_Draw3DModel(rect->x, rect->y, rect->w, rect->h, cgs.media.armorModel, 0, origin, angles);
 	}
 
@@ -229,10 +221,8 @@ static void CG_DrawPlayerArmorValue(rectDef_t * rect, float scale, vec4_t color,
 {
 	char            num[16];
 	int             value;
-	centity_t      *cent;
 	playerState_t  *ps;
 
-	cent = &cg_entities[cg.snap->ps.clientNum];
 	ps = &cg.snap->ps;
 
 	value = ps->stats[STAT_ARMOR];
@@ -255,7 +245,6 @@ static void CG_DrawPlayerArmorValue(rectDef_t * rect, float scale, vec4_t color,
 #ifndef MISSIONPACK
 static float    healthColors[4][4] = {
 //      { 0.2, 1.0, 0.2, 1.0 } , { 1.0, 0.2, 0.2, 1.0 }, {0.5, 0.5, 0.5, 1} };
-	// bk0101016 - float const
 	{1.0f, 0.69f, 0.0f, 1.0f},	// normal
 	{1.0f, 0.2f, 0.2f, 1.0f},	// low health
 	{0.5f, 0.5f, 0.5f, 1.0f},	// weapon firing
@@ -266,12 +255,10 @@ static float    healthColors[4][4] = {
 static void CG_DrawPlayerAmmoIcon(rectDef_t * rect, qboolean draw2D)
 {
 	centity_t      *cent;
-	playerState_t  *ps;
 	vec3_t          angles;
 	vec3_t          origin;
 
 	cent = &cg_entities[cg.snap->ps.clientNum];
-	ps = &cg.snap->ps;
 
 	if(draw2D || (!cg_draw3dIcons.integer && cg_drawIcons.integer))
 	{
@@ -442,7 +429,7 @@ static void CG_DrawSelectedPlayerArmor(rectDef_t * rect, float scale, vec4_t col
 
 qhandle_t CG_StatusHandle(int task)
 {
-	qhandle_t       h = cgs.media.assaultShader;
+	qhandle_t       h;
 
 	switch (task)
 	{
@@ -1183,7 +1170,7 @@ float CG_GetValue(int ownerDraw)
 	return -1;
 }
 
-qboolean CG_OtherTeamHasFlag()
+qboolean CG_OtherTeamHasFlag(void)
 {
 	if(cgs.gametype == GT_CTF || cgs.gametype == GT_1FCTF)
 	{
@@ -1223,7 +1210,7 @@ qboolean CG_OtherTeamHasFlag()
 	return qfalse;
 }
 
-qboolean CG_YourTeamHasFlag()
+qboolean CG_YourTeamHasFlag(void)
 {
 	if(cgs.gametype == GT_CTF || cgs.gametype == GT_1FCTF)
 	{
@@ -1442,7 +1429,7 @@ static void CG_DrawAreaChat(rectDef_t * rect, float scale, vec4_t color, qhandle
 	CG_Text_Paint(rect->x, rect->y + rect->h, scale, color, teamChat2, 0, 0, 0);
 }
 
-const char     *CG_GetKillerText()
+const char     *CG_GetKillerText(void)
 {
 	const char     *s = "";
 
@@ -1491,7 +1478,7 @@ static void CG_Draw2ndPlace(rectDef_t * rect, float scale, vec4_t color, qhandle
 	}
 }
 
-const char     *CG_GetGameStatusText()
+const char     *CG_GetGameStatusText(void)
 {
 	const char     *s = "";
 
@@ -1525,7 +1512,7 @@ static void CG_DrawGameStatus(rectDef_t * rect, float scale, vec4_t color, qhand
 	CG_Text_Paint(rect->x, rect->y + rect->h, scale, color, CG_GetGameStatusText(), 0, 0, textStyle);
 }
 
-const char     *CG_GameTypeString()
+const char     *CG_GameTypeString(void)
 {
 	if(cgs.gametype == GT_FFA)
 	{
@@ -1567,13 +1554,19 @@ static void CG_Text_Paint_Limit(float *maxX, float x, float y, float scale, vec4
 
 	if(text)
 	{
-// TTimo: FIXME
-//    const unsigned char *s = text; // bk001206 - unsigned
 		const char     *s = text;
 		float           max = *maxX;
 		float           useScale;
 		fontInfo_t     *font = &cgDC.Assets.textFont;
 
+		if(scale <= cg_smallFont.value)
+		{
+			font = &cgDC.Assets.smallFont;
+		}
+		else if(scale > cg_bigFont.value)
+		{
+			font = &cgDC.Assets.bigFont;
+		}
 		useScale = scale * font->glyphScale;
 		trap_R_SetColor(color);
 		len = strlen(text);
@@ -1587,7 +1580,7 @@ static void CG_Text_Paint_Limit(float *maxX, float x, float y, float scale, vec4
 			glyph = &font->glyphs[(int)*s];	// TTimo: FIXME: getting nasty warnings without the cast, hopefully this doesn't break the VM build
 			if(Q_IsColorString(s))
 			{
-				memcpy(newColor, (float *)g_color_table[ColorIndex(*(s + 1))], sizeof(newColor));
+				memcpy(newColor, g_color_table[ColorIndex(*(s + 1))], sizeof(newColor));
 				newColor[3] = color[3];
 				trap_R_SetColor(newColor);
 				s += 2;
@@ -2165,7 +2158,7 @@ CG_HideTeamMenus
 ==================
 
 */
-void CG_HideTeamMenu()
+void CG_HideTeamMenu(void)
 {
 	Menus_CloseByName("teamMenu");
 	Menus_CloseByName("getMenu");
@@ -2177,7 +2170,7 @@ CG_ShowTeamMenus
 ==================
 
 */
-void CG_ShowTeamMenu()
+void CG_ShowTeamMenu(void)
 {
 	Menus_OpenByName("teamMenu");
 }
@@ -2266,7 +2259,7 @@ int CG_ClientNumFromName(const char *p)
 	return -1;
 }
 
-void CG_ShowResponseHead()
+void CG_ShowResponseHead(void)
 {
 	Menus_OpenByName("voiceMenu");
 	trap_Cvar_Set("cl_conXOffset", "72");
@@ -2299,3 +2292,5 @@ void CG_GetTeamColor(vec4_t * color)
 		(*color)[3] = 0.25f;
 	}
 }
+
+#endif

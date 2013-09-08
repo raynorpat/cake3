@@ -25,6 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // executed by a key binding
 
 #include "cg_local.h"
+#include "../ui/ui_shared.h"
+#ifdef MISSIONPACK
+extern menuDef_t *menuScoreboard;
+#endif
 
 
 
@@ -123,6 +127,80 @@ static void CG_ScoresUp_f(void)
 	}
 }
 
+#ifdef MISSIONPACK
+extern menuDef_t *menuScoreboard;
+void            Menu_Reset(void);	// FIXME: add to right include file
+
+static void CG_LoadHud_f(void)
+{
+	char            buff[1024];
+	const char     *hudSet;
+
+	memset(buff, 0, sizeof(buff));
+
+	String_Init();
+	Menu_Reset();
+
+	trap_Cvar_VariableStringBuffer("cg_hudFiles", buff, sizeof(buff));
+	hudSet = buff;
+	if(hudSet[0] == '\0')
+	{
+		hudSet = "ui/hud.txt";
+	}
+
+	CG_LoadMenus(hudSet);
+	menuScoreboard = NULL;
+}
+
+
+static void CG_scrollScoresDown_f(void)
+{
+	if(menuScoreboard && cg.scoreBoardShowing)
+	{
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_SCOREBOARD, qtrue);
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_REDTEAM_LIST, qtrue);
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_BLUETEAM_LIST, qtrue);
+	}
+}
+
+
+static void CG_scrollScoresUp_f(void)
+{
+	if(menuScoreboard && cg.scoreBoardShowing)
+	{
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_SCOREBOARD, qfalse);
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_REDTEAM_LIST, qfalse);
+		Menu_ScrollFeeder(menuScoreboard, FEEDER_BLUETEAM_LIST, qfalse);
+	}
+}
+
+
+static void CG_spWin_f(void)
+{
+	trap_Cvar_Set("cg_cameraOrbit", "2");
+	trap_Cvar_Set("cg_cameraOrbitDelay", "35");
+	trap_Cvar_Set("cg_thirdPerson", "1");
+	trap_Cvar_Set("cg_thirdPersonAngle", "0");
+	trap_Cvar_Set("cg_thirdPersonRange", "100");
+	CG_AddBufferedSound(cgs.media.winnerSound);
+	//trap_S_StartLocalSound(cgs.media.winnerSound, CHAN_ANNOUNCER);
+	CG_CenterPrint("YOU WIN!", SCREEN_HEIGHT * .30, 0);
+}
+
+static void CG_spLose_f(void)
+{
+	trap_Cvar_Set("cg_cameraOrbit", "2");
+	trap_Cvar_Set("cg_cameraOrbitDelay", "35");
+	trap_Cvar_Set("cg_thirdPerson", "1");
+	trap_Cvar_Set("cg_thirdPersonAngle", "0");
+	trap_Cvar_Set("cg_thirdPersonRange", "100");
+	CG_AddBufferedSound(cgs.media.loserSound);
+	//trap_S_StartLocalSound(cgs.media.loserSound, CHAN_ANNOUNCER);
+	CG_CenterPrint("YOU LOSE...", SCREEN_HEIGHT * .30, 0);
+}
+
+#endif
+
 static void CG_TellTarget_f(void)
 {
 	int             clientNum;
@@ -157,6 +235,7 @@ static void CG_TellAttacker_f(void)
 	trap_SendClientCommand(command);
 }
 
+#ifdef MISSIONPACK
 static void CG_VoiceTellTarget_f(void)
 {
 	int             clientNum;
@@ -191,7 +270,6 @@ static void CG_VoiceTellAttacker_f(void)
 	trap_SendClientCommand(command);
 }
 
-#ifdef MISSIONPACK
 static void CG_NextTeamMember_f(void)
 {
 	CG_SelectNextPlayer();
@@ -386,8 +464,8 @@ CG_EditHud_f
 */
 /*
 static void CG_EditHud_f( void ) {
-  //Key_GetCatcher() ^= KEYCATCH_CGAME;
-  //VM_Call (cgvm, CG_EVENT_HANDLING, (Key_GetCatcher() & KEYCATCH_CGAME) ? CGAME_EVENT_EDITHUD : CGAME_EVENT_NONE);
+  //cls.keyCatchers ^= KEYCATCH_CGAME;
+  //VM_Call (cgvm, CG_EVENT_HANDLING, (cls.keyCatchers & KEYCATCH_CGAME) ? CGAME_EVENT_EDITHUD : CGAME_EVENT_NONE);
 }
 */
 
@@ -398,7 +476,7 @@ static void CG_EditHud_f( void ) {
 CG_StartOrbit_f
 ==================
 */
-#ifdef MISSIONPACK
+
 static void CG_StartOrbit_f(void)
 {
 	char            var[MAX_TOKEN_CHARS];
@@ -408,7 +486,6 @@ static void CG_StartOrbit_f(void)
 	{
 		return;
 	}
-
 	if(cg_cameraOrbit.value != 0)
 	{
 		trap_Cvar_Set("cg_cameraOrbit", "0");
@@ -422,7 +499,6 @@ static void CG_StartOrbit_f(void)
 		trap_Cvar_Set("cg_thirdPersonRange", "100");
 	}
 }
-#endif
 
 /*
 static void CG_Camera_f( void ) {
@@ -448,19 +524,14 @@ static consoleCommand_t commands[] = {
 	{"testModel", CG_TestModel_f},
 	{"testGun", CG_TestGun_f},
 	{"testAnimation", CG_TestAnimation_f},
-	{"testBlend", CG_TestBlend_f},
+	{"testAnimation2", CG_TestAnimation2_f},
 	{"testOmniLight", CG_TestOmniLight_f},
 	{"testProjLight", CG_TestProjLight_f},
 	{"testFlashLight", CG_TestFlashLight_f},
-	{"testGib", CG_TestGib_f},
-	{"testParticles", CG_TestParticles_f},
 	{"nextframe", CG_TestModelNextFrame_f},
 	{"prevframe", CG_TestModelPrevFrame_f},
-	{"inclerp", CG_TestModelIncreaseLerp_f},
-	{"declerp", CG_TestModelDecreaseLerp_f},
 	{"nextskin", CG_TestModelNextSkin_f},
 	{"prevskin", CG_TestModelPrevSkin_f},
-
 	{"viewpos", CG_Viewpos_f},
 	{"+scores", CG_ScoresDown_f},
 	{"-scores", CG_ScoresUp_f},
@@ -471,16 +542,13 @@ static consoleCommand_t commands[] = {
 	{"weapnext", CG_NextWeapon_f},
 	{"weapprev", CG_PrevWeapon_f},
 	{"weapon", CG_Weapon_f},
+	{"tcmd", CG_TargetCommand_f},
 	{"tell_target", CG_TellTarget_f},
 	{"tell_attacker", CG_TellAttacker_f},
+#ifdef MISSIONPACK
 	{"vtell_target", CG_VoiceTellTarget_f},
 	{"vtell_attacker", CG_VoiceTellAttacker_f},
-	{"tcmd", CG_TargetCommand_f},
-
-	{"+osd", CG_OSDUp_f},
-	{"-osd", CG_OSDDown_f},
-
-#ifdef MISSIONPACK
+	{"loadhud", CG_LoadHud_f},
 	{"nextTeamMember", CG_NextTeamMember_f},
 	{"prevTeamMember", CG_PrevTeamMember_f},
 	{"nextOrder", CG_NextOrder_f},
@@ -500,12 +568,12 @@ static consoleCommand_t commands[] = {
 	{"tauntTaunt", CG_TauntTaunt_f},
 	{"tauntDeathInsult", CG_TauntDeathInsult_f},
 	{"tauntGauntlet", CG_TauntGauntlet_f},
+	{"spWin", CG_spWin_f},
+	{"spLose", CG_spLose_f},
+	{"scoresDown", CG_scrollScoresDown_f},
+	{"scoresUp", CG_scrollScoresUp_f},
+#endif
 	{"startOrbit", CG_StartOrbit_f},
-#endif
-
-#ifdef CG_LUA
-	{"restartLuaCGameVM", CG_RestartLua_f},
-#endif
 	//{ "camera", CG_Camera_f },
 	{"loaddeferred", CG_LoadDeferredPlayers}
 };
@@ -526,7 +594,7 @@ qboolean CG_ConsoleCommand(void)
 
 	cmd = CG_Argv(0);
 
-	for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
+	for(i = 0; i < ARRAY_LEN(commands); i++)
 	{
 		if(!Q_stricmp(cmd, commands[i].cmd))
 		{
@@ -551,7 +619,7 @@ void CG_InitConsoleCommands(void)
 {
 	int             i;
 
-	for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
+	for(i = 0; i < ARRAY_LEN(commands); i++)
 	{
 		trap_AddCommand(commands[i].cmd);
 	}
@@ -564,6 +632,7 @@ void CG_InitConsoleCommands(void)
 	trap_AddCommand("say");
 	trap_AddCommand("say_team");
 	trap_AddCommand("tell");
+#ifdef MISSIONPACK
 	trap_AddCommand("vsay");
 	trap_AddCommand("vsay_team");
 	trap_AddCommand("vtell");
@@ -571,12 +640,16 @@ void CG_InitConsoleCommands(void)
 	trap_AddCommand("vosay");
 	trap_AddCommand("vosay_team");
 	trap_AddCommand("votell");
+#endif
 	trap_AddCommand("give");
 	trap_AddCommand("god");
 	trap_AddCommand("notarget");
 	trap_AddCommand("noclip");
+	trap_AddCommand("where");
 	trap_AddCommand("team");
 	trap_AddCommand("follow");
+	trap_AddCommand("follownext");
+	trap_AddCommand("followprev");
 	trap_AddCommand("levelshot");
 	trap_AddCommand("addbot");
 	trap_AddCommand("setviewpos");
@@ -586,19 +659,11 @@ void CG_InitConsoleCommands(void)
 	trap_AddCommand("teamvote");
 	trap_AddCommand("stats");
 	trap_AddCommand("teamtask");
-
-#ifdef G_LUA
-	trap_AddCommand("lua_status");
+	trap_AddCommand("loaddefered");	// spelled wrong, but not changing for demo
+#ifdef LUA
+	trap_AddCommand("lua_script");
+	trap_AddCommand("lua_binaryfunction");
+	trap_AddCommand("lua_stackdump");
 	trap_AddCommand("lua_restart");
 #endif
-
-	// useful for development
-	trap_AddCommand("entitylist");
-
-	// for ACEBot
-	trap_AddCommand("savenodes");
-
-	// for JBullet
-	trap_AddCommand("shootbox");
-	trap_AddCommand("shootboxes");
 }

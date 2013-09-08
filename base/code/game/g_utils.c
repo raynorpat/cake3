@@ -90,7 +90,7 @@ G_FindConfigstringIndex
 
 ================
 */
-static int G_FindConfigstringIndex(const char *name, int start, int max, qboolean create)
+int G_FindConfigstringIndex(char *name, int start, int max, qboolean create)
 {
 	int             i;
 	char            s[MAX_STRING_CHARS];
@@ -129,19 +129,14 @@ static int G_FindConfigstringIndex(const char *name, int start, int max, qboolea
 }
 
 
-int G_ModelIndex(const char *name)
+int G_ModelIndex(char *name)
 {
 	return G_FindConfigstringIndex(name, CS_MODELS, MAX_MODELS, qtrue);
 }
 
-int G_SoundIndex(const char *name)
+int G_SoundIndex(char *name)
 {
 	return G_FindConfigstringIndex(name, CS_SOUNDS, MAX_SOUNDS, qtrue);
-}
-
-int G_EffectIndex(const char *name)
-{
-	return G_FindConfigstringIndex(name, CS_EFFECTS, MAX_EFFECTS, qtrue);
 }
 
 //=====================================================================
@@ -351,20 +346,6 @@ void G_UseTargets(gentity_t * ent, gentity_t * activator)
 			if(t->use)
 			{
 				t->use(t, ent, activator);
-#ifdef G_LUA
-				// Lua API callbacks
-				if(t->luaUse)
-				{
-					if(activator)
-					{
-						G_LuaHook_EntityUse(t->luaUse, t->s.number, ent->s.number, activator->s.number);
-					}
-					else
-					{
-						G_LuaHook_EntityUse(t->luaUse, t->s.number, ent->s.number, ENTITYNUM_WORLD);
-					}
-				}
-#endif
 			}
 		}
 		if(!ent->inuse)
@@ -460,37 +441,6 @@ void G_SetMovedir(vec3_t angles, vec3_t movedir)
 }
 
 
-/*
-================
-G_ActivateUse
-
-An activate function that calls the ent's use function.
-================
-*/
-void G_ActivateUse(gentity_t * ent, gentity_t * other, qboolean firstActivate)
-{
-	if(ent->use)
-	{
-		ent->use(ent, other, other);
-	}
-}
-
-/*
-================
-G_ActivateUseFirst
-
-An activate function that calls the ent's use function, but only on the first press.
-================
-*/
-void G_ActivateUseFirst(gentity_t * ent, gentity_t * other, qboolean firstActivate)
-{
-	if(ent->use && (firstActivate == qtrue))
-	{
-		ent->use(ent, other, other);
-	}
-}
-
-
 float vectoyaw(const vec3_t vec)
 {
 	float           yaw;
@@ -526,7 +476,6 @@ float vectoyaw(const vec3_t vec)
 void G_InitGentity(gentity_t * e)
 {
 	e->inuse = qtrue;
-	e->spawnTime = level.time;
 	e->classname = "noclass";
 	e->s.number = e - g_entities;
 	e->r.ownerNum = ENTITYNUM_NONE;
@@ -572,7 +521,7 @@ gentity_t      *G_Spawn(void)
 
 			// the first couple seconds of server time can involve a lot of
 			// freeing and allocating, so relax the replacement policy
-			if(!force && e->freeTime > level.startTime + 2000 && level.time - e->freeTime < 1000)
+			if(!force && e->freetime > level.startTime + 2000 && level.time - e->freetime < 1000)
 			{
 				continue;
 			}
@@ -645,17 +594,9 @@ void G_FreeEntity(gentity_t * ed)
 		return;
 	}
 
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ed->luaFree && !ed->client)
-	{
-		G_LuaHook_EntityFree(ed->luaFree, ed->s.number);
-	}
-#endif
-
 	memset(ed, 0, sizeof(*ed));
 	ed->classname = "freed";
-	ed->freeTime = level.time;
+	ed->freetime = level.time;
 	ed->inuse = qfalse;
 
 #if defined(ACEBOT)
@@ -829,3 +770,4 @@ void G_SetOrigin(gentity_t * ent, vec3_t origin)
 
 	VectorCopy(origin, ent->r.currentOrigin);
 }
+

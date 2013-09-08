@@ -37,7 +37,7 @@ void InitTrigger(gentity_t * self)
 	{
 		trap_SetBrushModel(self, self->model);
 	}
-
+	
 	self->r.contents = CONTENTS_TRIGGER;	// replaces the -1 from trap_SetBrushModel
 	self->r.svFlags = SVF_NOCLIENT;
 }
@@ -63,32 +63,17 @@ void multi_trigger(gentity_t * ent, gentity_t * activator)
 
 	if(activator->client)
 	{
-		if(ent->red_only && activator->client->sess.sessionTeam != TEAM_RED)
+		if((ent->spawnflags & 1) && activator->client->sess.sessionTeam != TEAM_RED)
 		{
 			return;
 		}
-		if(ent->blue_only && activator->client->sess.sessionTeam != TEAM_BLUE)
+		if((ent->spawnflags & 2) && activator->client->sess.sessionTeam != TEAM_BLUE)
 		{
 			return;
 		}
 	}
 
 	G_UseTargets(ent, ent->activator);
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		if(activator)
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, activator->s.number);
-		}
-		else
-		{
-			G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ENTITYNUM_WORLD);
-		}
-	}
-#endif
 
 	if(ent->wait > 0)
 	{
@@ -130,8 +115,6 @@ void SP_trigger_multiple(gentity_t * ent)
 {
 	G_SpawnFloat("wait", "0.5", &ent->wait);
 	G_SpawnFloat("random", "0", &ent->random);
-	G_SpawnBoolean("red_only", "0", &ent->red_only);
-	G_SpawnBoolean("blue_only", "0", &ent->blue_only);
 
 	if(ent->random >= ent->wait && ent->wait >= 0)
 	{
@@ -146,60 +129,7 @@ void SP_trigger_multiple(gentity_t * ent)
 	trap_LinkEntity(ent);
 }
 
-/*
-==============================================================================
 
-trigger_flagonly_multiple
-
-==============================================================================
-*/
-
-// the trigger was just activated
-void multi_flagonly_trigger(gentity_t * ent, gentity_t * activator)
-{
-	ent->activator = activator;
-
-	if(!activator->client)
-	{
-		return;
-	}
-
-	if(ent->red_only && activator->client->ps.powerups[PW_BLUEFLAG])
-	{
-		G_UseTargets(ent, ent->activator);
-		Team_CaptureFlag(ent, activator, TEAM_RED);
-	}
-	else if(ent->blue_only && activator->client->ps.powerups[PW_REDFLAG])
-	{
-		G_UseTargets(ent, ent->activator);
-		Team_CaptureFlag(ent, activator, TEAM_BLUE);
-	}
-}
-
-void Touch_Flagonly_Multi(gentity_t * self, gentity_t * other, trace_t * trace)
-{
-	if(!other->client)
-	{
-		return;
-	}
-	multi_flagonly_trigger(self, other);
-}
-
-/*QUAKED trigger_flagonly_multiple (.5 .5 .5) ?
-Player must be carrying the appropriate flag for it to trigger.
-Either red_only or blue_only must be set.
-*/
-void SP_trigger_flagonly_multiple(gentity_t * ent)
-{
-	G_SpawnBoolean("red_only", "0", &ent->red_only);
-	G_SpawnBoolean("blue_only", "0", &ent->blue_only);
-
-	ent->touch = Touch_Flagonly_Multi;
-	//ent->use = Use_Multi;
-
-	InitTrigger(ent);
-	trap_LinkEntity(ent);
-}
 
 /*
 ==============================================================================
@@ -212,15 +142,6 @@ trigger_always
 void trigger_always_think(gentity_t * ent)
 {
 	G_UseTargets(ent, ent);
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(ent->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(ent->luaTrigger, ent->s.number, ent->s.number);
-	}
-#endif
-
 	G_FreeEntity(ent);
 }
 
@@ -245,18 +166,13 @@ trigger_push
 
 void trigger_push_touch(gentity_t * self, gentity_t * other, trace_t * trace)
 {
-
 	if(!other->client)
 	{
 		return;
 	}
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, other->s.number);
-	}
+	
+#ifdef LUA
+	G_RunLuaFunction(self->luaTouch, "ee>", self, other);
 #endif
 
 	BG_TouchJumpPad(&other->client->ps, &self->s);
@@ -288,7 +204,7 @@ void AimAtTarget(gentity_t * self)
 	}
 
 	height = ent->s.origin[2] - origin[2];
-	gravity = -g_gravityZ.value;
+	gravity = g_gravity.value;
 	time = sqrt(height / (.5 * gravity));
 	if(!time)
 	{
@@ -313,7 +229,7 @@ Must point at a target_position, which will be the apex of the leap.
 This will be client side predicted, unlike target_push
 */
 void SP_trigger_push(gentity_t * self)
-{
+{	
 	InitTrigger(self);
 
 	// unlike other triggers, we need to send this one to the client
@@ -346,21 +262,13 @@ void Use_target_push(gentity_t * self, gentity_t * other, gentity_t * activator)
 		return;
 	}
 
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, activator->s.number);
-	}
-#endif
-
 	VectorCopy(self->s.origin2, activator->client->ps.velocity);
 
 	// play fly sound every 1.5 seconds
 	if(activator->fly_sound_debounce_time < level.time)
 	{
 		activator->fly_sound_debounce_time = level.time + 1500;
-		G_Sound(activator, CHAN_AUTO, self->soundIndex);
+		G_Sound(activator, CHAN_AUTO, self->noise_index);
 	}
 }
 
@@ -371,8 +279,6 @@ if "bouncepad", play bounce noise instead of windfly
 */
 void SP_target_push(gentity_t * self)
 {
-	qboolean        bouncepad;
-
 	if(!self->speed)
 	{
 		self->speed = 1000;
@@ -380,15 +286,13 @@ void SP_target_push(gentity_t * self)
 	G_SetMovedir(self->s.angles, self->s.origin2);
 	VectorScale(self->s.origin2, self->speed, self->s.origin2);
 
-	// Tr3B: FIXME sounds
-	G_SpawnBoolean("bouncepad", "0", &bouncepad);
-	if(bouncepad)
+	if(self->spawnflags & 1)
 	{
-		self->soundIndex = G_SoundIndex("sound/world/jumppad.wav");
+		self->noise_index = G_SoundIndex("sound/world/jumppad.wav");
 	}
 	else
 	{
-		self->soundIndex = G_SoundIndex("sound/misc/windfly.wav");
+		self->noise_index = G_SoundIndex("sound/misc/windfly.wav");
 	}
 	if(self->target)
 	{
@@ -433,14 +337,6 @@ void trigger_teleporter_touch(gentity_t * self, gentity_t * other, trace_t * tra
 		G_Printf("Couldn't find teleporter destination\n");
 		return;
 	}
-
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, other->s.number);
-	}
-#endif
 
 	TeleportPlayer(other, dest->s.origin, dest->s.angles);
 }
@@ -525,7 +421,7 @@ void hurt_touch(gentity_t * self, gentity_t * other, trace_t * trace)
 		return;
 	}
 
-	if(self->slow)
+	if(self->spawnflags & 16)
 	{
 		self->timestamp = level.time + 1000;
 	}
@@ -535,20 +431,12 @@ void hurt_touch(gentity_t * self, gentity_t * other, trace_t * trace)
 	}
 
 	// play sound
-	if(!self->silent)
+	if(!(self->spawnflags & 4))
 	{
-		G_Sound(other, CHAN_AUTO, self->soundIndex);
+		G_Sound(other, CHAN_AUTO, self->noise_index);
 	}
 
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, other->s.number);
-	}
-#endif
-
-	if(self->no_protection)
+	if(self->spawnflags & 8)
 		dflags = DAMAGE_NO_PROTECTION;
 	else
 		dflags = 0;
@@ -559,12 +447,7 @@ void SP_trigger_hurt(gentity_t * self)
 {
 	InitTrigger(self);
 
-	G_SpawnBoolean("start_off", "0", &self->start_off);
-	G_SpawnBoolean("silent", "0", &self->silent);
-	G_SpawnBoolean("no_protection", "0", &self->no_protection);
-	G_SpawnBoolean("slow", "0", &self->slow);
-
-	self->soundIndex = G_SoundIndex("sound/player/fry.ogg");
+	self->noise_index = G_SoundIndex("sound/world/electro.wav");
 	self->touch = hurt_touch;
 
 	if(!self->damage)
@@ -574,15 +457,13 @@ void SP_trigger_hurt(gentity_t * self)
 
 	self->r.contents = CONTENTS_TRIGGER;
 
-	/*
 	if(self->spawnflags & 2)
 	{
 		self->use = hurt_use;
 	}
-	*/
 
 	// link in to the world if starting active
-	if(!self->start_off)
+	if(!(self->spawnflags & 1))
 	{
 		trap_LinkEntity(self);
 	}
@@ -612,21 +493,6 @@ so, the basic time between firing is a random time between
 void func_timer_think(gentity_t * self)
 {
 	G_UseTargets(self, self->activator);
-#ifdef G_LUA
-	// Lua API callbacks
-	if(self->luaTrigger)
-	{
-		if(self->activator)
-		{
-			G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, self->activator->s.number);
-		}
-		else
-		{
-			G_LuaHook_EntityTrigger(self->luaTrigger, self->s.number, self->s.number);
-		}
-	}
-#endif
-
 	// set time before next firing
 	self->nextthink = level.time + 1000 * (self->wait + crandom() * self->random);
 }
@@ -648,8 +514,6 @@ void func_timer_use(gentity_t * self, gentity_t * other, gentity_t * activator)
 
 void SP_func_timer(gentity_t * self)
 {
-	qboolean        start_on;
-
 	G_SpawnFloat("random", "1", &self->random);
 	G_SpawnFloat("wait", "1", &self->wait);
 
@@ -662,8 +526,7 @@ void SP_func_timer(gentity_t * self)
 		G_Printf("func_timer at %s has random >= wait\n", vtos(self->s.origin));
 	}
 
-	G_SpawnBoolean("start_on", "0", &start_on);
-	if(start_on)
+	if(self->spawnflags & 1)
 	{
 		self->nextthink = level.time + FRAMETIME;
 		self->activator = self;

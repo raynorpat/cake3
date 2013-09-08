@@ -21,7 +21,6 @@ project "base_game"
 		"g_client.c",
 		"g_cmds.c",
 		"g_combat.c",
-		"g_explosive.c",
 		"g_items.c",
 		"g_lua.c",
 		"g_main.c",

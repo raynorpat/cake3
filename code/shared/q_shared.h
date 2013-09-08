@@ -258,15 +258,17 @@ typedef int     clipHandle_t;
 #define	BIG_INFO_KEY		8192
 #define	BIG_INFO_VALUE		8192
 
+#define	MAX_NEWS_STRING		10000
 
-#define	MAX_QPATH			256	// max length of a quake game pathname, formerly 64
+#define	MAX_QPATH			256		// max length of a quake game pathname, formerly 64
 #ifdef PATH_MAX
 #define MAX_OSPATH			PATH_MAX
 #else
-#define	MAX_OSPATH			256	// max length of a filesystem pathname
+#define	MAX_OSPATH			256		// max length of a filesystem pathname
 #endif
 
-#define	MAX_NAME_LENGTH		32	// max length of a client name
+#define	MAX_NAME_LENGTH		32		// max length of a client name
+#define	MAX_HOSTNAME_LENGTH	80		// max length of a host name
 
 #define	MAX_SAY_TEXT	150
 
@@ -474,6 +476,9 @@ extern vec4_t   colorDkGrey;
 #define S_COLOR_CYAN	"^5"
 #define S_COLOR_MAGENTA	"^6"
 #define S_COLOR_WHITE	"^7"
+
+#define INDENT_MARKER '\v'
+void			Q_StripIndentMarker(char *string);
 
 extern const vec4_t g_color_table[8];
 
@@ -1436,6 +1441,18 @@ char           *Com_SkipCharset(char *s, char *sep);
 
 qboolean        Com_CheckColorCodes(const char *s);
 
+typedef struct 
+{
+  unsigned int hi;
+  unsigned int lo;
+} clientList_t;
+
+qboolean		Com_ClientListContains(const clientList_t *list, int clientNum);
+void			Com_ClientListAdd(clientList_t *list, int clientNum);
+void			Com_ClientListRemove(clientList_t *list, int clientNum);
+char		   *Com_ClientListString(const clientList_t *list);
+void			Com_ClientListParse(clientList_t *list, const char *s);
+
 // mode parm for FS_FOpenFile
 typedef enum
 {
@@ -1791,7 +1808,6 @@ typedef enum
 #define	MAX_GAME_SHADERS				64	// needed by Tremulous
 #define	MAX_GAME_PARTICLE_SYSTEMS		64	// needed by Tremulous
 
-
 #define	MAX_CONFIGSTRINGS	(1024 * 2)
 
 // these are the only configstrings that the system reserves, all the
@@ -1920,12 +1936,10 @@ typedef struct playerState_s
 										// only generate a small move value for that frame
 										// walking will use different animations and
 										// won't generate footsteps
-#define BUTTON_ATTACK2		32	// +/-button5
-#define BUTTON_ACTIVATE		64	// +/-button6
 
 //#if defined(MISSIONPACK)
-//#define BUTTON_AFFIRMATIVE	32
-//#define	BUTTON_NEGATIVE		64
+#define BUTTON_AFFIRMATIVE	32
+#define	BUTTON_NEGATIVE		64
 
 #define BUTTON_GETFLAG		128
 #define BUTTON_GUARDBASE	256
@@ -2140,6 +2154,14 @@ typedef enum
 #define CDKEY_LEN 16
 #define CDCHKSUM_LEN 2
 
+// flags for com_downloadPrompt
+#define DLP_TYPE_MASK 0x0f
+#define DLP_IGNORE    0x01 // don't download anything
+#define DLP_CURL      0x02 // download via HTTP redirect
+#define DLP_UDP       0x04 // download from server
+#define DLP_SHOW      0x10 // prompt needs to be shown
+#define DLP_PROMPTED  0x20 // prompt has been processed by client
+#define DLP_STALE     0x40 // prompt is not being shown by UI VM
 
 #define SQR( a ) ( ( a ) * ( a ) )
 
