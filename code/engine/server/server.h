@@ -352,6 +352,7 @@ void            SV_ExecuteClientMessage(client_t * cl, msg_t * msg);
 void            SV_UserinfoChanged(client_t * cl);
 
 void            SV_ClientEnterWorld(client_t * client, usercmd_t * cmd);
+void            SV_FreeClient(client_t * client);
 void            SV_DropClient(client_t * drop, const char *reason);
 
 void            SV_ExecuteClientCommand(client_t * cl, const char *s, qboolean clientOK);
@@ -399,9 +400,17 @@ void            SV_BotFrame(int time);
 int             SV_BotAllocateClient(void);
 void            SV_BotFreeClient(int clientNum);
 
+void            SV_BotInitCvars(void);
+int             SV_BotLibSetup(void);
+int             SV_BotLibShutdown(void);
 int             SV_BotGetSnapshotEntity(int client, int ent);
 int             SV_BotGetConsoleMessage(int client, char *buf, int size);
 void            SV_BotClientCommand(int client, char *command);
+
+int             BotImport_DebugPolygonCreate(int color, int numPoints, vec3_t * points);
+void            BotImport_DebugPolygonDelete(int id);
+
+void            SV_BotInitBotLib(void);
 
 //============================================================
 

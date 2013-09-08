@@ -32,7 +32,7 @@ server_t        sv;				// local server
 
 vm_t           *gvm = NULL;		// game virtual machine
 
-cvar_t         *sv_fps;			// time rate for running non-clients
+cvar_t         *sv_fps = NULL;	// time rate for running non-clients
 cvar_t         *sv_timeout;		// seconds without any message
 cvar_t         *sv_zombietime;	// seconds to sink messages after disconnect
 cvar_t         *sv_rconPassword;	// password for remote server commands
@@ -480,7 +480,7 @@ static leakyBucket_t *SVC_BucketForAddress(netadr_t address, int burst, int peri
 		interval = now - bucket->lastTime;
 
 		// Reclaim expired buckets
-		if(bucket->lastTime > 0 && interval > (burst * period))
+		if(bucket->lastTime > 0 && (interval > (burst * period) || interval < 0))
 		{
 			if(bucket->prev != NULL)
 			{
@@ -667,7 +667,7 @@ if a user is interested in a server to do a full status
 */
 void SVC_Info(netadr_t from)
 {
-	int             i, count;
+	int             i, count, humans;
 	char           *gamedir;
 	char            infostring[MAX_INFO_STRING];
 
@@ -687,12 +687,16 @@ void SVC_Info(netadr_t from)
 		return;
 
 	// don't count privateclients
-	count = 0;
+	count = humans = 0;
 	for(i = sv_privateClients->integer; i < sv_maxclients->integer; i++)
 	{
 		if(svs.clients[i].state >= CS_CONNECTED)
 		{
 			count++;
+			if(svs.clients[i].netchan.remoteAddress.type != NA_BOT)
+			{
+				humans++;
+			}
 		}
 	}
 
@@ -706,6 +710,7 @@ void SVC_Info(netadr_t from)
 	Info_SetValueForKey(infostring, "hostname", sv_hostname->string);
 	Info_SetValueForKey(infostring, "mapname", sv_mapname->string);
 	Info_SetValueForKey(infostring, "clients", va("%i", count));
+	Info_SetValueForKey(infostring, "g_humanplayers", va("%i", humans));
 	Info_SetValueForKey(infostring, "sv_maxclients", va("%i", sv_maxclients->integer - sv_privateClients->integer));
 	Info_SetValueForKey(infostring, "gametype", va("%i", sv_gametype->integer));
 	Info_SetValueForKey(infostring, "pure", va("%i", sv_pure->integer));
@@ -769,7 +774,7 @@ static void SVC_RemoteCommand(netadr_t from, msg_t * msg)
 	// Prevent using rcon as an amplifier and make dictionary attacks impractical
 	if(SVC_RateLimitAddress(from, 10, 1000))
 	{
-		Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+		Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
 		return;
 	}
 
@@ -780,7 +785,7 @@ static void SVC_RemoteCommand(netadr_t from, msg_t * msg)
 		// Make DoS via rcon impractical
 		if(SVC_RateLimit(&bucket, 10, 1000))
 		{
-			Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
+			Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
 			return;
 		}
 
@@ -947,7 +952,7 @@ void SV_PacketEvent(netadr_t from, msg_t * msg)
 		// port assignments
 		if(cl->netchan.remoteAddress.port != from.port)
 		{
-			Com_Printf("SV_PacketEvent: fixing up a translated port for %s[%s]\n", cl->name, NET_AdrToString(from));
+			Com_Printf("SV_PacketEvent: fixing up a translated port\n");
 			cl->netchan.remoteAddress.port = from.port;
 		}
 

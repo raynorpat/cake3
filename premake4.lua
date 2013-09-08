@@ -46,11 +46,17 @@ newoption
 	description = "Compile with Bullet physics game code support"
 }
 
---newoption
---{
---	trigger = "with-omnibot",
---	description = "Compile with Omni-bot support"
---}
+newoption
+{
+	trigger = "with-acebot",
+	description = "Compile with AceBot game code support"
+}
+
+newoption
+{
+	trigger = "with-brainworks",
+	description = "Compile with Brainworks game code support"
+}
 
 --newoption
 --{

@@ -8,7 +8,7 @@ project "XreaL"
 	{
 		"../shared/**.c", "../shared/**.h",
 		
-		--"botlib/**.c", "botlib/**.h",
+		"botlib/**.c", "botlib/**.h",
 		
 		"client/**.c", "client/**.h",
 		"server/**.c", "server/**.h",
@@ -174,6 +174,7 @@ project "XreaL"
 	defines
 	{ 
 		"STANDALONE",
+		"BOTLIB",
 		"REF_HARD_LINKED",
 		"GLEW_STATIC",
 		"BUILD_FREETYPE",

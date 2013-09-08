@@ -284,7 +284,6 @@ void SV_LinkEntity(sharedEntity_t * gEnt)
 	{
 		// expand for rotation
 		float           max;
-		int             i;
 
 		max = RadiusFromBounds(gEnt->r.mins, gEnt->r.maxs);
 		for(i = 0; i < 3; i++)
@@ -423,9 +422,6 @@ static void SV_AreaEntities_r(worldSector_t * node, areaParms_t * ap)
 {
 	svEntity_t     *check, *next;
 	sharedEntity_t *gcheck;
-	int             count;
-
-	count = 0;
 
 	for(check = node->entities; check; check = next)
 	{
@@ -763,13 +759,13 @@ int SV_PointContents(const vec3_t p, int passEntityNum)
 		hit = SV_GentityNum(touch[i]);
 		// might intersect, so do an exact clip
 		clipHandle = SV_ClipHandleForEntity(hit);
-		angles = hit->s.angles;
+		angles = hit->r.currentAngles;
 		if(!hit->r.bmodel)
 		{
 			angles = vec3_origin;	// boxes don't rotate
 		}
 
-		c2 = CM_TransformedPointContents(p, clipHandle, hit->s.origin, hit->s.angles);
+		c2 = CM_TransformedPointContents(p, clipHandle, hit->r.currentOrigin, angles);
 
 		contents |= c2;
 	}

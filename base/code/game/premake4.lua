@@ -1,5 +1,3 @@
-
-
 project "base_game"
 	targetname  "game"
 	targetdir 	"../.."
@@ -14,12 +12,6 @@ project "base_game"
 		
 		--"**.c", "**.cpp", "**.h",
 		"*.h",
-		"acebot_ai.c",
-		"acebot_cmds.c",
-		"acebot_items.c",
-		"acebot_movement.c",
-		"acebot_nodes.c",
-		"acebot_spawn.c",
 		"bg_misc.c",
 		"bg_pmove.c",
 		"bg_slidemove.c",
@@ -80,7 +72,6 @@ project "base_game"
 	}
 	--excludes
 	--{
-	--	"g_unlagged.c",
 	--	"g_rankings.c",
 	--	"g_bullet.cpp",
 	--}
@@ -114,6 +105,34 @@ project "base_game"
 		{ 
 			"USE_BULLET"
 		}
+		
+	configuration "with-acebot"
+		files
+		{
+			"acebot/**.c", "acebot/**.cpp", "acebot/**.h",
+		}
+		includedirs
+		{
+			"../game/acebot"
+		}
+		defines
+		{ 
+			"ACEBOT"
+		}
+		
+	configuration "with-brainworks"
+		files
+		{
+			"brainworks/**.c", "brainworks/**.cpp", "brainworks/**.h",
+		}
+		includedirs
+		{
+			"../game/brainworks"
+		}
+		defines
+		{ 
+			"BRAINWORKS"
+		}		
 	
 	--
 	-- Platform Configurations

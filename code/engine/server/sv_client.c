@@ -500,7 +500,7 @@ void SV_DirectConnect(netadr_t from)
 			}
 			else
 			{
-				Com_Error(ERR_FATAL, "server is full on local connect\n");
+				Com_Error(ERR_FATAL, "server is full on local connect");
 				return;
 			}
 		}
@@ -581,6 +581,31 @@ void SV_DirectConnect(netadr_t from)
 	}
 }
 
+/*
+=====================
+SV_FreeClient
+
+Destructor for data allocated in a client structure
+=====================
+*/
+void SV_FreeClient(client_t * client)
+{
+#ifdef USE_VOIP
+	int             index;
+
+	for(index = client->queuedVoipIndex; index < client->queuedVoipPackets; index++)
+	{
+		index %= ARRAY_LEN(client->voipPacket);
+
+		Z_Free(client->voipPacket[index]);
+	}
+
+	client->queuedVoipPackets = 0;
+#endif
+
+	//SV_Netchan_FreeQueue(client);
+	SV_CloseDownload(client);
+}
 
 /*
 =====================
@@ -847,6 +872,9 @@ Downloads are finished
 */
 static void SV_DoneDownload_f(client_t * cl)
 {
+	if(cl->state == CS_ACTIVE)
+		return;
+
 	Com_DPrintf("clientDownload: %s Done\n", cl->name);
 	// resend the game state to update any clients that entered during the download
 	SV_SendClientGameState(cl);
@@ -1601,7 +1629,7 @@ void SV_ExecuteClientCommand(client_t * cl, const char *s, qboolean clientOK)
 	if(clientOK)
 	{
 		// pass unknown strings to the game
-		if(!u->name && sv.state == SS_GAME)
+		if(!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED))
 		{
 			Cmd_Args_Sanitize();
 			VM_Call(gvm, GAME_CLIENT_COMMAND, cl - svs.clients);
@@ -1646,7 +1674,7 @@ static qboolean SV_ClientCommand(client_t * cl, msg_t * msg)
 	// the command, we will stop processing the rest of the packet,
 	// including the usercmd.  This causes flooders to lag themselves
 	// but not other people
-	// We don't do this when the client hasn't been active yet since its
+	// We don't do this when the client hasn't been active yet since it's
 	// normal to spam a lot of commands when downloading
 	if(!com_cl_running->integer && cl->state >= CS_ACTIVE && sv_floodProtect->integer && svs.time < cl->nextReliableTime)
 	{

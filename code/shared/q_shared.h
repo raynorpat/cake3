@@ -615,7 +615,7 @@ signed short    ClampShort(int i);
 int             DirToByte(vec3_t dir);
 void            ByteToDir(int b, vec3_t dir);
 
-
+#define Byte4Copy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
 #define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
 #define VectorSet(v, x, y, z)	((v)[0]=(x),(v)[1]=(y),(v)[2]=(z))
@@ -1898,7 +1898,7 @@ typedef struct playerState_s
 
 	// not communicated over the net at all
 	int             ping;		// server to game info for scoreboard
-	int             pmove_framecount;	// FIXME: don't transmit over the network
+	int             pmove_framecount;
 	int             jumppad_frame;
 	int             entityEventSequence;
 } playerState_t;

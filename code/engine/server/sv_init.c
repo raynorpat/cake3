@@ -110,12 +110,12 @@ SV_SetConfigstring
 */
 void SV_SetConfigstring(int index, const char *val)
 {
-	int             len, i;
+	int             i;
 	client_t       *client;
 
 	if(index < 0 || index >= MAX_CONFIGSTRINGS)
 	{
-		Com_Error(ERR_DROP, "SV_SetConfigstring: bad index %i\n", index);
+		Com_Error(ERR_DROP, "SV_SetConfigstring: bad index %i", index);
 	}
 
 	if(!val)
@@ -153,8 +153,6 @@ void SV_SetConfigstring(int index, const char *val)
 				continue;
 			}
 
-
-			len = strlen(val);
 			SV_SendConfigstring(client, index);
 		}
 	}
@@ -174,7 +172,7 @@ void SV_GetConfigstring(int index, char *buffer, int bufferSize)
 	}
 	if(index < 0 || index >= MAX_CONFIGSTRINGS)
 	{
-		Com_Error(ERR_DROP, "SV_GetConfigstring: bad index %i\n", index);
+		Com_Error(ERR_DROP, "SV_GetConfigstring: bad index %i", index);
 	}
 	if(!sv.configstrings[index])
 	{
@@ -196,7 +194,7 @@ void SV_SetUserinfo(int index, const char *val)
 {
 	if(index < 0 || index >= sv_maxclients->integer)
 	{
-		Com_Error(ERR_DROP, "SV_SetUserinfo: bad index %i\n", index);
+		Com_Error(ERR_DROP, "SV_SetUserinfo: bad index %i", index);
 	}
 
 	if(!val)
@@ -224,7 +222,7 @@ void SV_GetUserinfo(int index, char *buffer, int bufferSize)
 	}
 	if(index < 0 || index >= sv_maxclients->integer)
 	{
-		Com_Error(ERR_DROP, "SV_GetUserinfo: bad index %i\n", index);
+		Com_Error(ERR_DROP, "SV_GetUserinfo: bad index %i", index);
 	}
 	Q_strncpyz(buffer, svs.clients[index].userinfo, bufferSize);
 }
@@ -239,7 +237,7 @@ to the clients -- only the fields that differ from the
 baseline will be transmitted
 ================
 */
-void SV_CreateBaseline(void)
+static void SV_CreateBaseline(void)
 {
 	sharedEntity_t *svent;
 	int             entnum;
@@ -267,7 +265,7 @@ SV_BoundMaxClients
 
 ===============
 */
-void SV_BoundMaxClients(int minimum)
+static void SV_BoundMaxClients(int minimum)
 {
 	// get the current maxclients value
 	Cvar_Get("sv_maxclients", "8", 0);
@@ -295,7 +293,7 @@ NOT cause this to be called, unless the game is exited to
 the menu system first.
 ===============
 */
-void SV_Startup(void)
+static void SV_Startup(void)
 {
 	if(svs.initialized)
 	{
@@ -411,7 +409,7 @@ void SV_ChangeMaxClients(void)
 SV_ClearServer
 ================
 */
-void SV_ClearServer(void)
+static void SV_ClearServer(void)
 {
 	int             i;
 
@@ -432,7 +430,7 @@ SV_TouchCGame
   touch the cgame.vm so that a pure client can load it if it's in a seperate pk3
 ================
 */
-void SV_TouchCGame(void)
+static void SV_TouchCGame(void)
 {
 #ifdef USE_LLVM
 	fileHandle_t    f;
@@ -540,11 +538,7 @@ void SV_SpawnServer(char *server, qboolean killBots)
 	sv.checksumFeed = (((int)rand() << 16) ^ rand()) ^ Com_Milliseconds();
 	FS_Restart(sv.checksumFeed);
 
-	//Com_DPrintf("SV_SpawnServer ..1()\n");
-
 	CM_LoadMap(va("maps/%s.bsp", server), qfalse, &checksum);
-
-	//Com_DPrintf("SV_SpawnServer ..2()\n");
 
 	// set serverinfo visible name
 	Cvar_Set("mapname", server);
@@ -642,7 +636,6 @@ void SV_SpawnServer(char *server, qboolean killBots)
 
 	// run another frame to allow things to look at all the players
 	VM_Call(gvm, GAME_RUN_FRAME, sv.time);
-
 	SV_BotFrame(sv.time);
 	sv.time += 100;
 	svs.time += 100;
@@ -772,6 +765,12 @@ void SV_Init(void)
 	sv_strictAuth = Cvar_Get("sv_strictAuth", "1", CVAR_ARCHIVE);
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
 
+	// initialize bot cvars so they are listed and can be set before loading the botlib
+	SV_BotInitCvars();
+
+	// init the botlib here because we need the pre-compiler in the UI
+	SV_BotInitBotLib();
+
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
 }
@@ -848,6 +847,11 @@ void SV_Shutdown(char *finalmsg)
 	// free server static data
 	if(svs.clients)
 	{
+		int             index;
+
+		for(index = 0; index < sv_maxclients->integer; index++)
+			SV_FreeClient(&svs.clients[index]);
+
 		Z_Free(svs.clients);
 	}
 	Com_Memset(&svs, 0, sizeof(svs));
