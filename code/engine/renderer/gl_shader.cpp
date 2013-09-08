@@ -1041,8 +1041,8 @@ void GLShader::CompileAndLinkGPUShaderProgram(	shaderProgram_t * program,
 
 void GLShader::CompilePermutations() 
 {
-	ri.Printf(PRINT_ALL, "/// -------------------------------------------------\n");
-	ri.Printf(PRINT_ALL, "/// creating %s shaders --------\n", this->GetName().c_str());
+	ri.Printf(PRINT_DEVELOPER, "/// -------------------------------------------------\n");
+	ri.Printf(PRINT_DEVELOPER, "/// creating %s shaders --------\n", this->GetName().c_str());
 
 	int startTime = ri.Milliseconds();
 
@@ -1061,9 +1061,9 @@ void GLShader::CompilePermutations()
 
 	size_t numPermutations = (1 << _compileMacros.size());	// same as 2^n, n = no. compile macros
 	size_t numCompiled = 0;
-	ri.Printf(PRINT_ALL, "...compiling %s shaders\n", this->GetName().c_str());
-	ri.Printf(PRINT_ALL, "0%%  10   20   30   40   50   60   70   80   90   100%%\n");
-	ri.Printf(PRINT_ALL, "|----|----|----|----|----|----|----|----|----|----|\n");
+	ri.Printf(PRINT_DEVELOPER, "...compiling %s shaders\n", this->GetName().c_str());
+	ri.Printf(PRINT_DEVELOPER, "0%%  10   20   30   40   50   60   70   80   90   100%%\n");
+	ri.Printf(PRINT_DEVELOPER, "|----|----|----|----|----|----|----|----|----|----|\n");
 	size_t tics = 0;
 	size_t nextTicCount = 0;
 
@@ -1125,7 +1125,7 @@ void GLShader::CompilePermutations()
 	SelectProgram();
 
 	int endTime = ri.Milliseconds();
-	ri.Printf( PRINT_ALL, "...compiled %i %s shader permutations in %5.2f seconds\n", ( int ) numCompiled, this->GetName().c_str(), ( endTime - startTime ) / 1000.0 );
+	ri.Printf( PRINT_DEVELOPER, "...compiled %i %s shader permutations in %5.2f seconds\n", ( int ) numCompiled, this->GetName().c_str(), ( endTime - startTime ) / 1000.0 );
 }
 
 void GLShader::CompileGPUShader(GLuint program, const char *programName, const char *shaderText, int shaderTextSize, GLenum shaderType) const
