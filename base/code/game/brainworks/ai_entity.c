@@ -624,24 +624,24 @@ int EntityWaterLevel(gentity_t * ent, vec3_t origin, qboolean crouch)
 	entnum = ent - g_entities;
 
 	// Check if the entity's feet are touching any water
-	VectorSet(point, origin[0], origin[1], origin[2] + MINS_Z + 1);
+	VectorSet(point, origin[0], origin[1], origin[2] + playerMins[2] + 1);
 	contents = trap_PointContents(point, entnum);
 	if(!(contents & MASK_WATER))
 		return 0;
 
 	// Compute some test heights for water immersion
 	viewheight = (crouch ? CROUCH_VIEWHEIGHT : DEFAULT_VIEWHEIGHT);
-	above_head = viewheight - MINS_Z;
+	above_head = viewheight - playerMins[2];
 	mid_body = above_head / 2;
 
 	// Test if the center of the body isn't in water
-	point[2] = origin[2] + MINS_Z + mid_body;
+	point[2] = origin[2] + playerMins[2] + mid_body;
 	contents = trap_PointContents(point, entnum);
 	if(!(contents & MASK_WATER))
 		return 1;
 
 	// Test if at least the entity's head is clear of water
-	point[2] = origin[2] + MINS_Z + above_head;
+	point[2] = origin[2] + playerMins[2] + above_head;
 	contents = trap_PointContents(point, entnum);
 	if(!(contents & MASK_WATER))
 		return 2;
@@ -664,7 +664,7 @@ qboolean EntityInLavaOrSlime(gentity_t * ent)
 		return qfalse;
 
 	// Check for lava right at the feet
-	VectorSet(feet, ent->client->ps.origin[0], ent->client->ps.origin[1], ent->client->ps.origin[2] + MINS_Z + 1);
+	VectorSet(feet, ent->client->ps.origin[0], ent->client->ps.origin[1], ent->client->ps.origin[2] + playerMins[2] + 1);
 	return (trap_AAS_PointContents(feet) & (CONTENTS_LAVA | CONTENTS_SLIME));
 }
 

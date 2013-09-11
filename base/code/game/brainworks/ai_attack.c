@@ -816,7 +816,7 @@ find out if this shot is lined up as best it can be.
 */
 qboolean BotAttackCheckSpreadHit(bot_state_t * bs, vec3_t muzzle, vec3_t forward)
 {
-	float           weapon_spread, target_spread, allowed_spread;
+	float           weapon_spread, target_spread, allowed_spread = 0.0f;
 	float           dist, radius, inv_weight_total;
 	vec3_t          cubic_radius, axis_weight, to_target;
 	trace_t         trace;

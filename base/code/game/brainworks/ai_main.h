@@ -59,7 +59,7 @@
 // For reasons not known to mortals, the original coders decided no other files would
 // ever want to know the default player bounding boxes.  This AI code respectfully
 // disagrees.
-extern vec3_t   playerMins, playerMaxs;
+extern const vec3_t playerMins, playerMaxs;
 
 
 
