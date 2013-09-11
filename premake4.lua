@@ -2,7 +2,6 @@
 -- XreaL build configuration script
 -- 
 solution "XreaL"
-	--configurations { "Release", "ReleaseWithSymbols", "Debug" }
 	configurations { "Release", "Debug" }
 	platforms {"x32", "x64", "native"}
 	
@@ -14,27 +13,14 @@ solution "XreaL"
 		flags      
 		{
 			"OptimizeSpeed",
-			"EnableSSE",
-			--"StaticRuntime"
+			"EnableSSE"
 		}
-		
-	--configuration "ReleaseReleaseWithSymbols"
-	--	defines     "NDEBUG"
-	--	flags
-	--	{
-	--		"OptimizeSpeed",
-	--		"EnableSSE",
-	--		"Symbols",
-	--		"StaticRuntime"
-	--	}
 	
 	configuration "Debug"
 		defines     "_DEBUG"
 		flags
 		{
-			"Symbols",
-			--"StaticRuntime",
-			--"NoRuntimeChecks"
+			"Symbols"
 		}
 	
 --
@@ -79,20 +65,9 @@ newoption
 --	}
 --}
 
-newoption
-{
-	trigger = "with-glsl-opt",
-	description = "Compile with glsl-optimizer support"
-}
-
 --		
 -- Platform specific defaults
 --
-
--- We don't support freetype on VS platform
---if _ACTION and string.sub(_ACTION, 2) == "vs" then
---	_OPTIONS["with-freetype"] = false
---end
 
 -- Default to dlopen version of OpenAL
 --if not _OPTIONS["with-openal"] then
