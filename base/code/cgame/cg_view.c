@@ -921,6 +921,9 @@ static int CG_CalcFov(void)
 	float           zoomFov;
 	float           f;
 	int             inwater;
+	float			desiredFov;
+	const float		baseAspect = 0.75f;
+	const float		aspect = (float)cg.refdef.width / (float)cg.refdef.height;
 
 	if(cg.predictedPlayerState.pm_type == PM_INTERMISSION)
 	{
@@ -980,6 +983,9 @@ static int CG_CalcFov(void)
 			}
 		}
 	}
+
+	desiredFov = fov_x;
+	fov_x = atan( tan( desiredFov * M_PI / 360.0f ) * baseAspect * aspect ) * 360.0f / M_PI;
 
 	x = cg.refdef.width / tan(fov_x / 360 * M_PI);
 	fov_y = atan2(cg.refdef.height, x);
