@@ -1,27 +1,35 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
-#include "botlib/aasfile.h"
+#include "../botlib/aasfile.h"
 #include "aas_create.h"
 #include "aas_store.h"
 #include "aas_gsubdiv.h"
@@ -30,7 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "aas_edgemelting.h"
 #include "aas_prunenodes.h"
 #include "aas_cfg.h"
-#include "qcommon/surfaceflags.h"
+#include "surfaceflags.h"
 
 //#define AW_DEBUG
 //#define L_DEBUG
@@ -353,8 +361,8 @@ void AAS_CheckArea(tmp_area_t *tmparea)
 		} //end if
 		//check if the winding plane is the same as the face plane
 		WindingPlane(face->winding, normal, &dist);
-		plane = &mapplanes[face->planenum];
 #ifdef L_DEBUG
+		plane = &mapplanes[face->planenum];
 		if (fabs(dist - plane->dist) > 0.4 ||
 				fabs(normal[0] - plane->normal[0]) > 0.0001 ||
 				fabs(normal[1] - plane->normal[1]) > 0.0001 ||
@@ -363,7 +371,7 @@ void AAS_CheckArea(tmp_area_t *tmparea)
 			Log_Write("AAS_CheckArea: area %d face %d winding plane unequal to face plane\r\n",
 										tmparea->areanum, face->num);
 		} //end if
-#endif
+#endif // L_DEBUG
 	} //end for
 } //end of the function AAS_CheckArea
 //===========================================================================
@@ -692,20 +700,6 @@ tmp_node_t *AAS_CreateArea(node_t *node)
 					tmpface->faceflags |= FACE_LIQUIDSURFACE;
 				} //end if
 			} //end else
-			//if there's ladder contents at other side of the portal
-			if ((p->nodes[pside]->contents & CONTENTS_LADDER) ||
-					(p->nodes[!pside]->contents & CONTENTS_LADDER))
-			{
-
-				//NOTE: doesn't have to be solid at the other side because
-				// when standing one can use a crouch area (which is not solid)
-				// as a ladder
-				// imagine a ladder one can walk underthrough,
-				// under the ladder against the ladder is a crouch area
-				// the (vertical) sides of this crouch area area also used as
-				// ladder sides when standing (not crouched)
-				tmpface->faceflags |= FACE_LADDER;
-			} //end if
 			//if it is possible to stand on the face
 			if (AAS_GroundFace(tmpface))
 			{
@@ -1024,6 +1018,129 @@ void AAS_FlipSharedFaces(void)
 	Log_Write("%6d areas checked for shared face flipping\r\n", i);
 } //end of the function AAS_FlipSharedFaces
 //===========================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//===========================================================================
+int AAS_FacesTouching( tmp_face_t *face1, tmp_face_t *face2 ) {
+	int i;
+	winding_t *w2;
+	plane_t *plane1;
+	float dot;
+
+#ifdef DEBUG
+	if ( !face1->winding ) {
+		Error( "face1 %d without winding", face1->num );
+	}
+	if ( !face2->winding ) {
+		Error( "face2 %d without winding", face2->num );
+	}
+#endif //DEBUG
+	w2 = face2->winding;
+	plane1 = &mapplanes[face1->planenum];
+	for ( i = 0; i < w2->numpoints; i++ )
+	{
+		//the point must be on the winding plane
+		dot = DotProduct( w2->p[i], plane1->normal ) - plane1->dist;
+		if ( dot < -CLIP_EPSILON || dot > CLIP_EPSILON ) {
+			return false;
+		}
+		{
+			return 1;
+		} //end if
+	} //end for
+	return 0;
+} //end of the function AAS_MeltFaceWinding
+//===========================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//===========================================================================
+void AAS_RemoveTinyAreas( void ) {
+	//RF, disabled, can cause problems, should do checks on minsidelength instead, and also this should be a post-clustering
+	// process, as in "-reachableonly"
+	return;
+#if 0
+	int side, gside, nummerges;
+	tmp_area_t *tmparea;
+	tmp_face_t *face, *gface;
+	vec_t windingArea;
+
+	if ( !mingroundarea ) {
+		return;
+	}
+
+	nummerges = 0;
+	Log_Write( "AAS_RemoveTinyAreas\r\n" );
+	qprintf( "%6d tiny areas removed", 1 );
+	//
+	for ( tmparea = tmpaasworld.areas; tmparea; tmparea = tmparea->l_next )
+	{
+		//if the area is invalid
+		if ( tmparea->invalid ) {
+			continue;
+		} //end if
+		  //
+		  // never remove liquid areas
+		if ( tmparea->contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
+			continue;
+		}
+		//
+		windingArea = 0;
+		//
+		for ( face = tmparea->tmpfaces; face; face = face->next[side] )
+		{
+			side = ( face->frontarea != tmparea );
+			//
+			// never remove ladder areas
+			if ( face->faceflags & FACE_LADDER ) {
+				break;
+			}
+			//
+			//if this face touches a grounded face, and there is no area on the other side, then dont remove it
+			if ( !( face->faceflags & FACE_GROUND ) ) {
+				// does this face share an edge with a ground face?
+				for ( gface = tmparea->tmpfaces; gface; gface = gface->next[gside] ) {
+					gside = ( gface->frontarea != tmparea );
+					//
+					if ( gface == face ) {
+						continue;
+					}
+					if ( !( gface->faceflags & FACE_GROUND ) ) {
+						continue;
+					}
+					//
+					if ( AAS_FacesTouching( face, gface ) ) {
+						break;
+					}
+				}
+
+				// if this face touches a grounded face, and there is no area on the other side, then this area must stay
+				if ( gface && ( !face->frontarea || face->frontarea->invalid || !face->backarea || face->backarea->invalid || ( face->faceflags & FACE_SOLID ) ) ) {
+					break;
+				}
+			}
+			//
+			if ( face->faceflags & FACE_GROUND ) {
+				// get the area of this face
+				windingArea += WindingArea( face->winding );
+			}
+		} //end for
+		  //
+		  // if this area has a windingArea low enough, then remove it
+		if ( !face && windingArea && windingArea < mingroundarea ) {
+			qprintf( "\r%6d", ++nummerges );
+			tmparea->invalid = 1;
+		}
+
+	} //end for
+	qprintf( "\n" );
+	Log_Write( "%6d tiny areas removed\r\n", nummerges );
+#endif
+} //end of the function AAS_MergeAreas
+//===========================================================================
 // creates an .AAS file with the given name
 // a MAP should be loaded before calling this
 //
@@ -1048,6 +1165,8 @@ void AAS_Create(char *aasfile)
 	entity_num = 0;
 	//the world entity
 	e = &entities[entity_num];
+	//
+	ResetBrushBSP();
 	//process the whole world
 	tree = ProcessWorldBrushes(e->firstbrush, e->firstbrush + e->numbrushes);
 	//if the conversion is cancelled
@@ -1103,6 +1222,8 @@ void AAS_Create(char *aasfile)
 	AAS_RemoveAreaFaceColinearPoints();
 	//merge areas if possible
 	AAS_MergeAreas();
+	//remove tiny areas
+	AAS_RemoveTinyAreas();
 	//NOTE: prune nodes directly after area merging
 	AAS_PruneNodes();
 	//flip shared faces so they are all facing to the same area

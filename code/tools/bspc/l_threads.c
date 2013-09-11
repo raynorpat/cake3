@@ -109,7 +109,7 @@ void RunThreadsOnIndividual (int workcnt, qboolean showpacifier, void(*func)(int
 //
 //===================================================================
 
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
 
 #define USED
 
@@ -118,17 +118,17 @@ void RunThreadsOnIndividual (int workcnt, qboolean showpacifier, void(*func)(int
 typedef struct thread_s
 {
 	HANDLE handle;
-	int threadid;
-	int id;
+	DWORD threadid;
+	DWORD id;
 	struct thread_s *next;
 } thread_t;
 
 thread_t *firstthread;
 thread_t *lastthread;
 int currentnumthreads;
-int currentthreadid;
+DWORD currentthreadid;
 
-int numthreads = 1;
+int             numthreads = 1;
 CRITICAL_SECTION crit;
 HANDLE semaphore;
 static int enter;
@@ -261,7 +261,7 @@ void ThreadSemaphoreIncrease(int count)
 //===========================================================================
 void RunThreadsOn(int workcnt, qboolean showpacifier, void(*func)(int))
 {
-	int		threadid[MAX_THREADS];
+	DWORD	threadid[MAX_THREADS];
 	HANDLE	threadhandle[MAX_THREADS];
 	int		i;
 	int		start, end;
@@ -298,7 +298,7 @@ void RunThreadsOn(int workcnt, qboolean showpacifier, void(*func)(int))
 			   NULL,	// LPSECURITY_ATTRIBUTES lpsa,
 			   0,		// DWORD cbStack,
 			   (LPTHREAD_START_ROUTINE)func,	// LPTHREAD_START_ROUTINE lpStartAddr,
-			   (LPVOID)i,	// LPVOID lpvThreadParm,
+			   (LPVOID)(intptr_t)i,	// LPVOID lpvThreadParm,
 			   0,			//   DWORD fdwCreate,
 			   &threadid[i]);
 //			printf("started thread %d\n", i);
@@ -348,7 +348,7 @@ void AddThread(void (*func)(int))
 				   NULL,	// LPSECURITY_ATTRIBUTES lpsa,
 				   0,		// DWORD cbStack,
 				   (LPTHREAD_START_ROUTINE)func,	// LPTHREAD_START_ROUTINE lpStartAddr,
-				   (LPVOID) thread->threadid,			// LPVOID lpvThreadParm,
+				   (LPVOID)(intptr_t)thread->threadid,			// LPVOID lpvThreadParm,
 					0,						// DWORD fdwCreate,
 					&thread->id);
 
@@ -436,7 +436,7 @@ int GetNumThreads(void)
 	return currentnumthreads;
 } //end of the function GetNumThreads
 
-#endif
+#endif //_WIN32
 
 
 //===================================================================
@@ -454,7 +454,7 @@ int GetNumThreads(void)
 typedef struct thread_s
 {
 	pthread_t thread;
-	int threadid;
+	size_t threadid;
 	int id;
 	struct thread_s *next;
 } thread_t;
@@ -462,7 +462,7 @@ typedef struct thread_s
 thread_t *firstthread;
 thread_t *lastthread;
 int currentnumthreads;
-int currentthreadid;
+size_t currentthreadid;
 
 int numthreads = 1;
 pthread_mutex_t my_mutex;
@@ -664,12 +664,8 @@ void AddThread(void (*func)(int))
 		//
 		thread->threadid = currentthreadid;
 
-		if (pthread_create(&thread->thread,
-		                   attrib,
-		                   (pthread_startroutine_t)func,
-		                   (pthread_addr_t)thread->threadid) == -1) {
+		if (pthread_create(&thread->thread, attrib, (pthread_startroutine_t)func, (pthread_addr_t)thread->threadid) == -1)
 			Error ("pthread_create failed");
-		}
 
 		//add the thread to the end of the list
 		thread->next = NULL;
@@ -765,20 +761,17 @@ int GetNumThreads(void)
 //
 //===================================================================
 
-#if defined(LINUX)
+#ifdef __linux__
 
 #define	USED
 
-#include <stdint.h>
 #include <pthread.h>
 #include <semaphore.h>
-
-#define pthread_startroutine_t void *(*)(void *)
 
 typedef struct thread_s
 {
 	pthread_t thread;
-	int threadid;
+	size_t threadid;
 	int id;
 	struct thread_s *next;
 } thread_t;
@@ -786,7 +779,7 @@ typedef struct thread_s
 thread_t *firstthread;
 thread_t *lastthread;
 int currentnumthreads;
-int currentthreadid;
+size_t currentthreadid;
 
 int numthreads = 1;
 pthread_mutex_t my_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -922,7 +915,7 @@ void ThreadSemaphoreIncrease(int count)
 //===========================================================================
 void RunThreadsOn(int workcnt, qboolean showpacifier, void(*func)(int))
 {
-	int		i;
+	size_t		i;
 	pthread_t	work_threads[MAX_THREADS];
 	void *pthread_return;
 	int		start, end;
@@ -943,14 +936,10 @@ void RunThreadsOn(int workcnt, qboolean showpacifier, void(*func)(int))
 
 	for (i=0 ; i<numthreads ; i++)
 	{
-		if (pthread_create(&work_threads[i],
-		                   NULL,
-		                   (pthread_startroutine_t)func,
-		                   (void *)(uintptr_t)i) == -1) {
+		if (pthread_create(&work_threads[i], NULL, (void *)func, (void *)i) == -1)
 			Error ("pthread_create failed");
-		}
 	}
-
+		
 	for (i=0 ; i<numthreads ; i++)
 	{
 		if (pthread_join(work_threads[i], &pthread_return) == -1)
@@ -994,12 +983,8 @@ void AddThread(void (*func)(int))
 		//
 		thread->threadid = currentthreadid;
 
-		if (pthread_create(&thread->thread,
-		                   NULL,
-		                   (pthread_startroutine_t)func,
-		                   (void *)(uintptr_t)thread->threadid) == -1) {
+		if (pthread_create(&thread->thread, NULL, (void *)func, (void *)thread->threadid) == -1)
 			Error ("pthread_create failed");
-		}
 
 		//add the thread to the end of the list
 		thread->next = NULL;
@@ -1087,7 +1072,7 @@ int GetNumThreads(void)
 	return currentnumthreads;
 } //end of the function GetNumThreads
 
-#endif //LINUX
+#endif //__linux__
 
 
 //===================================================================
@@ -1107,7 +1092,7 @@ int GetNumThreads(void)
 
 typedef struct thread_s
 {
-	int threadid;
+	size_t threadid;
 	int id;
 	struct thread_s *next;
 } thread_t;
@@ -1115,7 +1100,7 @@ typedef struct thread_s
 thread_t *firstthread;
 thread_t *lastthread;
 int currentnumthreads;
-int currentthreadid;
+size_t currentthreadid;
 
 int numthreads = 1;
 static int enter;

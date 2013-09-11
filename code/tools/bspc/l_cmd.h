@@ -1,34 +1,38 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 // cmdlib.h
 
-#ifndef SIN
-#define SIN
-#endif //SIN
-
 #ifndef __CMDLIB__
 #define __CMDLIB__
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #pragma warning(disable : 4244)     // MIPS
 #pragma warning(disable : 4136)     // X86
 #pragma warning(disable : 4051)     // ALPHA
@@ -44,11 +48,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <ctype.h>
 #include <time.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #ifndef __BYTEBOOL__
 #define __BYTEBOOL__
 typedef enum {false, true} qboolean;
 typedef unsigned char byte;
+#endif
+
+//Ignore __attribute__ on non-gcc platforms
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x)
+#endif
 #endif
 
 // the dec offsetof macro doesnt work very well...
@@ -59,11 +71,8 @@ typedef unsigned char byte;
 extern int myargc;
 extern char **myargv;
 
-char *strupr (char *in);
-char *strlower (char *in);
 int Q_strncasecmp (char *s1, char *s2, int n);
 int Q_strcasecmp (char *s1, char *s2);
-void Q_strncpyz( char *dest, const char *src, int destsize );
 void Q_getwd (char *out, size_t size);
 
 int Q_filelength (FILE *f);
@@ -81,8 +90,8 @@ char *ExpandPathAndArchive (char *path);
 
 double I_FloatTime (void);
 
-void Error(char *error, ...);
-void Warning(char *warning, ...);
+void Error(char *error, ...)  __attribute__ ((noreturn, format (printf, 1, 2)));
+void Warning(char *warning, ...) __attribute__ ((format (printf, 1, 2)));
 
 int		CheckParm (char *check);
 
@@ -114,14 +123,6 @@ int		LittleLong (int l);
 float	BigFloat (float l);
 float	LittleFloat (float l);
 
-#ifdef SIN
-unsigned short	BigUnsignedShort (unsigned short l);
-unsigned short	LittleUnsignedShort (unsigned short l);
-unsigned	      BigUnsigned (unsigned l);
-unsigned	      LittleUnsigned (unsigned l);
-#endif
-
-
 char *COM_Parse (char *data);
 
 extern	char		com_token[1024];
@@ -142,7 +143,7 @@ extern	char			archivedir[1024];
 
 
 extern	qboolean verbose;
-void qprintf (char *format, ...);
+void qprintf (char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 void ExpandWildcards (int *argc, char ***argv);
 

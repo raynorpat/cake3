@@ -1,27 +1,36 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 // cmdlib.c
 
+#include "qbsp.h"
 #include "l_cmd.h"
 #include "l_log.h"
 #include "l_mem.h"
@@ -29,11 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sys/stat.h>
 #include <assert.h>
 
-#ifndef SIN
-#define SIN
-#endif //SIN
-
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
 #include <direct.h>
 #else
 #include <unistd.h>
@@ -182,11 +187,11 @@ void Error (char *error, ...)
 	char	text[1024];
 
 	va_start(argptr, error);
-	vsprintf(text, error, argptr);
+	Q_vsnprintf(text, sizeof (text), error, argptr);
 	va_end(argptr);
 	printf("ERROR: %s\n", text);
 
-	Log_Write(text);
+	Log_Write("%s", text);
 	Log_Close();
 
 	exit (1);
@@ -198,11 +203,11 @@ void Warning(char *warning, ...)
 	char text[1024];
 
 	va_start(argptr, warning);
-	vsprintf(text, warning, argptr);
+	Q_vsnprintf(text, sizeof (text), warning, argptr);
 	va_end(argptr);
 	printf("WARNING: %s\n", text);
 
-	Log_Write(text);
+	Log_Write("%s", text);
 } //end of the function Warning
 
 #endif
@@ -230,26 +235,26 @@ void qprintf(char *format, ...)
 	va_end(argptr);
 } //end of the function qprintf
 
-void Com_Error(int level, char *error, ...)
+__attribute__ ((format (printf, 2, 3))) void Com_Error(int level, char *error, ...)
 {
 	va_list argptr;
 	char text[1024];
 
 	va_start(argptr, error);
-	vsprintf(text, error, argptr);
+	Q_vsnprintf(text, sizeof (text), error, argptr);
 	va_end(argptr);
-	Error(text);
+	Error("%s", text);
 } //end of the funcion Com_Error
 
-void Com_Printf( const char *fmt, ... )
+__attribute__ ((format (printf, 1, 2))) void Com_Printf( const char *fmt, ... )
 {
 	va_list argptr;
 	char text[1024];
 
 	va_start(argptr, fmt);
-	vsprintf(text, fmt, argptr);
+	Q_vsnprintf(text, sizeof (text), fmt, argptr);
 	va_end(argptr);
-	Log_Print(text);
+	Log_Print("%s", text);
 } //end of the funcion Com_Printf
 
 /*
@@ -363,9 +368,9 @@ I_FloatTime
 double I_FloatTime (void)
 {
 	time_t	t;
-	
+
 	time (&t);
-	
+
 	return t;
 #if 0
 // more precise, less portable
@@ -374,39 +379,35 @@ double I_FloatTime (void)
 	static int		secbase;
 
 	gettimeofday(&tp, &tzp);
-	
+
 	if (!secbase)
 	{
 		secbase = tp.tv_sec;
 		return tp.tv_usec/1000000.0;
 	}
-	
+
 	return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
 #endif
 }
 
 void Q_getwd (char *out, size_t size)
 {
-   assert(size >= 2);
-   if (NULL == getcwd(out, size - 2)) {
-      perror("getcwd");
-      exit(1);
-   }
-#if defined(WIN32) || defined(_WIN32)
-   strcat(out, "\\");
-#else
-   strcat(out, "/");
-#endif
+	assert(size >= 2);
+	if (NULL == getcwd(out, size - 2)) {
+		perror("getcwd");
+		exit(1);
+	}
+	strncat(out, PATHSEPERATOR_STR, size);
 }
 
 
 void Q_mkdir (char *path)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	if (_mkdir (path) != -1)
 		return;
 #else
-	if (mkdir (path, 0777) != -1)
+	if (mkdir (path, 0750) != -1)
 		return;
 #endif
 	if (errno != EEXIST)
@@ -423,10 +424,10 @@ returns -1 if not present
 int	FileTime (char *path)
 {
 	struct	stat	buf;
-	
+
 	if (stat (path,&buf) == -1)
 		return -1;
-	
+
 	return buf.st_mtime;
 }
 
@@ -443,13 +444,13 @@ char *COM_Parse (char *data)
 {
 	int		c;
 	int		len;
-	
+
 	len = 0;
 	com_token[0] = 0;
-	
+
 	if (!data)
 		return NULL;
-		
+
 // skip whitespace
 skipwhite:
 	while ( (c = *data) <= ' ')
@@ -461,7 +462,7 @@ skipwhite:
 		}
 		data++;
 	}
-	
+
 // skip // comments
 	if (c=='/' && data[1] == '/')
 	{
@@ -469,7 +470,7 @@ skipwhite:
 			data++;
 		goto skipwhite;
 	}
-	
+
 
 // handle quoted strings specially
 	if (c == '\"')
@@ -507,7 +508,7 @@ skipwhite:
 	if (c=='{' || c=='}'|| c==')'|| c=='(' || c=='\'' || c==':')
 			break;
 	} while (c>32);
-	
+
 	com_token[len] = 0;
 	return data;
 }
@@ -516,7 +517,7 @@ skipwhite:
 int Q_strncasecmp (char *s1, char *s2, int n)
 {
 	int		c1, c2;
-	
+
 	do
 	{
 		c1 = *s1++;
@@ -524,7 +525,7 @@ int Q_strncasecmp (char *s1, char *s2, int n)
 
 		if (!n--)
 			return 0;		// strings are equal until end point
-		
+
 		if (c1 != c2)
 		{
 			if (c1 >= 'a' && c1 <= 'z')
@@ -535,7 +536,7 @@ int Q_strncasecmp (char *s1, char *s2, int n)
 				return -1;		// strings not equal
 		}
 	} while (c1);
-	
+
 	return 0;		// strings are equal
 }
 
@@ -553,31 +554,6 @@ void Q_strncpyz( char *dest, const char *src, int destsize ) {
 	strncpy( dest, src, destsize-1 );
     dest[destsize-1] = 0;
 }
-
-char *strupr (char *start)
-{
-	char	*in;
-	in = start;
-	while (*in)
-	{
-		*in = toupper(*in);
-		in++;
-	}
-	return start;
-}
-
-char *strlower (char *start)
-{
-	char	*in;
-	in = start;
-	while (*in)
-	{
-		*in = tolower(*in); 
-		in++;
-	}
-	return start;
-}
-
 
 /*
 =============================================================================
@@ -967,13 +943,13 @@ int    BigLong (int l)
 float	LittleFloat (float l)
 {
 	union {byte b[4]; float f;} in, out;
-	
+
 	in.f = l;
 	out.b[0] = in.b[3];
 	out.b[1] = in.b[2];
 	out.b[2] = in.b[1];
 	out.b[3] = in.b[0];
-	
+
 	return out.f;
 }
 
@@ -981,41 +957,6 @@ float	BigFloat (float l)
 {
 	return l;
 }
-
-#ifdef SIN
-unsigned short   LittleUnsignedShort (unsigned short l)
-{
-	byte    b1,b2;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-
-	return (b1<<8) + b2;
-}
-
-unsigned short   BigUnsignedShort (unsigned short l)
-{
-	return l;
-}
-
-unsigned    LittleUnsigned (unsigned l)
-{
-	byte    b1,b2,b3,b4;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-	b3 = (l>>16)&255;
-	b4 = (l>>24)&255;
-
-	return ((unsigned)b1<<24) + ((unsigned)b2<<16) + ((unsigned)b3<<8) + b4;
-}
-
-unsigned    BigUnsigned (unsigned l)
-{
-	return l;
-}
-#endif
-
 
 #else
 
@@ -1056,13 +997,13 @@ int    LittleLong (int l)
 float	BigFloat (float l)
 {
 	union {byte b[4]; float f;} in, out;
-	
+
 	in.f = l;
 	out.b[0] = in.b[3];
 	out.b[1] = in.b[2];
 	out.b[2] = in.b[1];
 	out.b[3] = in.b[0];
-	
+
 	return out.f;
 }
 
@@ -1070,42 +1011,6 @@ float	LittleFloat (float l)
 {
 	return l;
 }
-
-#ifdef SIN
-unsigned short   BigUnsignedShort (unsigned short l)
-{
-	byte    b1,b2;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-
-	return (b1<<8) + b2;
-}
-
-unsigned short   LittleUnsignedShort (unsigned short l)
-{
-	return l;
-}
-
-
-unsigned    BigUnsigned (unsigned l)
-{
-	byte    b1,b2,b3,b4;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-	b3 = (l>>16)&255;
-	b4 = (l>>24)&255;
-
-	return ((unsigned)b1<<24) + ((unsigned)b2<<16) + ((unsigned)b3<<8) + b4;
-}
-
-unsigned    LittleUnsigned (unsigned l)
-{
-	return l;
-}
-#endif
-
 
 #endif
 

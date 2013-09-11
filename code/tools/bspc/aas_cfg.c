@@ -1,33 +1,41 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
 #include "float.h"
-#include "botlib/aasfile.h"
+#include "../botlib/aasfile.h"
 #include "aas_store.h"
 #include "aas_cfg.h"
-#include "botlib/l_precomp.h"
-#include "botlib/l_struct.h"
-#include "botlib/l_libvar.h"
+#include "../botlib/l_precomp.h"
+#include "../botlib/l_struct.h"
+#include "../botlib/l_libvar.h"
 
 #include <stddef.h>
 
@@ -57,6 +65,7 @@ fielddef_t cfg_fields[] =
 	{"phys_maxwalkvelocity", CFG_OFS(phys_maxwalkvelocity), FT_FLOAT},
 	{"phys_maxcrouchvelocity", CFG_OFS(phys_maxcrouchvelocity), FT_FLOAT},
 	{"phys_maxswimvelocity", CFG_OFS(phys_maxswimvelocity), FT_FLOAT},
+	{"phys_strafejumping", CFG_OFS(phys_strafejumping), FT_FLOAT},
 	{"phys_walkaccelerate", CFG_OFS(phys_walkaccelerate), FT_FLOAT},
 	{"phys_airaccelerate", CFG_OFS(phys_airaccelerate), FT_FLOAT},
 	{"phys_swimaccelerate", CFG_OFS(phys_swimaccelerate), FT_FLOAT},
@@ -148,18 +157,18 @@ void DefaultCfg(void)
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-char	* QDECL va( char *format, ... )
+__attribute__ ((format (printf, 1, 2))) char	* QDECL va( char *format, ... )
 {
 	va_list		argptr;
-	static char		string[2][32000];	// in case va is called by nested functions
-	static int		index = 0;
-	char	*buf;
+	static char string[2][32000]; // in case va is called by nested functions
+	static int	index = 0;
+	char		*buf;
 
 	buf = string[index & 1];
 	index++;
 
 	va_start (argptr, format);
-	vsprintf (buf, format,argptr);
+	Q_vsnprintf (buf, sizeof(*string), format, argptr);
 	va_end (argptr);
 
 	return buf;

@@ -21,7 +21,7 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-//
+
 #ifndef __Q_SHARED_H
 #define __Q_SHARED_H
 
@@ -335,7 +335,7 @@ typedef enum
 #define UI_PULSE		0x00004000
 #define UI_BOLD			0x00008000
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) && !defined(BSPC)
 #define HUNK_DEBUG
 #endif
 
@@ -416,10 +416,10 @@ typedef int     fixed16_t;
 // plane sides
 typedef enum
 {
-	SIDE_FRONT = 0,
-	SIDE_BACK = 1,
-	SIDE_ON = 2,
-	SIDE_CROSS = 3
+	SIDE_FRONT	= 0,
+	SIDE_BACK	= 1,
+	SIDE_ON		= 2,
+	SIDE_CROSS	= 3
 } planeSide_t;
 
 #define NUMVERTEXNORMALS	162
@@ -879,7 +879,6 @@ static ID_INLINE void SnapVector(vec3_t v)
 	v[1] = (int)v[1];
 	v[2] = (int)v[2];
 #endif
-
 }
 
 void            SnapVectorTowards(vec3_t v, vec3_t to);

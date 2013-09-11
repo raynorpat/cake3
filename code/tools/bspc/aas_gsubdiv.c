@@ -1,27 +1,35 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
-#include "botlib/aasfile.h"
+#include "../botlib/aasfile.h"
 #include "aas_create.h"
 #include "aas_store.h"
 #include "aas_cfg.h"
@@ -124,9 +132,7 @@ winding_t *AAS_SplitWinding(tmp_area_t *tmparea, int planenum)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int AAS_TestSplitPlane(tmp_area_t *tmparea, vec3_t normal, float dist,
-							int *facesplits, int *groundsplits, int *epsilonfaces)
-{
+int AAS_TestSplitPlane( tmp_area_t *tmparea, vec3_t normal, float dist, int *facesplits, int *groundsplits, int *epsilonfaces, vec3_t* points ) {
 	int j, side, front, back, planenum;
 	float d, d_front, d_back;
 	tmp_face_t *face;
@@ -134,7 +140,7 @@ int AAS_TestSplitPlane(tmp_area_t *tmparea, vec3_t normal, float dist,
 
 	*facesplits = *groundsplits = *epsilonfaces = 0;
 
-	planenum = FindFloatPlane(normal, dist);
+	planenum = FindFloatPlane( normal, dist, 4, points );
 
 	w = AAS_SplitWinding(tmparea, planenum);
 	if (!w) return false;
@@ -332,6 +338,7 @@ int AAS_FindBestAreaSplitPlane(tmp_area_t *tmparea, vec3_t normal, float *dist)
 	tmp_face_t *face1, *face2;
 	vec3_t tmpnormal, invgravity;
 	float tmpdist;
+	vec3_t points[4];
 
 	//get inverse of gravity direction
 	VectorCopy(cfg.phys_gravitydirection, invgravity);
@@ -373,18 +380,19 @@ int AAS_FindBestAreaSplitPlane(tmp_area_t *tmparea, vec3_t normal, float *dist)
 			if (!(((face1->faceflags & FACE_GROUND) && AAS_GapFace(face2, side2)) ||
 					((face2->faceflags & FACE_GROUND) && AAS_GapFace(face1, side1)))) continue;
 			//find a plane seperating the windings of the faces
-			if (!FindPlaneSeperatingWindings(face1->winding, face2->winding, invgravity,
-														tmpnormal, &tmpdist)) continue;
+			if ( !FindPlaneSeperatingWindings( face1->winding, face2->winding, invgravity, tmpnormal, &tmpdist, points ) ) {
+				continue;
+			}
+
 #ifdef AW_DEBUG
 			Log_Print("normal = \'%f %f %f\', dist = %f\n",
 							tmpnormal[0], tmpnormal[1], tmpnormal[2], tmpdist);
 #endif //AW_DEBUG
 			//get metrics for this vertical plane
-			if (!AAS_TestSplitPlane(tmparea, tmpnormal, tmpdist,
-										&facesplits, &groundsplits, &epsilonfaces))
-			{
+			if ( !AAS_TestSplitPlane( tmparea, tmpnormal, tmpdist, &facesplits, &groundsplits, &epsilonfaces, points ) ) {
 				continue;
 			} //end if
+
 #ifdef AW_DEBUG
 			Log_Print("face splits = %d\nground splits = %d\n",
 							facesplits, groundsplits);
@@ -427,12 +435,12 @@ tmp_node_t *AAS_SubdivideArea_r(tmp_node_t *tmpnode)
 	{
 		qprintf("\r%6d", ++numgravitationalsubdivisions);
 		//
-		planenum = FindFloatPlane(normal, dist);
+		planenum = FindFloatPlane( normal, dist, 0, NULL );
 		//split the area
 		AAS_SplitArea(tmpnode->tmparea, planenum, &frontarea, &backarea);
 		//
 		tmpnode->tmparea = NULL;
-		tmpnode->planenum = FindFloatPlane(normal, dist);
+		tmpnode->planenum = FindFloatPlane( normal, dist, 0, NULL );
 		//
 		tmpnode1 = AAS_AllocTmpNode();
 		tmpnode1->planenum = 0;
@@ -528,7 +536,7 @@ tmp_node_t *AAS_LadderSubdivideArea_r(tmp_node_t *tmpnode)
 	tmp_area_t *tmparea, *frontarea, *backarea;
 	tmp_face_t *face1;
 	tmp_node_t *tmpnode1, *tmpnode2;
-	vec3_t lowestpoint, normal = {0, 0, 1};
+	vec3_t lowestpoint = {0, 0, 99999}, normal = {0, 0, 1};
 	plane_t *plane;
 	winding_t *w;
 
@@ -542,7 +550,6 @@ tmp_node_t *AAS_LadderSubdivideArea_r(tmp_node_t *tmpnode)
 	//
 	foundladderface = false;
 	foundgroundface = false;
-	lowestpoint[2] = 99999;
 	//
 	for (face1 = tmparea->tmpfaces; face1; face1 = face1->next[side1])
 	{
@@ -592,7 +599,7 @@ tmp_node_t *AAS_LadderSubdivideArea_r(tmp_node_t *tmpnode)
 	} //end for
 	//
 	dist = DotProduct(normal, lowestpoint);
-	planenum = FindFloatPlane(normal, dist);
+	planenum = FindFloatPlane( normal, dist, 1, (vec3_t*)&lowestpoint );
 	//
 	w = AAS_SplitWinding(tmparea, planenum);
 	if (!w) return tmpnode;

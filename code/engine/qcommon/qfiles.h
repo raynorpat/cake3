@@ -947,15 +947,15 @@ typedef struct
 // expense of more memory allocation in the utilities
 #define	MAX_MAP_MODELS		0x400
 #define	MAX_MAP_BRUSHES		0x8000
-#define	MAX_MAP_ENTITIES	0x800
+#define	MAX_MAP_ENTITIES	0x1000
 #define	MAX_MAP_ENTSTRING	0x80000
 #define	MAX_MAP_SHADERS		0x400
 
-#define	MAX_MAP_AREAS		0x100	// MAX_MAP_AREA_BYTES in q_shared must match!
+#define	MAX_MAP_AREAS		0x100		// MAX_MAP_AREA_BYTES in q_shared must match!
 #define	MAX_MAP_FOGS		0x100
 #define	MAX_MAP_PLANES		0x20000
 #define	MAX_MAP_NODES		0x20000
-#define	MAX_MAP_BRUSHSIDES	0x40000	//% 0x20000 /* ydnar */
+#define	MAX_MAP_BRUSHSIDES	0x100000	//% 0x40000 /* ydnar */
 #define	MAX_MAP_LEAFS		0x20000
 #define	MAX_MAP_LEAFFACES	0x20000
 #define	MAX_MAP_LEAFBRUSHES 0x40000

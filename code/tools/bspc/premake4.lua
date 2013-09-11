@@ -6,10 +6,7 @@ project "bspc"
 	{
 		"**.c", "**.cpp", "**.h",
 		
-		"../../engine/qcommon/cm_load.c",
-		"../../engine/qcommon/cm_patch.c",
-		"../../engine/qcommon/cm_test.c",
-		"../../engine/qcommon/cm_trace.c",
+		"cm/**.c", "cm/**.h",
 		
 		"../../engine/botlib/be_aas_bspq3.c",
 		"../../engine/botlib/be_aas_cluster.c",
@@ -29,9 +26,11 @@ project "bspc"
 	}
 	includedirs
 	{
-		"../../engine/qcommon",
 		"../../engine/botlib/",
 		"../../libs/zlib",
+		"../../shared",
+		"./cm",
+		"./",
 	}
 	defines
 	{ 

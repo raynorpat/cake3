@@ -1,31 +1,39 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
 #include "l_mem.h"
-#include "botlib/aasfile.h"		//aas_bbox_t
+#include "../botlib/aasfile.h"		//aas_bbox_t
 #include "aas_store.h"				//AAS_MAX_BBOXES
 #include "aas_cfg.h"
-#include "qcommon/surfaceflags.h"
+#include "surfaceflags.h"
 
 #define SPAWNFLAG_NOT_EASY			0x00000100
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
@@ -135,7 +143,9 @@ void AAS_ExpandMapBrush(mapbrush_t *brush, vec3_t mins, vec3_t maxs)
 		else {
 			dist += BoxOriginDistanceFromPlane(plane->normal, mins, maxs, 0);
 		}
-		s->planenum = FindFloatPlane(plane->normal, dist);
+
+		s->planenum = FindFloatPlane( plane->normal, dist, 0, NULL );
+
 		//the side isn't a bevel after expanding
 		s->flags &= ~SFL_BEVEL;
 		//don't skip the surface
@@ -157,17 +167,18 @@ void AAS_SetTexinfo(mapbrush_t *brush)
 	int n;
 	side_t *side;
 
-	if (brush->contents & (CONTENTS_LADDER
-									| CONTENTS_AREAPORTAL
-									| CONTENTS_CLUSTERPORTAL
-									| CONTENTS_TELEPORTER
-									| CONTENTS_JUMPPAD
-									| CONTENTS_DONOTENTER
-									| CONTENTS_WATER
-									| CONTENTS_LAVA
-									| CONTENTS_SLIME
-									| CONTENTS_WINDOW
-									| CONTENTS_PLAYERCLIP))
+	if ( brush->contents & ( CONTENTS_AREAPORTAL
+							 | CONTENTS_CLUSTERPORTAL
+							 | CONTENTS_TELEPORTER
+							 | CONTENTS_JUMPPAD
+							 | CONTENTS_DONOTENTER
+							 //| CONTENTS_DONOTENTER_LARGE // ZTM: TODO: Used by RTCW
+							 | CONTENTS_WATER
+							 | CONTENTS_LAVA
+							 | CONTENTS_SLIME
+							 | CONTENTS_PLAYERCLIP
+							 | CONTENTS_MONSTERCLIP
+							 | CONTENTS_MOVER ) )
 	{
 		//we just set texinfo to 0 because these brush sides MUST be used as
 		//bsp splitters textured or not textured
@@ -300,8 +311,8 @@ void AAS_FixMapBrush(mapbrush_t *brush)
 			VectorClear(normal);
 			normal[i] = -1;
 			dist = MAX_MAP_BOUNDS - 10;
-			planenum = FindFloatPlane(normal, dist);
-			//
+			planenum = FindFloatPlane( normal, dist, 0, NULL );
+
 			Log_Print("mins out of range: added extra brush side\n");
 			AAS_AddMapBrushSide(brush, planenum);
 		} //end if
@@ -310,8 +321,8 @@ void AAS_FixMapBrush(mapbrush_t *brush)
 			VectorClear(normal);
 			normal[i] = 1;
 			dist = MAX_MAP_BOUNDS - 10;
-			planenum = FindFloatPlane(normal, dist);
-			//
+			planenum = FindFloatPlane( normal, dist, 0, NULL );
+
 			Log_Print("maxs out of range: added extra brush side\n");
 			AAS_AddMapBrushSide(brush, planenum);
 		} //end if
@@ -449,43 +460,52 @@ mapbrush_t *AAS_CopyMapBrush(mapbrush_t *brush, entity_t *mapent)
 //===========================================================================
 int mark_entities[MAX_MAP_ENTITIES];
 
-int AAS_AlwaysTriggered_r(char *targetname)
+int AAS_AlwaysTriggered_r(char *name)
 {
 	int i;
 
-	if (!strlen(targetname)) {
+	if(!strlen(name))
+	{
 		return false;
 	}
 	//
-	for (i = 0; i < num_entities; i++) {
-		// if the entity will activate the given targetname
-		if ( !strcmp(targetname, ValueForKey(&entities[i], "target")) ) {
+	for(i = 0; i < num_entities; i++)
+	{
+		// if the entity will activate the given name
+		if(!strcmp(name, ValueForKey(&entities[i], "target")))
+		{
 			// if this activator is present in deathmatch
-			if (!(atoi(ValueForKey(&entities[i], "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH)) {
-				// if it is a trigger_always entity
-				if (!strcmp("trigger_always", ValueForKey(&entities[i], "classname"))) {
-					return true;
-				}
-				// check for possible trigger_always entities activating this entity
-				if ( mark_entities[i] ) {
-					Warning( "entity %d, classname %s has recursive targetname %s\n", i,
-										ValueForKey(&entities[i], "classname"), targetname );
-					return false;
-				}
-				mark_entities[i] = true;
-				if ( AAS_AlwaysTriggered_r(ValueForKey(&entities[i], "targetname")) ) {
-					return true;
-				}
+			if(!(atoi(ValueForKey(&entities[i], "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH))
+			{
+			// if it is a trigger_always entity
+				if(!strcmp("trigger_always", ValueForKey(&entities[i], "classname")))
+				{
+				return true;
+			}
+			// check for possible trigger_always entities activating this entity
+				if(mark_entities[i])
+				{
+				Warning( "entity %d, classname %s has recursive name %s\n", i,
+									ValueForKey(&entities[i], "classname"), name );
+				return false;
+			}
+			mark_entities[i] = true;
+				if(AAS_AlwaysTriggered_r(ValueForKey(&entities[i], "name")))
+				{
+				return true;
 			}
 		}
+	}
 	}
 	return false;
 }
 
-int AAS_AlwaysTriggered(char *targetname) {
+int AAS_AlwaysTriggered(char *name)
+{
 	memset( mark_entities, 0, sizeof(mark_entities) );
-	return AAS_AlwaysTriggered_r( targetname );
+	return AAS_AlwaysTriggered_r( name );
 }
+
 //===========================================================================
 //
 // Parameter:				-
@@ -503,30 +523,30 @@ int AAS_ValidEntity(entity_t *mapent)
 		return true;
 	} //end if
 	//some of the func_wall brushes are also used for AAS
-	else if (!strcmp("func_wall", ValueForKey(mapent, "classname")))
+	else if(!strcmp("func_wall", ValueForKey(mapent, "classname")))
 	{
 		//Log_Print("found func_wall entity %d\n", mapent - entities);
 		//if the func wall is used in deathmatch
-		if (!(atoi(ValueForKey(mapent, "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH))
+		if(!(atoi(ValueForKey(mapent, "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH))
 		{
 			//Log_Print("func_wall USED in deathmatch mode %d\n", atoi(ValueForKey(mapent, "spawnflags")));
 			return true;
-		} //end if
-	} //end else if
-	else if (!strcmp("func_door_rotating", ValueForKey(mapent, "classname")))
+		}						//end if
+	}							//end else if
+	else if(!strcmp("func_door_rotating", ValueForKey(mapent, "classname")))
 	{
 		//if the func_door_rotating is present in deathmatch
-		if (!(atoi(ValueForKey(mapent, "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH))
+		if(!(atoi(ValueForKey(mapent, "spawnflags")) & SPAWNFLAG_NOT_DEATHMATCH))
 		{
 			//if the func_door_rotating is always activated in deathmatch
-			if (AAS_AlwaysTriggered(ValueForKey(mapent, "targetname")))
+			if(AAS_AlwaysTriggered(ValueForKey(mapent, "name")))
 			{
-				//Log_Print("found func_door_rotating in deathmatch\ntargetname %s\n", ValueForKey(mapent, "targetname"));
+				//Log_Print("found func_door_rotating in deathmatch\nname %s\n", ValueForKey(mapent, "name"));
 				return true;
-			} //end if
-		} //end if
-	} //end else if
-	else if (!strcmp("trigger_hurt", ValueForKey(mapent, "classname")))
+			}					//end if
+		}						//end if
+	}							//end else if
+	else if(!strcmp("trigger_hurt", ValueForKey(mapent, "classname")))
 	{
 		//"dmg" is the damage, for instance: "dmg" "666"
 		return true;
@@ -541,8 +561,8 @@ int AAS_ValidEntity(entity_t *mapent)
 		strcpy(target, ValueForKey(mapent, "target"));
 		for (i = 0; i < num_entities; i++)
 		{
-			//if the entity will activate the given targetname
-			if (!strcmp(target, ValueForKey(&entities[i], "targetname")))
+			//if the entity will activate the given name
+			if(!strcmp(target, ValueForKey(&entities[i], "name")))
 			{
 				if (!strcmp("target_teleporter", ValueForKey(&entities[i], "classname")))
 				{
@@ -582,61 +602,64 @@ int AAS_TransformPlane(int planenum, vec3_t origin, vec3_t angles)
 	CreateRotationMatrix(angles, matrix);
 	RotatePoint(normal, matrix);
 	newdist = mapplanes[planenum].dist + DotProduct(normal, origin);
-	return FindFloatPlane(normal, newdist);
+
+	return FindFloatPlane( normal, newdist, 0, NULL );
 } //end of the function AAS_TransformPlane
 //===========================================================================
 // this function sets the func_rotating_door in it's final position
 //
-// Parameter:				-
-// Returns:					-
-// Changes Globals:		-
+// Parameter:               -
+// Returns:                 -
+// Changes Globals:     -
 //===========================================================================
-void AAS_PositionFuncRotatingBrush(entity_t *mapent, mapbrush_t *brush)
+void AAS_PositionFuncRotatingBrush(entity_t * mapent, mapbrush_t * brush)
 {
-	int spawnflags, i;
-	float distance;
-	vec3_t movedir, angles, pos1, pos2;
-	side_t *s;
+	int             spawnflags, i;
+	float           distance;
+	vec3_t          movedir, angles, pos1, pos2;
+	side_t         *s;
 
 	spawnflags = FloatForKey(mapent, "spawnflags");
 	VectorClear(movedir);
-	if (spawnflags & DOOR_X_AXIS)
+	if(spawnflags & DOOR_X_AXIS)
 		movedir[2] = 1.0;		//roll
-	else if (spawnflags & DOOR_Y_AXIS)
+	else if(spawnflags & DOOR_Y_AXIS)
 		movedir[0] = 1.0;		//pitch
-	else // Z_AXIS
+	else						// Z_AXIS
 		movedir[1] = 1.0;		//yaw
 
 	// check for reverse rotation
-	if (spawnflags & DOOR_REVERSE)
+	if(spawnflags & DOOR_REVERSE)
 		VectorInverse(movedir);
 
 	distance = FloatForKey(mapent, "distance");
-	if (!distance) distance = 90;
+	if(!distance)
+		distance = 90;
 
 	GetVectorForKey(mapent, "angles", angles);
 	VectorCopy(angles, pos1);
 	VectorMA(angles, -distance, movedir, pos2);
 	// if it starts open, switch the positions
-	if (spawnflags & DOOR_START_OPEN)
+	if(spawnflags & DOOR_START_OPEN)
 	{
 		VectorCopy(pos2, angles);
 		VectorCopy(pos1, pos2);
 		VectorCopy(angles, pos1);
 		VectorInverse(movedir);
-	} //end if
+	}							//end if
 	//
-	for (i = 0; i < brush->numsides; i++)
+	for(i = 0; i < brush->numsides; i++)
 	{
 		s = &brush->original_sides[i];
 		s->planenum = AAS_TransformPlane(s->planenum, mapent->origin, pos2);
-	} //end for
+	}							//end for
 	//
 	FreeBrushWindings(brush);
 	AAS_MakeBrushWindings(brush);
 	AddBrushBevels(brush);
 	FreeBrushWindings(brush);
-} //end of the function AAS_PositionFuncRotatingBrush
+}								//end of the function AAS_PositionFuncRotatingBrush
+
 //===========================================================================
 //
 // Parameter:				-
@@ -650,10 +673,10 @@ void AAS_PositionBrush(entity_t *mapent, mapbrush_t *brush)
 	int i, notteam;
 	char *model;
 
-	if (!strcmp(ValueForKey(mapent, "classname"), "func_door_rotating"))
+	if(!strcmp(ValueForKey(mapent, "classname"), "func_door_rotating"))
 	{
 		AAS_PositionFuncRotatingBrush(mapent, brush);
-	} //end if
+	}							//end if
 	else
 	{
 		if (mapent->origin[0] || mapent->origin[1] || mapent->origin[2])
@@ -663,20 +686,20 @@ void AAS_PositionBrush(entity_t *mapent, mapbrush_t *brush)
 				s = &brush->original_sides[i];
 				newdist = mapplanes[s->planenum].dist +
 						DotProduct(mapplanes[s->planenum].normal, mapent->origin);
-				s->planenum = FindFloatPlane(mapplanes[s->planenum].normal, newdist);
+				s->planenum = FindFloatPlane( mapplanes[s->planenum].normal, newdist, 0, NULL );
 			} //end for
 		} //end if
 		//if it's a trigger hurt
 		if (!strcmp("trigger_hurt", ValueForKey(mapent, "classname")))
 		{
 			notteam = FloatForKey(mapent, "bot_notteam");
-			if ( notteam == 1 ) {
+			if ( notteam == 1 ) {	
 				brush->contents |= CONTENTS_NOTTEAM1;
 			}
-			else if ( notteam == 2 ) {
+			else if ( notteam == 2 ) {	
 				brush->contents |= CONTENTS_NOTTEAM2;
 			}
-			else {
+			else {	
 				// always avoid so set lava contents
 				brush->contents |= CONTENTS_LAVA;
 			}
@@ -746,11 +769,11 @@ void AAS_CreateMapBrushes(mapbrush_t *brush, entity_t *mapent, int addbevels)
 		brush->contents = CONTENTS_CLUSTERPORTAL;
 		brush->leafnum = -1;
 	} //end if
-	//window and playerclip are used for player clipping, make them solid
-	if (brush->contents & (CONTENTS_WINDOW | CONTENTS_PLAYERCLIP))
+	//playerclip is used for player clipping, make it solid
+	if (brush->contents & CONTENTS_PLAYERCLIP)
 	{
 		//
-		brush->contents &= ~(CONTENTS_WINDOW | CONTENTS_PLAYERCLIP);
+		brush->contents &= ~CONTENTS_PLAYERCLIP;
 		brush->contents |= CONTENTS_SOLID;
 		brush->leafnum = -1;
 	} //end if
@@ -765,17 +788,17 @@ void AAS_CreateMapBrushes(mapbrush_t *brush, entity_t *mapent, int addbevels)
 	//PrintContents(brush->contents);
 	//Log_Write("\r\n");
 	//if not one of the following brushes then the brush is NOT used for AAS
-	if (!(brush->contents & (CONTENTS_SOLID
-									| CONTENTS_LADDER
-									| CONTENTS_CLUSTERPORTAL
-									| CONTENTS_DONOTENTER
-									| CONTENTS_TELEPORTER
-									| CONTENTS_JUMPPAD
-									| CONTENTS_WATER
-									| CONTENTS_LAVA
-									| CONTENTS_SLIME
-									| CONTENTS_MOVER
-									)))
+	if ( !( brush->contents & ( CONTENTS_SOLID
+								| CONTENTS_CLUSTERPORTAL
+								| CONTENTS_DONOTENTER
+								//| CONTENTS_DONOTENTER_LARGE // ZTM: TODO: Used by RTCW
+								| CONTENTS_TELEPORTER
+								| CONTENTS_JUMPPAD
+								| CONTENTS_WATER
+								| CONTENTS_LAVA
+								| CONTENTS_SLIME
+								| CONTENTS_MOVER
+								) ) )
 	{
 		nummapbrushsides -= brush->numsides;
 		brush->numsides = 0;
@@ -804,10 +827,11 @@ void AAS_CreateMapBrushes(mapbrush_t *brush, entity_t *mapent, int addbevels)
 	//liquid brushes are expanded for the maximum possible bounding box
 	if (brush->contents & (CONTENTS_WATER
 									| CONTENTS_LAVA
-									| CONTENTS_SLIME 
+									| CONTENTS_SLIME
 									| CONTENTS_TELEPORTER
 									| CONTENTS_JUMPPAD
 									| CONTENTS_DONOTENTER
+									//| CONTENTS_DONOTENTER_LARGE // ZTM: TODO: Used by RTCW
 									| CONTENTS_MOVER
 									))
 	{
@@ -827,9 +851,7 @@ void AAS_CreateMapBrushes(mapbrush_t *brush, entity_t *mapent, int addbevels)
 		AAS_MakeBrushWindings(brush);
 	} //end if
 	//all solid brushes are expanded for all bounding boxes
-	else if (brush->contents & (CONTENTS_SOLID
-										| CONTENTS_LADDER
-										))
+	else if ( brush->contents & CONTENTS_SOLID )
 	{
 		//brush for the first bounding box
 		bboxbrushes[0] = brush;

@@ -1,40 +1,45 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
-#include "qcommon/q_shared.h"
-#include "l_log.h"
-#include "l_qfiles.h"
-#include "botlib/l_memory.h"
-#include "botlib/l_script.h"
-#include "botlib/l_precomp.h"
-#include "botlib/l_struct.h"
-#include "botlib/aasfile.h"
-#include "botlib/botlib.h"
-#include "botlib/be_aas.h"
-#include "botlib/be_aas_def.h"
-#include "qcommon/cm_public.h"
-#include "be_aas_bspc.h"
-
-#include <stdarg.h>
+#include "q_shared.h"
+#include "../bspc/l_log.h"
+#include "../bspc/l_qfiles.h"
+#include "../botlib/l_memory.h"
+#include "../botlib/l_script.h"
+#include "../botlib/l_precomp.h"
+#include "../botlib/l_struct.h"
+#include "../botlib/aasfile.h"
+#include "../botlib/botlib.h"
+#include "../botlib/be_aas.h"
+#include "../botlib/be_aas_def.h"
+#include "../qcommon/cm_public.h"
 
 //#define BSPC
 
@@ -111,7 +116,7 @@ void BotImport_Trace(bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t ma
 {
 	trace_t result;
 
-	CM_BoxTrace(&result, start, end, mins, maxs, worldmodel, contentmask, capsule_collision);
+	CM_BoxTrace(&result, start, end, mins, maxs, worldmodel, contentmask, capsule_collision ? TT_CAPSULE : TT_AABB);
 
 	bsptrace->allsolid = result.allsolid;
 	bsptrace->contents = result.contents;
@@ -153,15 +158,15 @@ void *BotImport_GetMemory(int size)
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void BotImport_Print(int type, char *fmt, ...)
+__attribute__ ((format (printf, 2, 3))) void BotImport_Print(int type, char *fmt, ...)
 {
 	va_list argptr;
 	char buf[1024];
 
 	va_start(argptr, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, argptr);
-	fputs(buf, stdout);
-	if (buf[0] != '\r') Log_Write(buf);
+	Q_vsnprintf(buf, sizeof (buf), fmt, argptr);
+	printf("%s", buf);
+	if (buf[0] != '\r') Log_Write("%s", buf);
 	va_end(argptr);
 } //end of the function BotImport_Print
 //===========================================================================
@@ -200,15 +205,15 @@ void BotImport_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t outmin
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void Com_DPrintf(char *fmt, ...)
+void Com_DPrintf(const char *fmt, ...)
 {
 	va_list argptr;
 	char buf[1024];
 
 	va_start(argptr, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, argptr);
-	fputs(buf, stdout);
-	if (buf[0] != '\r') Log_Write(buf);
+	vsprintf(buf, fmt, argptr);
+	printf("%s", buf);
+	if (buf[0] != '\r') Log_Write("%s", buf);
 	va_end(argptr);
 } //end of the function Com_DPrintf
 //===========================================================================
@@ -275,3 +280,15 @@ void AAS_CalcReachAndClusters(struct quakefile_s *qf)
 	//calculate clusters
 	AAS_InitClustering();
 } //end of the function AAS_CalcReachAndClusters
+//===========================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//===========================================================================
+void AAS_RecalcClusters(void)
+{
+	aasworld.numclusters = 0;
+	AAS_InitBotImport();
+	AAS_InitClustering();
+} //end of the function AAS_RecalcClusters

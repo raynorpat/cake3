@@ -75,10 +75,8 @@ void Tree_FreePortals_r (node_t *node)
 		nextp = p->next[s];
 
 		RemovePortalFromNode (p, p->nodes[!s]);
-#ifdef ME
 		if (p->winding) freedtreemem += MemorySize(p->winding);
 		freedtreemem += MemorySize(p);
-#endif //ME
 		FreePortal(p);
 	}
 	node->portals = NULL;
@@ -105,9 +103,7 @@ void Tree_Free_r (node_t *node)
 	for (brush = node->brushlist; brush; brush = nextbrush)
 	{
 		nextbrush = brush->next;
-#ifdef ME
 		freedtreemem += MemorySize(brush);
-#endif //ME
 		FreeBrush(brush);
 	} //end for
 	node->brushlist = NULL;
@@ -118,10 +114,8 @@ void Tree_Free_r (node_t *node)
 	for (f = node->faces; f; f = nextf)
 	{
 		nextf = f->next;
-#ifdef ME
 		if (f->w) freedtreemem += MemorySize(f->w);
 		freedtreemem += sizeof(face_t);
-#endif //ME
 		FreeFace(f);
 	} //end for
 	*/
@@ -129,16 +123,12 @@ void Tree_Free_r (node_t *node)
 	// free the node
 	if (node->volume)
 	{
-#ifdef ME
 		freedtreemem += MemorySize(node->volume);
-#endif //ME
 		FreeBrush (node->volume);
 	} //end if
 
 	if (numthreads == 1) c_nodes--;
-#ifdef ME
 	freedtreemem += MemorySize(node);
-#endif //ME
 	FreeMemory(node);
 } //end of the function Tree_Free_r
 //===========================================================================
@@ -156,15 +146,12 @@ void Tree_Free(tree_t *tree)
 	//
 	Tree_FreePortals_r(tree->headnode);
 	Tree_Free_r(tree->headnode);
-#ifdef ME
 	freedtreemem += MemorySize(tree);
-#endif //ME
 	FreeMemory(tree);
-#ifdef ME
+
 	Log_Print("freed ");
 	PrintMemorySize(freedtreemem);
 	Log_Print(" of tree memory\n");
-#endif //ME
 } //end of the function Tree_Free
 //===========================================================================
 //
@@ -231,12 +218,6 @@ void Tree_PruneNodes_r (node_t *node)
 
 	Tree_PruneNodes_r (node->children[0]);
 	Tree_PruneNodes_r (node->children[1]);
-
-	if (create_aas)
-	{
-		if ((node->children[0]->contents & CONTENTS_LADDER) ||
-				(node->children[1]->contents & CONTENTS_LADDER)) return;
-	}
 
 	if ((node->children[0]->contents & CONTENTS_SOLID)
 		&& (node->children[1]->contents & CONTENTS_SOLID))

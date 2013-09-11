@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // mathlib.h
 
 #include <math.h>
+#include <float.h>
 
 #ifdef DOUBLEVEC_T
 typedef double vec_t;
@@ -75,7 +76,8 @@ void _VectorCopy (vec3_t in, vec3_t out);
 void _VectorScale (vec3_t v, vec_t scale, vec3_t out);
 void _VectorMA(vec3_t va, double scale, vec3_t vb, vec3_t vc);
 
-double VectorLength(vec3_t v);
+double D_VectorLength(vec3_t v);
+vec_t VectorDistance(vec3_t v1, vec3_t v2);
 void CrossProduct(const vec3_t v1, const vec3_t v2, vec3_t cross);
 vec_t VectorNormalize(vec3_t inout);
 vec_t ColorNormalize(vec3_t in, vec3_t out);

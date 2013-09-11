@@ -19,8 +19,8 @@ along with Foobar; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-#ifndef __QFILES_H__
-#define __QFILES_H__
+#ifndef __Q3FILES_H__
+#define __Q3FILES_H__
 
 //
 // qfiles.h: quake file formats
@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
 // surface geometry should not exceed these limits
-#define	SHADER_MAX_VERTEXES	1000
+#define	SHADER_MAX_VERTEXES	1025 // 1024 + 1 buffer for RB_EndSurface overflow check
 #define	SHADER_MAX_INDEXES	(6*SHADER_MAX_VERTEXES)
 
 
@@ -36,14 +36,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	MAX_QPATH		64
 
 
-#if 0
 /*
 ========================================================================
 
 PCX files are used for 8 bit images
 
 ========================================================================
-*/
+* 
 
 typedef struct {
     char	manufacturer;
@@ -60,6 +59,7 @@ typedef struct {
     char	filler[58];
     unsigned char	data;			// unbounded
 } pcx_t;
+*/
 
 
 /*
@@ -68,7 +68,7 @@ typedef struct {
 TGA files are used for 24/32 bit images
 
 ========================================================================
-*/
+* 
 
 typedef struct _TargaHeader {
 	unsigned char 	id_length, colormap_type, image_type;
@@ -78,8 +78,8 @@ typedef struct _TargaHeader {
 	unsigned char	pixel_size, attributes;
 } TargaHeader;
 
-#endif // #if 0
 
+*/
 
 /*
 ========================================================================
@@ -199,38 +199,28 @@ typedef struct {
 */
 
 
-#define Q3_BSP_IDENT	(('P'<<24)+('S'<<16)+('B'<<8)+'I')
-		// little-endian "IBSP"
-
-#define Q3_BSP_VERSION			46
-
-// quick fix for creating aas files for ql bsp's.
-// (later this will probably need to be seperated, if we plan to add further support for ql)
-#define QL_BSP_IDENT	(('P'<<24)+('S'<<16)+('B'<<8)+'I')
-		// little-endian "IBSP"
-
-#define QL_BSP_VERSION			47
-// ***********************************************************
+#define Q3_BSP_IDENT			(('P'<<24)+('S'<<16)+('B'<<8)+'X')  // little-endian "XBSP"
+#define Q3_BSP_VERSION			48
 
 // there shouldn't be any problem with increasing these values at the
 // expense of more memory allocation in the utilities
 #define	Q3_MAX_MAP_MODELS		0x400
-#define	Q3_MAX_MAP_BRUSHES		0x8000
-#define	Q3_MAX_MAP_ENTITIES	0x800
-#define	Q3_MAX_MAP_ENTSTRING	0x10000
+#define	Q3_MAX_MAP_BRUSHES		0x8000 // ZTM: NOTE: Using value from Quake3/RTCW-MP, it's only 0x4000 in WolfET.
+#define	Q3_MAX_MAP_ENTITIES		0x1000 // ZTM: NOTE: Using value from WolfET, it's only 0x800 in Quake3/RTCW-MP.
+#define	Q3_MAX_MAP_ENTSTRING	0x80000
 #define	Q3_MAX_MAP_SHADERS		0x400
 
 #define	Q3_MAX_MAP_AREAS		0x100	// MAX_MAP_AREA_BYTES in q_shared must match!
-#define	Q3_MAX_MAP_FOGS		0x100
-#define	Q3_MAX_MAP_PLANES		0x10000
-#define	Q3_MAX_MAP_NODES		0x10000
-#define	Q3_MAX_MAP_BRUSHSIDES	0x10000
-#define	Q3_MAX_MAP_LEAFS		0x10000
-#define	Q3_MAX_MAP_LEAFFACES	0x10000
-#define	Q3_MAX_MAP_LEAFBRUSHES	0x10000
-#define	Q3_MAX_MAP_PORTALS		0x10000
-#define	Q3_MAX_MAP_LIGHTING	0x400000
-#define	Q3_MAX_MAP_LIGHTGRID	0x400000
+#define	Q3_MAX_MAP_FOGS			0x100
+#define	Q3_MAX_MAP_PLANES		0x40000 // ZTM: NOTE: Using value from WolfET, it's only 0x20000 in Quake3/RTCW-MP.
+#define	Q3_MAX_MAP_NODES		0x20000
+#define	Q3_MAX_MAP_BRUSHSIDES	0x100000 // ZTM: NOTE: Using value from WolfET, it's only 0x20000 in Quake3/RTCW-MP.
+#define	Q3_MAX_MAP_LEAFS		0x20000
+#define	Q3_MAX_MAP_LEAFFACES	0x20000
+#define	Q3_MAX_MAP_LEAFBRUSHES 	0x40000
+#define	Q3_MAX_MAP_PORTALS		0x20000
+#define	Q3_MAX_MAP_LIGHTING		0x800000
+#define	Q3_MAX_MAP_LIGHTGRID	0x800000
 #define	Q3_MAX_MAP_VISIBILITY	0x200000
 
 #define	Q3_MAX_MAP_DRAW_SURFS	0x20000
@@ -345,7 +335,9 @@ typedef struct {
 	float		st[2];
 	float		lightmap[2];
 	vec3_t		normal;
-	byte		color[4];
+	float		paintColor[4];
+	float     	lightColor[4];
+	float		lightDirection[3];
 } q3_drawVert_t;
 
 typedef enum {
@@ -353,7 +345,8 @@ typedef enum {
 	MST_PLANAR,
 	MST_PATCH,
 	MST_TRIANGLE_SOUP,
-	MST_FLARE
+	MST_FLARE,
+	MST_FOLIAGE
 } q3_mapSurfaceType_t;
 
 typedef struct {

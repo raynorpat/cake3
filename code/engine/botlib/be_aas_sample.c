@@ -231,7 +231,7 @@ int AAS_PointAreaNum(vec3_t point)
 	int             nodenum;
 	vec_t           dist;
 	aas_node_t     *node;
-	aas_plane_t    *plane;
+	aas_plane_t    *plane = NULL;
 
 	if(!aasworld.loaded)
 	{
@@ -492,6 +492,7 @@ aas_trace_t AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int 
 
 	//clear the trace structure
 	Com_Memset(&trace, 0, sizeof(aas_trace_t));
+	trace.ent = ENTITYNUM_NONE;
 
 	if(!aasworld.loaded)
 		return trace;
@@ -520,7 +521,7 @@ aas_trace_t AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int 
 			//endpos is the end of the line
 			VectorCopy(end, trace.endpos);
 			//nothing hit
-			trace.ent = 0;
+			trace.ent = ENTITYNUM_NONE;
 			trace.area = 0;
 			trace.planenum = 0;
 			return trace;
@@ -559,7 +560,7 @@ aas_trace_t AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int 
 					VectorMA(tstack_p->start, -0.125, v1, tstack_p->start);
 				}				//end else
 				VectorCopy(tstack_p->start, trace.endpos);
-				trace.ent = 0;
+				trace.ent = ENTITYNUM_NONE;
 				trace.area = -nodenum;
 //              VectorSubtract(end, start, v1);
 				trace.planenum = tstack_p->planenum;
@@ -609,7 +610,7 @@ aas_trace_t AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int 
 				VectorMA(tstack_p->start, -0.125, v1, tstack_p->start);
 			}					//end else
 			VectorCopy(tstack_p->start, trace.endpos);
-			trace.ent = 0;
+			trace.ent = ENTITYNUM_NONE;
 			trace.area = 0;		//hit solid leaf
 //          VectorSubtract(end, start, v1);
 			trace.planenum = tstack_p->planenum;
@@ -1464,7 +1465,7 @@ int AAS_AreaInfo(int areanum, aas_areainfo_t * info)
 aas_plane_t    *AAS_PlaneFromNum(int planenum)
 {
 	if(!aasworld.loaded)
-		return NULL;
+		return 0;
 
 	return &aasworld.planes[planenum];
 }								//end of the function AAS_PlaneFromNum

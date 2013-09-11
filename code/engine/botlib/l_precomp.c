@@ -78,15 +78,14 @@ typedef enum
 
 #ifdef BSPC
 //include files for usage in the BSP Converter
-#include "../bspc/qbsp.h"
-#include "../bspc/l_log.h"
-#include "../bspc/l_mem.h"
+#include "qbsp.h"
+#include "l_log.h"
+#include "l_mem.h"
 #include "l_precomp.h"
 
 #define qtrue	true
 #define qfalse	false
 #define Q_stricmp	stricmp
-
 #endif							//BSPC
 
 #if defined(QUAKE) && !defined(BSPC)

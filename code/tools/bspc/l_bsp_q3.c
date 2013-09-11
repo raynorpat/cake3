@@ -1,22 +1,30 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
@@ -25,7 +33,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "l_mem.h"
 #include "l_log.h"
 #include "l_poly.h"
-#include "botlib/l_script.h"
+#include "../botlib/l_script.h"
 #include "l_qfiles.h"
 #include "l_bsp_q3.h"
 #include "l_bsp_ent.h"
@@ -41,7 +49,7 @@ void GetLeafNums (void);
 
 
 int				q3_nummodels;
-q3_dmodel_t		*q3_dmodels;//[MAX_MAP_MODELS];
+q3_dmodel_t		*q3_dmodels;//[Q3_MAX_MAP_MODELS];
 
 int				q3_numShaders;
 q3_dshader_t	*q3_dshaders;//[Q3_MAX_MAP_SHADERS];
@@ -195,7 +203,7 @@ void Q3_SurfacePlane(q3_dsurface_t *surface, vec3_t normal, float *dist)
 		VectorSubtract(p2, p1, t2);
 		CrossProduct(t1, t2, normal);
 		VectorNormalize(normal);
-		if (VectorLength(normal)) break;
+		if (D_VectorLength(normal)) break;
 	} //end for*/
 /*
 	float dot;
@@ -215,9 +223,9 @@ void Q3_SurfacePlane(q3_dsurface_t *surface, vec3_t normal, float *dist)
 	CrossProduct(t1, t2, normal);
 	VectorNormalize(normal);
 */
-	if (VectorLength(normal) < 0.9)
+	if (D_VectorLength(normal) < 0.9)
 	{
-		printf("surface %td bogus normal vector %f %f %f\n", surface - q3_drawSurfaces, normal[0], normal[1], normal[2]);
+		printf("surface %u bogus normal vector %f %f %f\n", (unsigned int)(surface - q3_drawSurfaces), normal[0], normal[1], normal[2]);
 		printf("t1 = %f %f %f, t2 = %f %f %f\n", t1[0], t1[1], t1[2], t2[0], t2[1], t2[2]);
 		for (i = 0; i < surface->numVerts; i++)
 		{
@@ -263,9 +271,9 @@ void Q3_CreatePlanarSurfacePlanes(void)
 void Q3_SurfacePlane(q3_dsurface_t *surface, vec3_t normal, float *dist)
 {
 	//take the plane information from the lightmap vector
-	//VectorCopy(surface->lightmapVecs[2], normal);
+	// VectorCopy(surface->lightmapVecs[2], normal);
 	//calculate plane dist with first surface vertex
-//	*dist = DotProduct(q3_drawVerts[surface->firstVert].xyz, normal);
+	// *dist = DotProduct(q3_drawVerts[surface->firstVert].xyz, normal);
 	Q3_PlaneFromPoints(q3_drawVerts[surface->firstVert].xyz,
 						q3_drawVerts[surface->firstVert+1].xyz,
 						q3_drawVerts[surface->firstVert+2].xyz, normal, dist);
@@ -325,7 +333,7 @@ winding_t *Q3_BrushSideWinding(q3_dbrush_t *brush, q3_dbrushside_t *baseside)
 	q3_dplane_t *baseplane, *plane;
 	winding_t *w;
 	q3_dbrushside_t *side;
-	
+
 	//create a winding for the brush side with the given planenumber
 	baseplane = &q3_dplanes[baseside->planeNum];
 	w = BaseWindingForPlane(baseplane->normal, baseplane->dist);
@@ -369,81 +377,106 @@ void Q3_FindVisibleBrushSides(void)
 	//create planes for the planar surfaces
 	Q3_CreatePlanarSurfacePlanes();
 	Log_Print("searching visible brush sides...\n");
-	Log_Print("%6d brush sides", numsides);
 	//go over all the brushes
-	for (i = 0; i < q3_numbrushes; i++)
-	{
-		brush = &q3_dbrushes[i];
-		//go over all the sides of the brush
-		for (j = 0; j < brush->numSides; j++)
+	if ( forcesidesvisible ) {
+		for ( i = 0; i < q3_numbrushsides; i++ ) {
+			if ( q3_dshaders[q3_dbrushsides[i].shaderNum].surfaceFlags & SURF_NODRAW ) {
+				q3_dbrushsidetextured[i] = false;
+			} else {
+				q3_dbrushsidetextured[i] = true;
+			}
+		} //end for
+	} else {
+		Log_Print( "%6d brush sides", numsides );
+		for (i = 0; i < q3_numbrushes; i++)
 		{
-			qprintf("\r%6d", numsides++);
-			brushside = &q3_dbrushsides[brush->firstSide + j];
-			//
-			w = Q3_BrushSideWinding(brush, brushside);
-			if (!w)
-			{
-				q3_dbrushsidetextured[brush->firstSide + j] = true;
+			brush = &q3_dbrushes[i];
+			// if one of the brush sides uses the terrain shader mark all sides as visible
+			for ( j = 0; j < brush->numSides; j++ ) {
+				brushside = &q3_dbrushsides[brush->firstSide + j];
+				// NOTE: using "terrain" just like in q3map/terrain.c
+				if ( strstr( q3_dshaders[brushside->shaderNum].shader, "terrain" ) ) {
+					for ( j = 0; j < brush->numSides; j++ ) {
+						q3_dbrushsidetextured[brush->firstSide + j] = true;
+					}
+					break;
+				}
+			}
+			if ( j < brush->numSides ) {
 				continue;
-			} //end if
-			else
+			}
+			//go over all the sides of the brush
+			for (j = 0; j < brush->numSides; j++)
 			{
-				//RemoveEqualPoints(w, 0.2);
-				if (WindingIsTiny(w))
-				{
-					FreeWinding(w);
+				qprintf("\r%6d", numsides++);
+				brushside = &q3_dbrushsides[brush->firstSide + j];
+				//
+				w = Q3_BrushSideWinding(brush, brushside);
+					if ( !w ) {
 					q3_dbrushsidetextured[brush->firstSide + j] = true;
 					continue;
 				} //end if
 				else
 				{
-					we = WindingError(w);
-					if (we == WE_NOTENOUGHPOINTS
-						|| we == WE_SMALLAREA
-						|| we == WE_POINTBOGUSRANGE
-//						|| we == WE_NONCONVEX
-						)
-					{
-						FreeWinding(w);
-						q3_dbrushsidetextured[brush->firstSide + j] = true;
-						continue;
-					} //end if
-				} //end else
-			} //end else
-			if (WindingArea(w) < 20)
-			{
-				q3_dbrushsidetextured[brush->firstSide + j] = true;
-				continue;
-			} //end if
-			//find a face for texturing this brush
-			for (k = 0; k < q3_numDrawSurfaces; k++)
-			{
-				surface = &q3_drawSurfaces[k];
-				if (surface->surfaceType != MST_PLANAR) continue;
-				//
-				//Q3_SurfacePlane(surface, plane.normal, &plane.dist);
-				plane = &q3_surfaceplanes[k];
-				//the surface plane and the brush side plane should be pretty much the same
-				if (fabs(fabs(plane->dist) - fabs(q3_dplanes[brushside->planeNum].dist)) > 5) continue;
-				dot = DotProduct(plane->normal, q3_dplanes[brushside->planeNum].normal);
-				if (dot > -0.9 && dot < 0.9) continue;
-				//if the face is partly or totally on the brush side
-				if (Q3_FaceOnWinding(surface, w))
-				{
+				//RemoveEqualPoints(w, 0.2);
+					if ( WindingIsTiny( w ) ) {
+					FreeWinding(w);
 					q3_dbrushsidetextured[brush->firstSide + j] = true;
-					//Log_Write("Q3_FaceOnWinding");
-					break;
+					continue;
+					} //end if
+					else
+					{
+						we = WindingError(w);
+							if ( we == WE_NOTENOUGHPOINTS
+								 || we == WE_SMALLAREA
+								 || we == WE_POINTBOGUSRANGE
+//						|| we == WE_NONCONVEX
+								 ) {
+							FreeWinding(w);
+							q3_dbrushsidetextured[brush->firstSide + j] = true;
+							continue;
+						} //end if
+					} //end else
+				} //end else
+					if ( WindingArea( w ) < 20 ) {
+					q3_dbrushsidetextured[brush->firstSide + j] = true;
+					continue;
 				} //end if
+				//find a face for texturing this brush
+				for (k = 0; k < q3_numDrawSurfaces; k++)
+				{
+					surface = &q3_drawSurfaces[k];
+						if ( surface->surfaceType != MST_PLANAR ) {
+							continue;
+						}
+					//
+					//Q3_SurfacePlane(surface, plane.normal, &plane.dist);
+					plane = &q3_surfaceplanes[k];
+					//the surface plane and the brush side plane should be pretty much the same
+						if ( fabs( fabs( plane->dist ) - fabs( q3_dplanes[brushside->planeNum].dist ) ) > 5 ) {
+							continue;
+						}
+					dot = DotProduct(plane->normal, q3_dplanes[brushside->planeNum].normal);
+						if ( dot > -0.9 && dot < 0.9 ) {
+							continue;
+						}
+					//if the face is partly or totally on the brush side
+						if ( Q3_FaceOnWinding( surface, w ) ) {
+						q3_dbrushsidetextured[brush->firstSide + j] = true;
+						//Log_Write("Q3_FaceOnWinding");
+						break;
+					} //end if
+				} //end for
+				FreeWinding(w);
 			} //end for
-			FreeWinding(w);
 		} //end for
-	} //end for
-	qprintf("\r%6d brush sides\n", numsides);
+		qprintf("\r%6d brush sides\n", numsides);
+	}
 	numtextured = 0;
-	for (i = 0; i < q3_numbrushsides; i++)
-	{
-		if (forcesidesvisible) q3_dbrushsidetextured[i] = true;
-		if (q3_dbrushsidetextured[i]) numtextured++;
+	for ( i = 0; i < q3_numbrushsides; i++ ) {
+		if ( q3_dbrushsidetextured[i] ) {
+			numtextured++;
+		}
 	} //end for
 	Log_Print("%d brush sides textured out of %d\n", numtextured, q3_numbrushsides);
 } //end of the function Q3_FindVisibleBrushSides
@@ -473,19 +506,28 @@ Byte swaps all data in a bsp file.
 */
 void Q3_SwapBSPFile( void ) {
 	int				i;
-	
-	// models	
+
+	// models
 	Q3_SwapBlock( (int *)q3_dmodels, q3_nummodels * sizeof( q3_dmodels[0] ) );
 
 	// shaders (don't swap the name)
 	for ( i = 0 ; i < q3_numShaders ; i++ ) {
 		q3_dshaders[i].contentFlags = LittleLong( q3_dshaders[i].contentFlags );
 		q3_dshaders[i].surfaceFlags = LittleLong( q3_dshaders[i].surfaceFlags );
+
+		// RF, HACK, clipweap causes problems, so convert to plain solid
+		if ( !strcmp( q3_dshaders[i].shader, "textures/common/clipweap" ) ) {
+			q3_dshaders[i].contentFlags = CONTENTS_MONSTERCLIP;
+			//q3_dshaders[i].surfaceFlags = SURF_NODRAW;
+		}
+		//
+		// RF, only keep content flags that are consistent with q3map
+		q3_dshaders[i].contentFlags &= ( CONTENTS_SOLID | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER | CONTENTS_AREAPORTAL | CONTENTS_PLAYERCLIP | CONTENTS_MONSTERCLIP | CONTENTS_DETAIL | CONTENTS_CLUSTERPORTAL );
 	}
 
 	// planes
 	Q3_SwapBlock( (int *)q3_dplanes, q3_numplanes * sizeof( q3_dplanes[0] ) );
-	
+
 	// nodes
 	Q3_SwapBlock( (int *)q3_dnodes, q3_numnodes * sizeof( q3_dnodes[0] ) );
 
@@ -505,8 +547,8 @@ void Q3_SwapBSPFile( void ) {
 	Q3_SwapBlock( (int *)q3_dbrushsides, q3_numbrushsides * sizeof( q3_dbrushsides[0] ) );
 
 	// vis
-	((int *)&q3_visBytes)[0] = LittleLong( ((int *)&q3_visBytes)[0] );
-	((int *)&q3_visBytes)[1] = LittleLong( ((int *)&q3_visBytes)[1] );
+	((int *)&q3_visBytes)[0] = LittleLong(((int *)&q3_visBytes)[0]);
+	((int *)&q3_visBytes)[1] = LittleLong(((int *)&q3_visBytes)[1]);
 
 	// drawverts (don't swap colors )
 	for ( i = 0 ; i < q3_numDrawVerts ; i++ ) {
@@ -546,7 +588,7 @@ int Q3_CopyLump( q3_dheader_t	*header, int lump, void **dest, int size ) {
 
 	length = header->lumps[lump].filelen;
 	ofs = header->lumps[lump].fileofs;
-	
+
 	if ( length % size ) {
 		Error ("Q3_LoadBSPFile: odd lump size");
 	}
@@ -556,30 +598,6 @@ int Q3_CopyLump( q3_dheader_t	*header, int lump, void **dest, int size ) {
 	memcpy( *dest, (byte *)header + ofs, length );
 
 	return length / size;
-}
-
-/*
-=============
-CountTriangles
-=============
-*/
-void CountTriangles( void ) {
-	int i, numTris, numPatchTris;
-	q3_dsurface_t *surface;
-
-	numTris = numPatchTris = 0;
-	for ( i = 0; i < q3_numDrawSurfaces; i++ ) {
-		surface = &q3_drawSurfaces[i];
-
-		numTris += surface->numIndexes / 3;
-
-		if ( surface->patchWidth ) {
-			numPatchTris += surface->patchWidth * surface->patchHeight * 2;
-		}
-	}
-
-	Log_Print( "%6d triangles\n", numTris );
-	Log_Print( "%6d patch tris\n", numPatchTris );
 }
 
 /*
@@ -599,11 +617,11 @@ void	Q3_LoadBSPFile(struct quakefile_s *qf)
 	// swap the header
 	Q3_SwapBlock( (int *)header, sizeof(*header) );
 
-	if ( header->ident != Q3_BSP_IDENT && header->ident != QL_BSP_IDENT ) {
+	if ( header->ident != Q3_BSP_IDENT ) {
 		Error( "%s is not a IBSP file", qf->filename );
 	}
-	if ( header->version != Q3_BSP_VERSION && header->version != QL_BSP_VERSION ) {
-		Error( "%s is version %i, not (%i or %i)", qf->filename, header->version, Q3_BSP_VERSION, QL_BSP_VERSION );
+	if ( header->version != Q3_BSP_VERSION ) {
+		Error( "%s is version %i, not %i", qf->filename, header->version, Q3_BSP_VERSION );
 	}
 
 	q3_numShaders = Q3_CopyLump( header, Q3_LUMP_SHADERS, (void *) &q3_dshaders, sizeof(q3_dshader_t) );
@@ -626,12 +644,13 @@ void	Q3_LoadBSPFile(struct quakefile_s *qf)
 
 	q3_numGridPoints = Q3_CopyLump( header, Q3_LUMP_LIGHTGRID, (void *) &q3_gridData, 8 );
 
-	CountTriangles();
 
 	FreeMemory( header );		// everything has been copied out
-		
+
 	// swap everything
 	Q3_SwapBSPFile();
+
+	Q3_PrintBSPFileSizes();
 
 	Q3_FindVisibleBrushSides();
 
@@ -650,7 +669,7 @@ void Q3_AddLump( FILE *bspfile, q3_dheader_t *header, int lumpnum, void *data, i
 	q3_lump_t *lump;
 
 	lump = &header->lumps[lumpnum];
-	
+
 	lump->fileofs = LittleLong( ftell(bspfile) );
 	lump->filelen = LittleLong( len );
 	SafeWrite( bspfile, data, (len+3)&~3 );
@@ -670,12 +689,12 @@ void	Q3_WriteBSPFile( char *filename )
 
 	header = &outheader;
 	memset( header, 0, sizeof(q3_dheader_t) );
-	
+
 	Q3_SwapBSPFile();
 
 	header->ident = LittleLong( Q3_BSP_IDENT );
 	header->version = LittleLong( Q3_BSP_VERSION );
-	
+
 	bspfile = SafeOpenWrite( filename );
 	SafeWrite( bspfile, header, sizeof(q3_dheader_t) );	// overwritten later
 
@@ -696,10 +715,10 @@ void	Q3_WriteBSPFile( char *filename )
 	Q3_AddLump( bspfile, header, Q3_LUMP_ENTITIES, q3_dentdata, q3_entdatasize );
 	Q3_AddLump( bspfile, header, Q3_LUMP_FOGS, q3_dfogs, q3_numFogs * sizeof(q3_dfog_t) );
 	Q3_AddLump( bspfile, header, Q3_LUMP_DRAWINDEXES, q3_drawIndexes, q3_numDrawIndexes * sizeof(q3_drawIndexes[0]) );
-	
+
 	fseek (bspfile, 0, SEEK_SET);
 	SafeWrite (bspfile, header, sizeof(q3_dheader_t));
-	fclose (bspfile);	
+	fclose (bspfile);
 }
 
 //============================================================================
@@ -792,20 +811,20 @@ void Q3_UnparseEntities (void)
 	epair_t *ep;
 	char line[2048];
 	int i;
-	
+
 	buf = q3_dentdata;
 	end = buf;
 	*end = 0;
-	
+
 	for (i=0 ; i<num_entities ; i++)
 	{
 		ep = entities[i].epairs;
 		if (!ep)
 			continue;	// ent got removed
-		
+
 		strcat (end,"{\n");
 		end += 2;
-				
+
 		for (ep = entities[i].epairs ; ep ; ep=ep->next)
 		{
 			sprintf (line, "\"%s\" \"%s\"\n", ep->key, ep->value);

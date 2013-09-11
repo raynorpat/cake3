@@ -850,7 +850,7 @@ int AAS_CheckAreaForPossiblePortals(int areanum)
 	//
 	Com_Memset(numareafrontfaces, 0, sizeof(numareafrontfaces));
 	Com_Memset(numareabackfaces, 0, sizeof(numareabackfaces));
-	numfrontfaces = numbackfaces = 0;
+	numareas = numfrontfaces = numbackfaces = 0;
 	numfrontareas = numbackareas = 0;
 	frontplanenum = backplanenum = -1;
 	//add any adjacent areas with less presence types
@@ -1300,7 +1300,7 @@ void AAS_RemoveNotClusterClosingPortals(void)
 void AAS_AddTeleporterPortals(void)
 {
 	int             j, area2num, facenum, otherareanum;
-	char           *target, *targetname, *classname;
+	char           *target, *name, *classname;
 	bsp_entity_t   *entities, *ent, *dest;
 	vec3_t          origin, destorigin, mins, maxs, end;
 	vec3_t          bbmins, bbmaxs;
@@ -1333,8 +1333,8 @@ void AAS_AddTeleporterPortals(void)
 				classname = AAS_ValueForBSPEpairKey(dest, "classname");
 				if(classname && !strcmp(classname, "misc_teleporter_dest"))
 				{
-					targetname = AAS_ValueForBSPEpairKey(dest, "targetname");
-					if(targetname && !strcmp(targetname, target))
+					name = AAS_ValueForBSPEpairKey(dest, "name");
+					if(name && !strcmp(name, target))
 					{
 						break;
 					}			//end if

@@ -42,6 +42,7 @@ void *GetMemoryDebug(unsigned long size, char *label, char *file, int line);
 void *GetClearedMemoryDebug(unsigned long size, char *label, char *file, int line);
 //
 void PrintMemoryLabels(void);
+
 #endif //MEMDEBUG
 
 void FreeMemory(void *ptr);

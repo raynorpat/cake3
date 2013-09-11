@@ -1,27 +1,35 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
-#include "botlib/aasfile.h"
+#include "../botlib/aasfile.h"
 #include "aas_file.h"
 #include "aas_store.h"
 #include "aas_create.h"
@@ -33,10 +41,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define STOREPLANESDOUBLE
 
 #define VERTEX_EPSILON			0.1			//NOTE: changed from 0.5
-#define DIST_EPSILON			0.05		//NOTE: changed from 0.9
-#define NORMAL_EPSILON			0.0001		//NOTE: changed from 0.005
-#define INTEGRAL_EPSILON		0.01
 
+// MrE: use same epsilons as q3map!
+
+//NOTE: changed from 0.0001
+#define NORMAL_EPSILON          0.00001
+//NOTE: changed from 0.05
+#define DIST_EPSILON            0.01
+
+#define INTEGRAL_EPSILON        0.01
+#define VEREX_EPSILON           0.1         //NOTE: changed from 0.5
 #define VERTEX_HASHING
 #define VERTEX_HASH_SHIFT		7
 #define VERTEX_HASH_SIZE		((MAX_MAP_BOUNDS>>(VERTEX_HASH_SHIFT-1))+1)	//was 64
@@ -122,7 +136,7 @@ void AAS_InitMaxAAS(void)
 	} //end for
 	max_aas.max_bboxes = AAS_MAX_BBOXES;
 	max_aas.max_vertexes = numpoints + 1;
-	max_aas.max_planes = nummapplanes;
+	max_aas.max_planes = nummapplanes + 1024;
 	max_aas.max_edges = numpoints + 1;
 	max_aas.max_edgeindexsize = (numpoints + 1) * 3;
 	max_aas.max_faces = numfaces + 10;
@@ -590,8 +604,7 @@ void AAS_AddPlaneToHash(int planenum)
 
 	plane = &aasworld.planes[planenum];
 
-	hash = (int)fabs(plane->dist) / 8;
-	hash &= (PLANE_HASH_SIZE-1);
+	hash = ( PLANE_HASH_SIZE - 1 ) & (int) fabs( plane->dist );
 
 	aas_planechain[planenum] = aas_hashplanes[hash];
 	aas_hashplanes[hash] = planenum;
@@ -654,10 +667,10 @@ qboolean AAS_FindPlane(vec3_t normal, float dist, int *planenum)
 qboolean AAS_FindHashedPlane(vec3_t normal, float dist, int *planenum)
 {
 	int i, p;
+	//aas_plane_t *plane;
 	int hash, h;
 
-	hash = (int)fabs(dist) / 8;
-	hash &= (PLANE_HASH_SIZE-1);
+	hash = ( PLANE_HASH_SIZE - 1 ) & (int)fabs( dist );
 
 	//search the border bins as well
 	for (i = -1; i <= 1; i++)
@@ -665,6 +678,7 @@ qboolean AAS_FindHashedPlane(vec3_t normal, float dist, int *planenum)
 		h = (hash+i)&(PLANE_HASH_SIZE-1);
 		for (p = aas_hashplanes[h]; p >= 0; p = aas_planechain[p])
 		{
+			//plane = &aasworld.planes[p];
 			if (AAS_PlaneEqual(normal, dist, p))
 			{
 				*planenum = p;
@@ -906,14 +920,17 @@ int AAS_StoreArea(tmp_area_t *tmparea)
 	aas_face_t *aasface;
 	aas_faceindex_t aasfacenum;
 	vec3_t facecenter;
-	winding_t *w;
+	winding_t      *w = NULL;
 
 	//when the area is merged go to the merged area
 	//FIXME: this isn't necessary anymore because the tree
 	//			is refreshed after area merging
 	while(tmparea->mergedarea) tmparea = tmparea->mergedarea;
 	//
-	if (tmparea->invalid) Error("AAS_StoreArea: tried to store invalid area");
+	if ( tmparea->invalid ) {
+		// RF, might be a removed non-grounded area
+		return 0;
+	}
 	//if there is an aas area already stored for this tmp area
 	if (tmparea->aasareanum) return -tmparea->aasareanum;
 	//

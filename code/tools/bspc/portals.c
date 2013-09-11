@@ -1,26 +1,35 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
 #include "qbsp.h"
+#include "l_bsp_q3.h"
 #include "l_mem.h"
 
 int		c_active_portals;
@@ -86,7 +95,7 @@ int VisibleContents (int contents)
 {
 	int		i;
 
-	for (i=1 ; i<=LAST_VISIBLE_CONTENTS ; i<<=1)
+	for (i=1 ; i<=Q3_LAST_VISIBLE_CONTENTS ; i<<=1)
 		if (contents & i )
 			return i;
 
@@ -139,9 +148,9 @@ qboolean Portal_VisFlood (portal_t *p)
 	if (!VisibleContents (c1^c2))
 		return true;
 
-	if (c1 & (CONTENTS_Q2TRANSLUCENT|CONTENTS_DETAIL))
+	if (c1 & CONTENTS_DETAIL)
 		c1 = 0;
-	if (c2 & (CONTENTS_Q2TRANSLUCENT|CONTENTS_DETAIL))
+	if (c2 & CONTENTS_DETAIL)
 		c2 = 0;
 
 	if ( (c1|c2) & CONTENTS_SOLID )
@@ -249,7 +258,6 @@ void RemovePortalFromNode (portal_t *portal, node_t *l)
 	{
 		Error("RemovePortalFromNode: mislinked portal");
 	} //end else
-//#ifdef ME
 	n = 0;
 	for (p = l->portals; p; p = p->next[s])
 	{
@@ -265,7 +273,6 @@ void RemovePortalFromNode (portal_t *portal, node_t *l)
 		s = (p->nodes[1] == l);
 //		if (++n >= 4096) Error("RemovePortalFromNode: more than 4096 portals\n");
 	} //end for
-//#endif
 } //end of the function RemovePortalFromNode
 //===========================================================================
 //
@@ -461,11 +468,7 @@ void MakeNodePortal (node_t *node)
 
 	new_portal = AllocPortal();
 	new_portal->plane = mapplanes[node->planenum];
-
-#ifdef ME
 	new_portal->planenum = node->planenum;
-#endif //ME
-
 	new_portal->onnode = node;
 	new_portal->winding = w;
 	AddPortalToNodes (new_portal, node->children[0], node->children[1]);
@@ -482,7 +485,7 @@ void SplitNodePortals (node_t *node)
 {
 	portal_t	*p, *next_portal, *new_portal;
 	node_t *f, *b, *other_node;
-	int side;
+	int             side = 0;
 	plane_t *plane;
 	winding_t *frontwinding, *backwinding;
 
@@ -612,10 +615,8 @@ void MakeTreePortals_r (node_t *node)
 {
 	int		i;
 
-#ifdef ME
 	qprintf("\r%6d", ++c_numportalizednodes);
 	if (cancelconversion) return;
-#endif //ME
 
 	CalcNodeBounds (node);
 	if (node->mins[0] >= node->maxs[0])
@@ -648,24 +649,19 @@ void MakeTreePortals_r (node_t *node)
 //===========================================================================
 void MakeTreePortals(tree_t *tree)
 {
-
-#ifdef ME
 	Log_Print("---- Node Portalization ----\n");
 	c_numportalizednodes = 0;
 	c_portalmemory = 0;
 	qprintf("%6d nodes portalized", c_numportalizednodes);
-#endif //ME
 
 	MakeHeadnodePortals(tree);
 	MakeTreePortals_r(tree->headnode);
 
-#ifdef ME
 	qprintf("\n");
 	Log_Write("%6d nodes portalized\r\n", c_numportalizednodes);
 	Log_Print("%6d tiny portals\r\n", c_tinyportals);
 	Log_Print("%6d KB of portal memory\r\n", c_portalmemory >> 10);
 	Log_Print("%6i KB of winding memory\r\n", WindingMemory() >> 10);
-#endif //ME
 } //end of the function MakeTreePortals
 
 /*

@@ -1,22 +1,30 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
@@ -361,7 +369,8 @@ bspbrush_t *SubtractBrush (bspbrush_t *a, bspbrush_t *b)
 	out = NULL;
 	for (i = 0; i < b->numsides && in; i++)
 	{
-		SplitBrush2(in, b->sides[i].planenum, &front, &back);
+		SplitBrush( in, b->sides[i].planenum, &front, &back );
+//		SplitBrush2(in, b->sides[i].planenum, &front, &back);
 		if (in != a) FreeBrush(in);
 		if (front)
 		{	// add to list
@@ -400,7 +409,8 @@ bspbrush_t *IntersectBrush (bspbrush_t *a, bspbrush_t *b)
 	in = a;
 	for (i=0 ; i<b->numsides && in ; i++)
 	{
-		SplitBrush2(in, b->sides[i].planenum, &front, &back);
+		SplitBrush( in, b->sides[i].planenum, &front, &back );
+//		SplitBrush2(in, b->sides[i].planenum, &front, &back);
 		if (in != a) FreeBrush(in);
 		if (front) FreeBrush(front);
 		in = back;
@@ -534,9 +544,10 @@ bspbrush_t *MakeBspBrushList(int startbrush, int endbrush,
 		VectorClear (normal);
 		normal[i] = 1;
 		dist = clipmaxs[i];
-		maxplanenums[i] = FindFloatPlane(normal, dist);
+		maxplanenums[i] = FindFloatPlane( normal, dist, 0, NULL );
+
 		dist = clipmins[i];
-		minplanenums[i] = FindFloatPlane(normal, dist);
+		minplanenums[i] = FindFloatPlane( normal, dist, 0, NULL );
 	}
 
 	brushlist = NULL;
@@ -698,22 +709,17 @@ void WriteBrushMap(char *name, bspbrush_t *list)
 //===========================================================================
 qboolean BrushGE (bspbrush_t *b1, bspbrush_t *b2)
 {
-#ifdef ME
+	// RF, let mover brushes bite other mover brushes
+	if ( b1->original->contents == CONTENTS_MOVER && b2->original->contents == CONTENTS_MOVER ) {
+		return true;
+	}
 	if (create_aas)
 	{
 		if (b1->original->expansionbbox != b2->original->expansionbbox)
 		{
 			return false;
 		} //end if
-		//never have something else bite a ladder brush
-		//never have a ladder brush bite something else
-		if ( (b1->original->contents & CONTENTS_LADDER)
-			&& !(b2->original->contents & CONTENTS_LADDER))
-		{ 
-			return false;
-		} //end if
 	} //end if
-#endif //ME
 	// detail brushes never bite structural brushes
 	if ( (b1->original->contents & CONTENTS_DETAIL) 
 		&& !(b2->original->contents & CONTENTS_DETAIL) )
@@ -741,13 +747,14 @@ bspbrush_t *ChopBrushes (bspbrush_t *head)
 	bspbrush_t	*keep;
 	bspbrush_t	*sub, *sub2;
 	int			c1, c2;
-	int num_csg_iterations;
+	int num_csg_iterations, total_processed;
 
 	Log_Print("-------- Brush CSG ---------\n");
 	Log_Print("%6d original brushes\n", CountBrushList (head));
 
 	num_csg_iterations = 0;
-	qprintf("%6d output brushes", num_csg_iterations);
+	total_processed = 0;
+	qprintf( "%6d output brushes", num_csg_iterations, total_processed );
 
 #if 0
 	if (startbrush == 0)
@@ -765,6 +772,7 @@ newlist:
 	for (b1=head ; b1 ; b1=next)
 	{
 		next = b1->next;
+		total_processed++;
 
 		//if the conversion is cancelled
 		if (cancelconversion)
@@ -849,7 +857,7 @@ newlist:
 			keep = b1;
 		} //end if
 		num_csg_iterations++;
-		qprintf("\r%6d", num_csg_iterations);
+		qprintf( "\r%6d", num_csg_iterations, total_processed );
 	} //end for
 
 	if (cancelconversion) return keep;
@@ -955,9 +963,6 @@ tree_t *ProcessWorldBrushes(int brush_start, int brush_end)
 	maxs[0] = map_maxs[0] + 8;
 	maxs[1] = map_maxs[1] + 8;
 	maxs[2] = map_maxs[2] + 8;
-
-	//reset the brush bsp
-	ResetBrushBSP();
 
 	// the makelist and chopbrushes could be cached between the passes...
 

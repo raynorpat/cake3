@@ -1,24 +1,36 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
-This file is part of Quake III Arena source code.
+This file is part of Spearmint Source Code.
 
-Quake III Arena source code is free software; you can redistribute it
+Spearmint Source Code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
+published by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
+Spearmint Source Code is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Spearmint Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Spearmint Source Code is also subject to certain additional terms.
+You should have received a copy of these additional terms immediately following
+the terms and conditions of the GNU General Public License.  If not, please
+request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional
+terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc.,
+Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
+
+#ifdef _WIN32
+#include <malloc.h>
+#endif // _WIN32
 
 #include "qbsp.h"
 #include "l_log.h"
@@ -53,7 +65,7 @@ void PrintMemorySize(unsigned long size)
 //===========================================================================
 int MemorySize(void *ptr)
 {
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
 	#ifdef __WATCOMC__
 		//Intel 32 bits memory addressing, 16 bytes aligned
 	return (_msize(ptr) + 15) >> 4 << 4;
@@ -250,7 +262,7 @@ memoryblock_t *BlockFromPointer(void *ptr, char *str)
 		//char *crash = (char *) NULL;
 		//crash[0] = 1;
 		Error("%s: NULL pointer\n", str);
-#endif
+#endif // MEMDEBUG
 		return NULL;
 	} //end if
 	block = (memoryblock_t *) ((char *) ptr - sizeof(memoryblock_t));
@@ -260,7 +272,7 @@ memoryblock_t *BlockFromPointer(void *ptr, char *str)
 	} //end if
 	if (block->ptr != ptr)
 	{
-		
+
 		Error("%s: memory block pointer invalid\n", str);
 	} //end if
 	return block;
@@ -379,8 +391,8 @@ typedef struct memhunk_s
 
 memhunk_t *memhunk_high;
 memhunk_t *memhunk_low;
-int memhunk_high_size = 16 * 1024 * 1024;
-int memhunk_low_size = 0;
+size_t memhunk_high_size = 16 * 1024 * 1024;
+size_t memhunk_low_size = 0;
 
 //===========================================================================
 //
@@ -406,7 +418,7 @@ void Hunk_ClearHigh(void)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void *Hunk_Alloc(int size)
+void *Hunk_Alloc( int size )
 {
 	memhunk_t *h;
 
@@ -439,3 +451,17 @@ void Z_Free (void *ptr)
 {
 	FreeMemory(ptr);
 } //end of the function Z_Free
+
+
+
+void Com_Memset (void *dest, const int val, const size_t count)
+{
+	memset(dest, val, count);
+	return;
+}
+
+void Com_Memcpy (void *dest, const void *src, const size_t count)
+{
+	memcpy(dest, src, count);
+	return;
+}

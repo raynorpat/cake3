@@ -51,7 +51,7 @@ extern botlib_import_t botimport;
 
 //NOTE: all travel times are in hundreth of a second
 //maximum number of reachability links
-#define AAS_MAX_REACHABILITYSIZE			65536
+#define AAS_MAX_REACHABILITYSIZE			128000
 //number of areas reachability is calculated for each frame
 #define REACHABILITYAREASPERCYCLE			15
 //number of units reachability points are placed inside the areas
@@ -83,7 +83,7 @@ int             reach_bfgjump;	//bfg jump
 int             reach_jumppad;	//jump pads
 
 //if true grapple reachabilities are skipped
-int             calcgrapplereach;
+int             calcgrapplereach = qfalse;
 
 //linked reachability
 typedef struct aas_lreachability_s
@@ -224,7 +224,7 @@ int AAS_GetJumpPadInfo(int ent, vec3_t areastart, vec3_t absmins, vec3_t absmaxs
 	vec3_t          origin, angles, teststart, ent2origin;
 	aas_trace_t     trace;
 	char            model[MAX_EPAIRKEY];
-	char            target[MAX_EPAIRKEY], targetname[MAX_EPAIRKEY];
+	char            target[MAX_EPAIRKEY], name[MAX_EPAIRKEY];
 
 	//
 	AAS_FloatForBSPEpairKey(ent, "speed", &speed);
@@ -263,9 +263,9 @@ int AAS_GetJumpPadInfo(int ent, vec3_t areastart, vec3_t absmins, vec3_t absmaxs
 	AAS_ValueForBSPEpairKey(ent, "target", target, MAX_EPAIRKEY);
 	for(ent2 = AAS_NextBSPEntity(0); ent2; ent2 = AAS_NextBSPEntity(ent2))
 	{
-		if(!AAS_ValueForBSPEpairKey(ent2, "targetname", targetname, MAX_EPAIRKEY))
+		if(!AAS_ValueForBSPEpairKey(ent2, "name", name, MAX_EPAIRKEY))
 			continue;
-		if(!strcmp(targetname, target))
+		if(!strcmp(name, target))
 			break;
 	}							//end for
 	if(!ent2)
@@ -436,14 +436,14 @@ int AAS_BestReachableArea(vec3_t origin, vec3_t mins, vec3_t maxs, vec3_t goalor
 			//it can very well happen that the AAS_PointAreaNum function tells that
 			//a point is in an area and that starting an AAS_TraceClientBBox from that
 			//point will return trace.startsolid qtrue
-#if 0
+			/*
 			if(AAS_PointAreaNum(start))
 			{
 				Log_Write("point %f %f %f in area %d but trace startsolid", start[0], start[1], start[2], areanum);
 				AAS_DrawPermanentCross(start, 4, LINECOLOR_RED);
 			}					//end if
 			botimport.Print(PRT_MESSAGE, "AAS_BestReachableArea: start solid\n");
-#endif
+			*/
 			VectorCopy(start, goalorigin);
 			return areanum;
 		}						//end else
@@ -2872,7 +2872,7 @@ int AAS_TravelFlagsForTeam(int ent)
 void AAS_Reachability_Teleport(void)
 {
 	int             area1num, area2num;
-	char            target[MAX_EPAIRKEY], targetname[MAX_EPAIRKEY];
+	char            target[MAX_EPAIRKEY], name[MAX_EPAIRKEY];
 	char            classname[MAX_EPAIRKEY], model[MAX_EPAIRKEY];
 	int             ent, dest;
 	float           angle;
@@ -2908,9 +2908,9 @@ void AAS_Reachability_Teleport(void)
 					continue;
 				if(!strcmp(classname, "target_teleporter"))
 				{
-					if(!AAS_ValueForBSPEpairKey(dest, "targetname", targetname, MAX_EPAIRKEY))
+					if(!AAS_ValueForBSPEpairKey(dest, "name", name, MAX_EPAIRKEY))
 						continue;
-					if(!strcmp(targetname, target))
+					if(!strcmp(name, target))
 					{
 						break;
 					}			//end if
@@ -2952,9 +2952,9 @@ void AAS_Reachability_Teleport(void)
 			//classname should be misc_teleporter_dest
 			//but I've also seen target_position and actually any
 			//entity could be used... burp
-			if(AAS_ValueForBSPEpairKey(dest, "targetname", targetname, MAX_EPAIRKEY))
+			if(AAS_ValueForBSPEpairKey(dest, "name", name, MAX_EPAIRKEY))
 			{
-				if(!strcmp(targetname, target))
+				if(!strcmp(name, target))
 				{
 					break;
 				}				//end if
@@ -3711,7 +3711,7 @@ void AAS_Reachability_JumpPad(void)
 	//aas_trace_t trace;
 	aas_link_t     *areas, *link;
 
-	//char target[MAX_EPAIRKEY], targetname[MAX_EPAIRKEY], model[MAX_EPAIRKEY];
+	//char target[MAX_EPAIRKEY], name[MAX_EPAIRKEY], model[MAX_EPAIRKEY];
 	char            classname[MAX_EPAIRKEY];
 
 #ifdef BSPC
@@ -3771,8 +3771,8 @@ void AAS_Reachability_JumpPad(void)
 		   AAS_ValueForBSPEpairKey(ent, "target", target, MAX_EPAIRKEY);
 		   for (ent2 = AAS_NextBSPEntity(0); ent2; ent2 = AAS_NextBSPEntity(ent2))
 		   {
-		   if (!AAS_ValueForBSPEpairKey(ent2, "targetname", targetname, MAX_EPAIRKEY)) continue;
-		   if (!strcmp(targetname, target)) break;
+		   if (!AAS_ValueForBSPEpairKey(ent2, "name", name, MAX_EPAIRKEY)) continue;
+		   if (!strcmp(name, target)) break;
 		   } //end for
 		   if (!ent2)
 		   {
@@ -4236,6 +4236,7 @@ void AAS_SetWeaponJumpAreaFlags(void)
 			weaponjumpareas++;
 		}						//end if
 	}							//end for
+
 	botimport.Print(PRT_MESSAGE, "%d weapon jump areas\n", weaponjumpareas);
 }								//end of the function AAS_SetWeaponJumpAreaFlags
 
