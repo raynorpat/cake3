@@ -205,18 +205,13 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 	int             mainSize;
 	char           *token;
 
-	int				libsSize;
-	char           *libsBuffer;		// all libs concatenated
+	std::string		libsBuffer; // all libs concatenated
 
 	char          **libs = (char **) &libShaderNames;
 
 	std::string		shaderText;
 
 	GL_CheckErrors();
-
-	// load libs
-	libsSize = 0;
-	libsBuffer = NULL;
 
 	while(1)
 	{
@@ -249,13 +244,7 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 		}
 
 		// append it to the libsBuffer
-		libsBuffer = (char* ) realloc(libsBuffer, libsSize + libSize);
-		
-		memset(libsBuffer + libsSize, 0, libSize);
-		libsSize += libSize;
-
-		Q_strcat(libsBuffer, libsSize, libBuffer);
-		//Q_strncpyz(libsBuffer + libsSize, libBuffer, libSize -1);
+		libsBuffer.append(libBuffer);
 
 		ri.FS_FreeFile(libBuffer);
 	}
@@ -683,7 +672,7 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 		Q_strcat(bufferExtra, sizeof(bufferExtra), "#line 0\n");
 
 		sizeExtra = strlen(bufferExtra);
-		sizeFinal = sizeExtra + mainSize + libsSize;
+		sizeFinal = sizeExtra + mainSize + libsBuffer.size();
 
 		//ri.Printf(PRINT_ALL, "GLSL extra: %s\n", bufferExtra);
 
@@ -691,9 +680,9 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 
 		strcpy(bufferFinal, bufferExtra);
 
-		if(libsSize > 0)
+		if(libsBuffer.size() > 0)
 		{
-			Q_strcat(bufferFinal, sizeFinal, libsBuffer);
+			Q_strcat(bufferFinal, sizeFinal, libsBuffer.c_str());
 		}
 
 		Q_strcat(bufferFinal, sizeFinal, mainBuffer);
@@ -716,81 +705,12 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 		}
 #endif
 
-#if 0
-
-		if ( optimize )
-		{
-			static char     msgPart[1024];
-			int             length = 0;
-			int             i;
-			
-			glslopt_shader_type glsloptShaderType;
-
-			if(shaderType == GL_FRAGMENT_SHADER)
-			{
-				glsloptShaderType = kGlslOptShaderFragment;
-			}
-			else
-			{
-				glsloptShaderType = kGlslOptShaderVertex;
-			}
-
-			glslopt_shader* shaderOptimized = glslopt_optimize(s_glslOptimizer, 
-				glsloptShaderType, bufferFinal, 0);
-
-			if(glslopt_get_status(shaderOptimized))
-			{
-				const char* newSource = glslopt_get_output(shaderOptimized);
-
-				ri.Printf( PRINT_DEVELOPER, "----------------------------------------------------------\n" );
-				ri.Printf( PRINT_DEVELOPER, "OPTIMIZED shader '%s' ----------\n", filename );
-				ri.Printf( PRINT_DEVELOPER, " BEGIN ---------------------------------------------------\n" );
-
-				length = strlen(newSource);
-
-				for(i = 0; i < length; i += 1024)
-				{
-					Q_strncpyz(msgPart, newSource + i, sizeof(msgPart));
-					ri.Printf( PRINT_WARNING, "%s\n", msgPart );
-				}
-
-				ri.Printf( PRINT_DEVELOPER, " END-- ---------------------------------------------------\n" );
-				shaderText = std::string(newSource, length);
-			}
-			else
-			{
-				const char* errorLog = glslopt_get_log(shaderOptimized);
-
-				//ri.Printf(PRINT_WARNING, "Couldn't optimize '%s'", filename);
-
-				length = strlen(errorLog);
-
-				for(i = 0; i < length; i += 1024)
-				{
-					Q_strncpyz(msgPart, errorLog + i, sizeof(msgPart));
-					ri.Printf(PRINT_ALL, "%s\n", msgPart);
-				}
-
-				ri.Printf( PRINT_ALL, "^1Couldn't optimize %s\n", filename );
-				shaderText = std::string( bufferFinal, sizeFinal );
-			}
-			
-			glslopt_shader_delete(shaderOptimized);
-		}
-		else
-		{
-			shaderText = std::string(bufferFinal, sizeFinal);
-		}
-
-#else
 		shaderText = std::string(bufferFinal, sizeFinal);
-#endif
 
 		ri.Hunk_FreeTempMemory(bufferFinal);
 	}
 
 	ri.FS_FreeFile(mainBuffer);
-	free(libsBuffer);
 
 	return shaderText;
 }
