@@ -48,7 +48,7 @@ qboolean R_CheckFBO(const FBO_t * fbo)
 		return qtrue;
 	}
 
-	// an error occured
+	// an error occurred
 	switch (code)
 	{
 		case GL_FRAMEBUFFER_COMPLETE_EXT:
@@ -116,7 +116,7 @@ FBO_t          *R_CreateFBO(const char *name, int width, int height)
 
 	if(strlen(name) >= MAX_QPATH)
 	{
-		ri.Error(ERR_DROP, "R_CreateFBO: \"%s\" is too long\n", name);
+		ri.Error( ERR_DROP, "R_CreateFBO: \"%s\" is too long", name );
 	}
 
 	if(width <= 0 || width > glConfig2.maxRenderbufferSize)
@@ -482,7 +482,7 @@ void R_InitFBOs(void)
 	int             i;
 	int             width, height;
 
-	ri.Printf(PRINT_ALL, "------- R_InitFBOs -------\n");
+	ri.Printf( PRINT_DEVELOPER, "------- R_InitFBOs -------\n" );
 
 	if(!glConfig2.framebufferObjectAvailable)
 		return;
@@ -947,7 +947,7 @@ void R_ShutdownFBOs(void)
 	int             i, j;
 	FBO_t          *fbo;
 
-	ri.Printf(PRINT_ALL, "------- R_ShutdownFBOs -------\n");
+	ri.Printf( PRINT_DEVELOPER, "------- R_ShutdownFBOs -------\n" );
 
 #if !defined(USE_D3D10)
 	if(!glConfig2.framebufferObjectAvailable)

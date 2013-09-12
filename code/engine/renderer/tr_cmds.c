@@ -242,7 +242,7 @@ void R_IssueRenderCommands(qboolean runPerformanceCounters)
 	}
 
 	// at this point, the back end thread is idle, so it is ok
-	// to look at it's performance counters
+	// to look at its performance counters
 	if(runPerformanceCounters)
 	{
 		R_PerformanceCounters();
@@ -280,12 +280,14 @@ void R_SyncRenderThread(void)
 	{
 		return;
 	}
+
 	R_IssueRenderCommands(qfalse);
 
 	if(!glConfig.smpActive)
 	{
 		return;
 	}
+
 	GLimp_FrontEndSleep();
 }
 
@@ -311,6 +313,7 @@ void           *R_GetCommandBuffer(int bytes)
 		{
 			ri.Error(ERR_FATAL, "R_GetCommandBuffer: bad size %i", bytes);
 		}
+
 		// if we run out of room, just start dropping commands
 		return NULL;
 	}
@@ -326,7 +329,7 @@ void           *R_GetCommandBuffer(int bytes)
 R_AddDrawViewCmd
 =============
 */
-void R_AddDrawViewCmd()
+void R_AddDrawViewCmd( void )
 {
 	drawViewCommand_t *cmd;
 
@@ -773,7 +776,7 @@ RE_RenderToTexture
 */
 void RE_RenderToTexture(int textureid, int x, int y, int w, int h)
 {
-	renderToTextureCommand_t *cmd;
+	//renderToTextureCommand_t *cmd;
 
 	ri.Printf(PRINT_ALL, S_COLOR_RED "TODO RE_RenderToTexture\n");
 

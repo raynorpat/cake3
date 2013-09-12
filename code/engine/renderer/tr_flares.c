@@ -112,7 +112,7 @@ This is called at surface tesselation time
 void RB_AddFlare(void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal)
 {
 	int             i;
-	flare_t        *f, *oldest;
+	flare_t        *f;
 	vec3_t          local;
 	vec4_t          eye, clip, normalized, window;
 	float           distBias = 512.0;
@@ -141,7 +141,6 @@ void RB_AddFlare(void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t n
 		return;					// shouldn't happen, since we check the clip[] above, except for FP rounding
 
 	// see if a flare with a matching surface, scene, and view exists
-	oldest = r_flareStructs;
 	for(f = r_activeFlares; f; f = f->next)
 	{
 		if(f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum &&

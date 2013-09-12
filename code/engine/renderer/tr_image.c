@@ -1911,9 +1911,6 @@ typedef struct
 // Note that the ordering indicates the order of preference used
 // when there are multiple images of different formats available
 static imageExtToLoaderMap_t imageLoaders[] = {
-#ifdef USE_WEBP
-	{"webp", LoadWEBP},
-#endif
 	{"png", LoadPNG},
 	{"tga", LoadTGA},
 	{"jpg", LoadJPG},
@@ -3663,7 +3660,7 @@ void R_InitImages(void)
 	const char *grainImage = "gfx/2d/camera/grain.png";
 	const char *vignetteImage = "gfx/2d/camera/vignette.png";
 
-	ri.Printf(PRINT_ALL, "------- R_InitImages -------\n");
+	ri.Printf( PRINT_DEVELOPER, "------- R_InitImages -------\n" );
 
 	Com_Memset(r_imageHashTable, 0, sizeof(r_imageHashTable));
 	Com_InitGrowList(&tr.images, 4096);
@@ -3706,7 +3703,7 @@ void R_ShutdownImages(void)
 	int             i;
 	image_t			*image;
 
-	ri.Printf(PRINT_ALL, "------- R_ShutdownImages -------\n");
+	ri.Printf( PRINT_DEVELOPER, "------- R_ShutdownImages -------\n" );
 
 	for(i = 0; i < tr.images.currentElements; i++)
 	{
@@ -3748,7 +3745,7 @@ int RE_GetTextureId(const char *name)
 	int             i;
 	image_t			*image;
 
-	ri.Printf(PRINT_ALL, S_COLOR_YELLOW "RE_GetTextureId [%s].\n", name);
+	ri.Printf( PRINT_DEVELOPER, S_COLOR_YELLOW "RE_GetTextureId [%s].\n", name );
 
 	for(i = 0; i < tr.images.currentElements; i++)
 	{
@@ -3764,17 +3761,3 @@ int RE_GetTextureId(const char *name)
 //  ri.Printf(PRINT_ALL, "Image not found.\n");
 	return -1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

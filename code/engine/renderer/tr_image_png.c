@@ -59,7 +59,7 @@ void LoadPNG(const char *name, byte ** pic, int *width, int *height, byte alphaB
 	png_uint_32     w;
 	png_uint_32     h;
 	unsigned int    row;
-	size_t          rowbytes;
+//	size_t          rowbytes;
 	png_infop       info;
 	png_structp     png;
 	png_bytep      *row_pointers;
@@ -95,7 +95,7 @@ void LoadPNG(const char *name, byte ** pic, int *width, int *height, byte alphaB
 
 	/*
 	 * Set error handling if you are using the setjmp/longjmp method (this is
-	 * the normal method of doing things with libpng).  REQUIRED unless you
+	 * the common method of doing things with libpng).  REQUIRED unless you
 	 * set up your own error handlers in the png_create_read_struct() earlier.
 	 */
 	if(setjmp(png_jmpbuf(png)))
@@ -167,7 +167,7 @@ void LoadPNG(const char *name, byte ** pic, int *width, int *height, byte alphaB
 		return;
 	}
 
-	rowbytes = png_get_rowbytes(png, info);
+	//rowbytes = png_get_rowbytes(png, info);
 
 	for(row = 0; row < h; row++)
 		row_pointers[row] = (png_bytep) (out + (row * 4 * w));
@@ -242,16 +242,24 @@ void SavePNG(const char *name, const byte * pic, int width, int height, int numB
 
 	png_set_write_fn(png, buffer, png_write_data, png_flush_data);
 
-	if(numBytes == 4)
+	switch ( numBytes )
 	{
+	default:
 		png_set_IHDR(png, info, width, height, 8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
 				 PNG_FILTER_TYPE_DEFAULT);
-	}
-	else
-	{
-		// should be 3
+		break;
+	case 3:
 		png_set_IHDR(png, info, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
 				PNG_FILTER_TYPE_DEFAULT);
+		break;
+	case 2:
+		png_set_IHDR( png, info, width, height, 8, PNG_COLOR_TYPE_GA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+		              PNG_FILTER_TYPE_DEFAULT );
+		break;
+	case 1:
+		png_set_IHDR( png, info, width, height, 8, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+		              PNG_FILTER_TYPE_DEFAULT );
+		break;
 	}
 
 	// write the file header information
