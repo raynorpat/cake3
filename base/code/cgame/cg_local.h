@@ -845,7 +845,11 @@ typedef struct
 	qhandle_t       selectShader;
 	qhandle_t       viewBloodShader;
 	qhandle_t       tracerShader;
-	qhandle_t       crosshairShader[NUM_CROSSHAIRS];
+
+	qhandle_t       crosshairDot[NUM_CROSSHAIRS];
+	qhandle_t       crosshairCircle[NUM_CROSSHAIRS];
+	qhandle_t       crosshairCross[NUM_CROSSHAIRS];
+
 	qhandle_t       lagometerShader;
 	qhandle_t       backTileShader;
 	qhandle_t       noammoShader;
@@ -1231,6 +1235,10 @@ extern vmCvar_t cg_crosshairX;
 extern vmCvar_t cg_crosshairY;
 extern vmCvar_t cg_crosshairSize;
 extern vmCvar_t cg_crosshairHealth;
+extern vmCvar_t cg_crosshairDot;
+extern vmCvar_t cg_crosshairCircle;
+extern vmCvar_t cg_crosshairCross;
+extern vmCvar_t cg_crosshairPulse;
 extern vmCvar_t cg_drawStatus;
 extern vmCvar_t cg_draw2D;
 extern vmCvar_t cg_animSpeed;

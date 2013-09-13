@@ -2175,11 +2175,13 @@ CG_DrawCrosshair
 */
 static void CG_DrawCrosshair(void)
 {
+	qhandle_t       dot;
+	qhandle_t       circle;
+	qhandle_t       cross;
+
 	float           w, h;
-	qhandle_t       hShader;
-	float           f;
 	float           x, y;
-	int             ca;
+	float           f;
 
 	if(!cg_drawCrosshair.integer)
 	{
@@ -2196,6 +2198,53 @@ static void CG_DrawCrosshair(void)
 		return;
 	}
 
+	if(cg_crosshairDot.integer <= 0)	// no dot
+	{
+		dot = 0;
+	}
+	else
+	{
+		dot = cgs.media.crosshairDot[cg_crosshairDot.integer - 1];
+	}
+
+	if(cg_crosshairCircle.integer <= 0)	// no circle
+	{
+		circle = 0;
+	}
+	else
+	{
+		circle = cgs.media.crosshairCircle[cg_crosshairCircle.integer - 1];
+	}
+
+	if(cg_crosshairCross.integer <= 0)	// no cross
+	{
+		cross = 0;
+	}
+	else
+	{
+		cross = cgs.media.crosshairCross[cg_crosshairCross.integer - 1];
+	}
+
+	w = h = cg_crosshairSize.value;
+
+	if(cg_crosshairPulse.integer == 1)	// pulse the size of the crosshair when picking up items
+	{
+		f = cg.time - cg.itemPickupBlendTime;
+
+		if(f > 0 && f < ITEM_BLOB_TIME)
+		{
+			f /= ITEM_BLOB_TIME;
+			w *= (1 + f);
+			h *= (1 + f);
+		}
+
+	}
+
+	x = cg_crosshairX.integer;
+	y = cg_crosshairY.integer;
+
+	CG_AdjustFrom640(&x, &y, &w, &h);
+
 	// set color based on health
 	if(cg_crosshairHealth.integer)
 	{
@@ -2209,30 +2258,20 @@ static void CG_DrawCrosshair(void)
 		trap_R_SetColor(NULL);
 	}
 
-	w = h = cg_crosshairSize.value;
 
-	// pulse the size of the crosshair when picking up items
-	f = cg.time - cg.itemPickupBlendTime;
-	if(f > 0 && f < ITEM_BLOB_TIME)
-	{
-		f /= ITEM_BLOB_TIME;
-		w *= (1 + f);
-		h *= (1 + f);
-	}
+	if(dot)
+		trap_R_DrawStretchPic(x + cg.refdef.x + 0.5 * (cg.refdef.width - w),
+							  y + cg.refdef.y + 0.5 * (cg.refdef.height - h), w, h, 0, 0, 1, 1, dot);
+	if(circle)
+		trap_R_DrawStretchPic(x + cg.refdef.x + 0.5 * (cg.refdef.width - w),
+							  y + cg.refdef.y + 0.5 * (cg.refdef.height - h), w, h, 0, 0, 1, 1, circle);
+	if(cross)
+		trap_R_DrawStretchPic(x + cg.refdef.x + 0.5 * (cg.refdef.width - w),
+							  y + cg.refdef.y + 0.5 * (cg.refdef.height - h), w, h, 0, 0, 1, 1, cross);
 
-	x = cg_crosshairX.integer;
-	y = cg_crosshairY.integer;
-	CG_AdjustFrom640(&x, &y, &w, &h);
 
-	ca = cg_drawCrosshair.integer;
-	if(ca < 0)
-	{
-		ca = 0;
-	}
-	hShader = cgs.media.crosshairShader[ca % NUM_CROSSHAIRS];
 
-	trap_R_DrawStretchPic(x + cg.refdef.x + 0.5 * (cg.refdef.width - w),
-						  y + cg.refdef.y + 0.5 * (cg.refdef.height - h), w, h, 0, 0, 1, 1, hShader);
+	trap_R_SetColor(NULL);
 }
 
 

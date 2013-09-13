@@ -117,6 +117,10 @@ vmCvar_t        cg_crosshairSize;
 vmCvar_t        cg_crosshairX;
 vmCvar_t        cg_crosshairY;
 vmCvar_t        cg_crosshairHealth;
+vmCvar_t        cg_crosshairDot;
+vmCvar_t        cg_crosshairCircle;
+vmCvar_t        cg_crosshairCross;
+vmCvar_t        cg_crosshairPulse;
 vmCvar_t        cg_draw2D;
 vmCvar_t        cg_drawStatus;
 vmCvar_t        cg_animSpeed;
@@ -244,6 +248,10 @@ static cvarTable_t cvarTable[] = {
 	{&cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE},
 	{&cg_crosshairX, "cg_crosshairX", "0", CVAR_ARCHIVE},
 	{&cg_crosshairY, "cg_crosshairY", "0", CVAR_ARCHIVE},
+	{&cg_crosshairDot, "cg_crosshairDot", "0", CVAR_ARCHIVE},
+	{&cg_crosshairCircle, "cg_crosshairCircle", "0", CVAR_ARCHIVE},
+	{&cg_crosshairCross, "cg_crosshairCross", "3", CVAR_ARCHIVE},
+	{&cg_crosshairPulse, "cg_crosshairPulse", "1", CVAR_ARCHIVE},	// pulse crosshair when picking up items
 	{&cg_brassTime, "cg_brassTime", "2500", CVAR_ARCHIVE},
 	{&cg_simpleItems, "cg_simpleItems", "0", CVAR_ARCHIVE},
 	{&cg_addMarks, "cg_marks", "1", CVAR_ARCHIVE},
@@ -899,7 +907,9 @@ static void CG_RegisterGraphics(void)
 
 	for(i = 0; i < NUM_CROSSHAIRS; i++)
 	{
-		cgs.media.crosshairShader[i] = trap_R_RegisterShader(va("gfx/2d/crosshair%c", 'a' + i));
+		cgs.media.crosshairDot[i] = trap_R_RegisterShader(va("hud/crosshairs/dot%i", i + 1));
+		cgs.media.crosshairCircle[i] = trap_R_RegisterShader(va("hud/crosshairs/circle%i", i + 1));
+		cgs.media.crosshairCross[i] = trap_R_RegisterShader(va("hud/crosshairs/cross%i", i + 1));
 	}
 
 	cgs.media.backTileShader = trap_R_RegisterShader("gfx/2d/backtile");
