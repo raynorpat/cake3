@@ -50,6 +50,13 @@ GLShader_cameraEffects* gl_cameraEffectsShader = NULL;
 GLShader_blurX* gl_blurXShader = NULL;
 GLShader_blurY* gl_blurYShader = NULL;
 GLShader_debugShadowMap* gl_debugShadowMapShader = NULL;
+GLShader_depthToColor* gl_depthToColorShader = NULL;
+GLShader_lightVolume_omni* gl_lightVolumeShader_omni = NULL;
+GLShader_deferredShadowing_proj* gl_deferredShadowingShader_proj = NULL;
+GLShader_liquid* gl_liquidShader = NULL;
+GLShader_volumetricFog* gl_volumetricFogShader = NULL;
+GLShader_screenSpaceAmbientOcclusion* gl_screenSpaceAmbientOcclusionShader = NULL;
+GLShader_depthOfField* gl_depthOfFieldShader = NULL;
 
 bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros(int permutation, const std::vector<GLCompileMacro*>& macros) const
 {
@@ -636,16 +643,6 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 		   Q_strcat(bufferExtra, sizeof(bufferExtra), "#extension GL_ARB_draw_buffers : enable\n");
 		   }
 		 */
-
-		if(r_normalMapping->integer)
-		{
-			Q_strcat(bufferExtra, sizeof(bufferExtra), "#ifndef r_NormalMapping\n#define r_NormalMapping 1\n#endif\n");
-		}
-
-		if( /* TODO: check for shader model 3 hardware  && */ r_normalMapping->integer && r_parallaxMapping->integer)
-		{
-			Q_strcat(bufferExtra, sizeof(bufferExtra), "#ifndef r_ParallaxMapping\n#define r_ParallaxMapping 1\n#endif\n");
-		}
 
 		if(r_wrapAroundLighting->value)
 		{
@@ -2393,4 +2390,184 @@ void GLShader_debugShadowMap::SetShaderProgramUniformLocations( shaderProgram_t 
 void GLShader_debugShadowMap::SetShaderProgramUniforms( shaderProgram_t * shaderProgram )
 {
 	glUniform1i( shaderProgram->u_CurrentMap, 0 );
+}
+
+GLShader_depthToColor::GLShader_depthToColor() :
+		GLShader( "depthToColor", ATTR_POSITION | ATTR_NORMAL ),
+		u_ModelViewProjectionMatrix( this ),
+		u_BoneMatrix( this ),
+		GLCompileMacro_USE_VERTEX_SKINNING( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_depthToColor::BuildShaderVertexLibNames( std::string& vertexInlines )
+{
+	vertexInlines += "vertexSkinning ";
+ }
+
+GLShader_lightVolume_omni::GLShader_lightVolume_omni() :
+		GLShader( "lightVolume_omni", ATTR_POSITION ),
+		u_ViewOrigin( this ),
+		u_LightOrigin( this ),
+		u_LightColor( this ),
+		u_LightRadius( this ),
+		u_LightScale( this ),
+		u_LightAttenuationMatrix( this ),
+		u_ModelViewProjectionMatrix( this ),
+		u_UnprojectMatrix( this ),
+		GLCompileMacro_USE_SHADOWING( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_lightVolume_omni::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+	shaderProgram->u_AttenuationMapXY = glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" );
+	shaderProgram->u_AttenuationMapZ = glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" );
+	shaderProgram->u_ShadowMap = glGetUniformLocation( shaderProgram->program, "u_ShadowMap" );
+}
+
+void GLShader_lightVolume_omni::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_DepthMap, 0 );
+	glUniform1i( shaderProgram->u_AttenuationMapXY, 1 );
+	glUniform1i( shaderProgram->u_AttenuationMapZ, 2 );
+	glUniform1i( shaderProgram->u_ShadowMap, 3 );
+}
+
+GLShader_deferredShadowing_proj::GLShader_deferredShadowing_proj() :
+	GLShader( "deferredShadowing_proj", ATTR_POSITION ),
+	u_LightOrigin( this ),
+	u_LightColor( this ),
+	u_LightRadius( this ),
+	u_LightScale( this ),
+	u_LightAttenuationMatrix( this ),
+	u_ShadowMatrix( this ),
+	u_PortalPlane( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
+	GLCompileMacro_USE_PORTAL_CLIPPING( this ),
+	GLCompileMacro_USE_SHADOWING( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_deferredShadowing_proj::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+	shaderProgram->u_AttenuationMapXY = glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" );
+	shaderProgram->u_AttenuationMapZ = glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" );
+	shaderProgram->u_ShadowMap = glGetUniformLocation( shaderProgram->program, "u_ShadowMap" );
+}
+
+void GLShader_deferredShadowing_proj::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_DepthMap, 0 );
+	glUniform1i( shaderProgram->u_AttenuationMapXY, 1 );
+	glUniform1i( shaderProgram->u_AttenuationMapZ, 2 );
+	glUniform1i( shaderProgram->u_ShadowMap, 3 );
+}
+
+GLShader_liquid::GLShader_liquid() :
+	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_TANGENT | ATTR_BINORMAL | ATTR_NORMAL | ATTR_COLOR 
+#if !defined( COMPAT_Q3A ) && !defined( COMPAT_ET )
+		| ATTR_LIGHTDIRECTION
+#endif
+	),
+	u_NormalTextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_RefractionIndex( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
+	u_FresnelPower( this ),
+	u_FresnelScale( this ),
+	u_FresnelBias( this ),
+	u_NormalScale( this ),
+	u_FogDensity( this ),
+	u_FogColor( this ),
+	GLCompileMacro_USE_PARALLAX_MAPPING( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_liquid::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{
+	shaderProgram->u_CurrentMap = glGetUniformLocation( shaderProgram->program, "u_CurrentMap" );
+	shaderProgram->u_PortalMap = glGetUniformLocation( shaderProgram->program, "u_PortalMap" );
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+	shaderProgram->u_NormalMap = glGetUniformLocation( shaderProgram->program, "u_NormalMap" );
+}
+
+void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_CurrentMap, 0 );
+	glUniform1i( shaderProgram->u_PortalMap, 1 );
+	glUniform1i( shaderProgram->u_DepthMap, 2 );
+	glUniform1i( shaderProgram->u_NormalMap, 3 );
+}
+
+GLShader_volumetricFog::GLShader_volumetricFog() :
+	GLShader( "volumetricFog", ATTR_POSITION ),
+	u_ViewOrigin( this ),
+	u_UnprojectMatrix( this ),
+	u_ModelViewMatrix( this ),
+	u_FogDensity( this ),
+	u_FogColor( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_volumetricFog::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{ 
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+	shaderProgram->u_DepthMapBack = glGetUniformLocation( shaderProgram->program, "u_DepthMapBack" );
+	shaderProgram->u_DepthMapFront = glGetUniformLocation( shaderProgram->program, "u_DepthMapFront" );
+}
+
+void GLShader_volumetricFog::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_DepthMap, 0 );
+	glUniform1i( shaderProgram->u_DepthMapBack, 1 );
+	glUniform1i( shaderProgram->u_DepthMapFront, 2 );
+}
+
+GLShader_screenSpaceAmbientOcclusion::GLShader_screenSpaceAmbientOcclusion() :
+	GLShader( "screenSpaceAmbientOcclusion", ATTR_POSITION ),
+	u_ModelViewProjectionMatrix( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_screenSpaceAmbientOcclusion::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{
+	shaderProgram->u_CurrentMap = glGetUniformLocation( shaderProgram->program, "u_CurrentMap" );
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+}
+
+void GLShader_screenSpaceAmbientOcclusion::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_CurrentMap, 0 );
+	glUniform1i( shaderProgram->u_DepthMap, 1 );
+}
+
+GLShader_depthOfField::GLShader_depthOfField() :
+	GLShader( "depthOfField", ATTR_POSITION ),
+	u_ModelViewProjectionMatrix( this )
+{
+	CompilePermutations();
+}
+
+void GLShader_depthOfField::SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram )
+{
+	shaderProgram->u_CurrentMap = glGetUniformLocation( shaderProgram->program, "u_CurrentMap" );
+	shaderProgram->u_DepthMap = glGetUniformLocation( shaderProgram->program, "u_DepthMap" );
+}
+
+void GLShader_depthOfField::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( shaderProgram->u_CurrentMap, 0 );
+	glUniform1i( shaderProgram->u_DepthMap, 1 );
 }

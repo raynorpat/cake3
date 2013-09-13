@@ -112,7 +112,6 @@ typedef enum
 	RSPEEDS_CHC,
 	RSPEEDS_NEAR_FAR,
 	RSPEEDS_DECALS
-
 } renderSpeeds_t;
 
 
@@ -3785,36 +3784,6 @@ typedef struct
 
 	// render lights
 	trRefLight_t   *currentLight;
-
-	//
-	// GPU shader programs
-	//
-
-#if !defined(GLSL_COMPILE_STARTUP_ONLY)
-	// depth to color encoding
-	shaderProgram_t depthToColorShader;
-
-#ifdef VOLUMETRIC_LIGHTING
-	// volumetric lighting
-	shaderProgram_t lightVolumeShader_omni;
-#endif
-
-	// UT3 style player shadowing
-	shaderProgram_t deferredShadowingShader_proj;
-
-	// post process effects
-	shaderProgram_t rotoscopeShader;
-	shaderProgram_t liquidShader;
-	shaderProgram_t volumetricFogShader;
-#ifdef EXPERIMENTAL
-	shaderProgram_t screenSpaceAmbientOcclusionShader;
-#endif
-#ifdef EXPERIMENTAL
-	shaderProgram_t depthOfFieldShader;
-#endif
-
-#endif // GLSL_COMPILE_STARTUP_ONLY
-
 
 	// -----------------------------------------
 
