@@ -40,7 +40,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #define	DEFAULT_GRAVITY		800
+
+#if 0							//def XPPM
+#define	GIB_HEALTH			0
+#else
 #define	GIB_HEALTH			-40
+#endif
 #define	ARMOR_PROTECTION	0.66
 
 #define	MAX_ITEMS			256
@@ -58,11 +63,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
 
+// Tr3B: changed to HL 2 / Quake 4 properties
 #define	STEPSIZE			18
-#define	DEFAULT_VIEWHEIGHT	26
-#define CROUCH_VIEWHEIGHT	12
-#define CROUCH_HEIGHT		16
-#define	DEAD_VIEWHEIGHT	   -16
+#define	DEFAULT_VIEWHEIGHT	44 // 68	// Tr3B: was 26
+#define CROUCH_VIEWHEIGHT	16 // 32	// Tr3B: was 12
+#define CROUCH_HEIGHT		20 // 38	// Tr3B: was 16
+#define	DEAD_VIEWHEIGHT	   -16			// Tr3B: was -16
 
 //
 // config strings are a general means of communicating variable length strings
@@ -545,17 +551,19 @@ typedef enum
 	TORSO_AFFIRMATIVE,
 	TORSO_NEGATIVE,
 
-	MAX_ANIMATIONS,
-
 	LEGS_BACKCR,
 	LEGS_BACKWALK,
+
+	MAX_PLAYER_ANIMATIONS
+} playerAnimNumber_t;
+
+typedef enum
+{
+	FLAG_IDLE,
 	FLAG_RUN,
-	FLAG_STAND,
-	FLAG_STAND2RUN,
 
-	MAX_TOTALANIMATIONS
-} animNumber_t;
-
+	MAX_FLAG_ANIMATIONS
+} flagAnimNumber_t;
 
 typedef struct animation_s
 {
@@ -566,7 +574,7 @@ typedef struct animation_s
 	int             firstFrame;
 	int             numFrames;
 	int             loopFrames;	// 0 to numFrames
-	int             frameLerp;	// msec between frames
+	int             frameTime;	// msec between frames
 	int             initialLerp;	// msec to get to first frame
 	int             reversed;	// true if animation is reversed
 	int             flipflop;	// true if animation should flipflop back to base

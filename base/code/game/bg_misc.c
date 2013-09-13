@@ -211,7 +211,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_shotgun",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/shotgun/shotgun.md3", 0, 0, 0},
+	 {"models/weapons/shotgun/shotgun.md3", 0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_shotgun",
 /* pickup */ "Shotgun",
@@ -228,7 +228,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_machinegun",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/machinegun/machinegun.md3", 0, 0, 0},
+	 {"models/weapons/machinegun/machinegun.md3", 0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_machinegun",
 /* pickup */ "Machinegun",
@@ -245,7 +245,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_grenadelauncher",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/grenadel/grenadel.md3",	0, 0, 0},
+	 {"models/weapons/rocketl/rocketl.md5mesh",	0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_grenade",
 /* pickup */ "Grenade Launcher",
@@ -262,7 +262,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_rocketlauncher",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/rocketl/rocketl.md3", 0, 0, 0},
+	 {"models/weapons/rocketl/rocketl.md3", 0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_rocket",
 /* pickup */ "Rocket Launcher",
@@ -279,7 +279,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_lightning",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/lightning/lightning.md3", 0, 0, 0},
+	 {"models/weapons/lightning/lightning.md3", 0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_lightning",
 /* pickup */ "Lightning Gun",
@@ -296,7 +296,7 @@ gitem_t         bg_itemlist[] = {
 	{
 	 "weapon_railgun",
 	 "sound/misc/w_pkup.ogg",
-	 {"models/weapons2/railgun/railgun.md3", 0, 0, 0},
+	 {"models/weapons/railgun/railgun.md5mesh", 0, 0, 0},
 	 {NULL, NULL, NULL, NULL},
 /* icon */ "icons/weapon_railgun",
 /* pickup */ "Railgun",

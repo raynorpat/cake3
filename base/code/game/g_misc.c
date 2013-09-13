@@ -183,17 +183,17 @@ void locateCamera(gentity_t * ent)
 	ent->r.ownerNum = owner->s.number;
 
 	// frame holds the rotate speed
-	if(owner->spawnflags & 1)
+	if(owner->slowrotate)
 	{
 		ent->s.frame = 25;
 	}
-	else if(owner->spawnflags & 2)
+	else if(owner->fastrotate)
 	{
 		ent->s.frame = 75;
 	}
 
 	// swing camera ?
-	if(owner->spawnflags & 4)
+	if(owner->swing)
 	{
 		// set to 0 for no rotation at all
 		ent->s.powerups = 0;
@@ -254,6 +254,10 @@ The target for a misc_portal_director.  You can set either angles or target anot
 void SP_misc_portal_camera(gentity_t * ent)
 {
 	float           roll;
+
+	G_SpawnBoolean("slowrotate", "0", &ent->slowrotate);
+	G_SpawnBoolean("fastrotate", "0", &ent->fastrotate);
+	G_SpawnBoolean("swing", "0", &ent->swing);
 
 	VectorClear(ent->r.mins);
 	VectorClear(ent->r.maxs);

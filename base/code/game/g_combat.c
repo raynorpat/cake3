@@ -717,14 +717,16 @@ void player_die(gentity_t * self, gentity_t * inflictor, gentity_t * attacker, i
 	}
 	else
 	{
+/*
 		// normal death
 		static int      i;
 
 		switch (i)
 		{
 			case 0:
+*/
 				anim = BOTH_DEATH1;
-				break;
+/*				break;
 			case 1:
 				anim = BOTH_DEATH2;
 				break;
@@ -733,18 +735,19 @@ void player_die(gentity_t * self, gentity_t * inflictor, gentity_t * attacker, i
 				anim = BOTH_DEATH3;
 				break;
 		}
-
+*/
 		// for the no-blood option, we need to prevent the health
 		// from going to gib level
-		if(self->health <= GIB_HEALTH)
+/*		if(self->health <= GIB_HEALTH)
 		{
 			self->health = GIB_HEALTH + 1;
 		}
-
+*/
 		self->client->ps.legsAnim = ((self->client->ps.legsAnim & ANIM_TOGGLEBIT) ^ ANIM_TOGGLEBIT) | anim;
 		self->client->ps.torsoAnim = ((self->client->ps.torsoAnim & ANIM_TOGGLEBIT) ^ ANIM_TOGGLEBIT) | anim;
 
-		G_AddEvent(self, EV_DEATH1 + i, killer);
+//		G_AddEvent(self, EV_DEATH1 + i, killer);
+		G_AddEvent(self, EV_DEATH1, killer);
 
 		// the body can still be gibbed
 		self->die = body_die;

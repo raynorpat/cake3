@@ -378,15 +378,17 @@ void SpectatorThink(gentity_t * ent, usercmd_t * ucmd)
 		pm.ps = &client->ps;
 		pm.cmd = *ucmd;
 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;	// spectators can fly through bodies
-		pm.trace = trap_Trace;
+		pm.trace = trap_TraceCapsuleNoEnts;	// FIXME Capsule;
 		pm.pointcontents = trap_PointContents;
 
 		// perform a pmove
 		Pmove(&pm);
+
 		// save results of pmove
 		VectorCopy(client->ps.origin, ent->s.origin);
 
-		G_TouchTriggers(ent);
+		// spectators don't touch.
+		//G_TouchTriggers(ent);
 		trap_UnlinkEntity(ent);
 	}
 

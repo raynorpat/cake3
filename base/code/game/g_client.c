@@ -41,10 +41,17 @@ void SP_info_player_deathmatch(gentity_t * ent)
 	{
 		ent->flags |= FL_NO_BOTS;
 	}
+
 	G_SpawnInt("nohumans", "0", &i);
 	if(i)
 	{
 		ent->flags |= FL_NO_HUMANS;
+	}
+
+	G_SpawnInt("initial", "0", &i);
+	if(i)
+	{
+		ent->spawnflags |= 1;
 	}
 }
 
@@ -426,6 +433,7 @@ just like the existing corpse to leave behind.
 */
 void CopyToBodyQue(gentity_t * ent)
 {
+/*
 #ifdef MISSIONPACK
 	gentity_t      *e;
 	int             i;
@@ -533,6 +541,7 @@ void CopyToBodyQue(gentity_t * ent)
 
 	VectorCopy(body->s.pos.trBase, body->r.currentOrigin);
 	trap_LinkEntity(body);
+*/
 }
 
 //======================================================================
@@ -567,8 +576,14 @@ ClientRespawn
 */
 void ClientRespawn(gentity_t * ent)
 {
-	CopyToBodyQue(ent);
+	gentity_t      *tent;
+
+//	CopyToBodyQue(ent);
 	ClientSpawn(ent);
+
+	// add a teleportation effect
+	tent = G_TempEntity(ent->client->ps.origin, EV_PLAYER_TELEPORT_IN);
+	tent->s.clientNum = ent->s.clientNum;
 }
 
 /*
@@ -1054,6 +1069,12 @@ char           *ClientConnect(int clientNum, qboolean firstTime, qboolean isBot)
 		G_InitSessionData(client, userinfo);
 	}
 	G_ReadSessionData(client);
+
+	// Tr3B: add SVF_CAPSULE to players so we can trace against the rotated capsules
+	// in the server entity tracing code SV_ClipToEntity
+	// FIXME UPDATE: this seems to break the box traces against the player capsules by entities like rockets
+	// it should be a bug in CM_TraceBoundingBoxThroughCapsule
+	//ent->r.svFlags |= SVF_CAPSULE;
 
 	if(isBot)
 	{

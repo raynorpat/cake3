@@ -67,6 +67,28 @@ qboolean G_SpawnInt(const char *key, const char *defaultString, int *out)
 	return present;
 }
 
+qboolean G_SpawnBoolean(const char *key, const char *defaultString, qboolean * out)
+{
+	char           *s;
+	qboolean        present;
+
+	present = G_SpawnString(key, defaultString, &s);
+
+	if(!Q_stricmp(s, "qfalse") || !Q_stricmp(s, "false") || !Q_stricmp(s, "0"))
+	{
+		*out = qfalse;
+	}
+	else if(!Q_stricmp(s, "qtrue") || !Q_stricmp(s, "true") || !Q_stricmp(s, "1"))
+	{
+		*out = qtrue;
+	}
+	else
+	{
+		*out = qfalse;
+	}
+	return present;
+}
+
 qboolean G_SpawnVector(const char *key, const char *defaultString, float *out)
 {
 	char           *s;
@@ -123,6 +145,7 @@ field_t         fields[] = {
 	{"random", FOFS(random), F_FLOAT},
 	{"count", FOFS(count), F_INT},
 	{"health", FOFS(health), F_INT},
+	{"group", FOFS(group), F_INT},
 	{"light", 0, F_IGNORE},
 	{"dmg", FOFS(damage), F_INT},
 	{"angles", FOFS(s.angles), F_VECTOR},

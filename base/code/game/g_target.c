@@ -158,28 +158,26 @@ void SP_target_score(gentity_t * ent)
 
 //==========================================================
 
-/*QUAKED target_print (1 0 0) (-8 -8 -8) (8 8 8) redteam blueteam private
+/*QUAKED target_print (1 0 0) (-8 -8 -8) (8 8 8) red_only blue_only private
 "message"	text to print
 If "private", only the activator gets the message.  If no checks, all clients get the message.
 */
 void Use_Target_Print(gentity_t * ent, gentity_t * other, gentity_t * activator)
 {
-	if(activator->client && (ent->spawnflags & 4))
+	if(activator->client && ent->priv)
 	{
 		trap_SendServerCommand(activator - g_entities, va("cp \"%s\"", ent->message));
 		return;
 	}
 
-	if(ent->spawnflags & 3)
-	{
-		if(ent->spawnflags & 1)
+	if(ent->red_only)
 		{
 			G_TeamCommand(TEAM_RED, va("cp \"%s\"", ent->message));
+		return;
 		}
-		if(ent->spawnflags & 2)
+	if(ent->blue_only)
 		{
 			G_TeamCommand(TEAM_BLUE, va("cp \"%s\"", ent->message));
-		}
 		return;
 	}
 
@@ -188,6 +186,10 @@ void Use_Target_Print(gentity_t * ent, gentity_t * other, gentity_t * activator)
 
 void SP_target_print(gentity_t * ent)
 {
+	G_SpawnBoolean("red_only", "0", &ent->red_only);
+	G_SpawnBoolean("blue_only", "0", &ent->blue_only);
+	G_SpawnBoolean("private", "0", &ent->priv);
+
 	ent->use = Use_Target_Print;
 }
 
@@ -209,26 +211,28 @@ Multiple identical looping sounds will just increase volume without any speed co
 */
 void Use_Target_Speaker(gentity_t * ent, gentity_t * other, gentity_t * activator)
 {
-	if(ent->spawnflags & 3)
-	{							// looping sound toggles
+	if(ent->soundLooping)
+	{
+		// looping sound toggles
 		if(ent->s.loopSound)
 			ent->s.loopSound = 0;	// turn it off
 		else
-			ent->s.loopSound = ent->noise_index;	// start it
+			ent->s.loopSound = ent->soundIndex;	// start it
 	}
 	else
-	{							// normal sound
-		if(ent->spawnflags & 8)
 		{
-			G_AddEvent(activator, EV_GENERAL_SOUND, ent->noise_index);
+		// normal sound
+		if(ent->soundActivator)
+		{
+			G_AddEvent(activator, EV_GENERAL_SOUND, ent->soundIndex);
 		}
-		else if(ent->spawnflags & 4)
+		else if(ent->soundGlobal)
 		{
-			G_AddEvent(ent, EV_GLOBAL_SOUND, ent->noise_index);
+			G_AddEvent(ent, EV_GLOBAL_SOUND, ent->soundIndex);
 		}
 		else
 		{
-			G_AddEvent(ent, EV_GENERAL_SOUND, ent->noise_index);
+			G_AddEvent(ent, EV_GENERAL_SOUND, ent->soundIndex);
 		}
 	}
 }
@@ -238,47 +242,67 @@ void SP_target_speaker(gentity_t * ent)
 	char            buffer[MAX_QPATH];
 	char           *s;
 
-	G_SpawnFloat("wait", "0", &ent->wait);
-	G_SpawnFloat("random", "0", &ent->random);
-
-	if(!G_SpawnString("noise", "NOSOUND", &s) && !G_SpawnString("s_shader", "NOSOUND", &s))
+	if(G_SpawnString("s_sound", "NOSOUND", &s))
 	{
-		G_Error("target_speaker without a noise key at %s", vtos(ent->s.origin));
+		G_SpawnBoolean("s_looping", "0", &ent->soundLooping);
+		G_SpawnBoolean("s_waitfortrigger", "0", &ent->soundWaitForTrigger);
+		G_SpawnBoolean("s_global", "0", &ent->soundGlobal);
+		G_SpawnBoolean("s_activator", "0", &ent->soundActivator);
+		G_SpawnFloat("wait", "0", &ent->wait);
+		G_SpawnFloat("random", "0", &ent->random);
+	}
+	else if(G_SpawnString("s_shader", "NOSOUND", &s))
+	{
+		// Doom3 compatibility mode
+		G_SpawnBoolean("s_looping", "0", &ent->soundLooping);
+		G_SpawnBoolean("s_waitfortrigger", "0", &ent->soundWaitForTrigger);
+		G_SpawnBoolean("s_global", "0", &ent->soundGlobal);
+		G_SpawnBoolean("s_activator", "0", &ent->soundActivator);
+		G_SpawnFloat("wait", "0", &ent->wait);
+		G_SpawnFloat("random", "0", &ent->random);
+	}
+	else if(G_SpawnString("noise", "NOSOUND", &s))
+	{
+		// Q3A compatibility mode
+		ent->soundLooping = ent->spawnflags & 1 ? qtrue : qfalse;
+		ent->soundWaitForTrigger = ent->spawnflags & 2 ? qtrue : qfalse;
+		ent->soundGlobal = ent->spawnflags & 4 ? qtrue : qfalse;
+		ent->soundActivator = ent->spawnflags & 8 ? qtrue : qfalse;
+	}
+	else
+	{
+		//G_Error("speaker without a noise key at %s", vtos(ent->s.origin));
+		G_Printf(S_COLOR_YELLOW "WARNING: speaker '%s' without a noise key at %s", ent->name, vtos(ent->s.origin));
 	}
 
 	// force all client relative sounds to be "activator" speakers that
 	// play on the entity that activates it
 	if(s[0] == '*')
 	{
-		ent->spawnflags |= 8;
+		ent->soundActivator = qtrue;
 	}
 
-	if(!strstr(s, ".wav"))
-	{
-		Com_sprintf(buffer, sizeof(buffer), "%s.wav", s);
-	}
-	else
-	{
-		Q_strncpyz(buffer, s, sizeof(buffer));
-	}
-	ent->noise_index = G_SoundIndex(buffer);
+	Q_strncpyz(buffer, s, sizeof(buffer));
+	Com_DefaultExtension(buffer, sizeof(buffer), ".wav");
+
+	ent->soundIndex = G_SoundIndex(buffer);
 
 	// a repeating speaker can be done completely client side
 	ent->s.eType = ET_SPEAKER;
-	ent->s.eventParm = ent->noise_index;
+	ent->s.eventParm = ent->soundIndex;
 	ent->s.frame = ent->wait * 10;
 	ent->s.clientNum = ent->random * 10;
 
 
 	// check for prestarted looping sound
-	if(ent->spawnflags & 1)
+	if(ent->soundLooping && !ent->soundWaitForTrigger)
 	{
-		ent->s.loopSound = ent->noise_index;
+		ent->s.loopSound = ent->soundIndex;
 	}
 
 	ent->use = Use_Target_Speaker;
 
-	if(ent->spawnflags & 4)
+	if(ent->soundGlobal)
 	{
 		ent->r.svFlags |= SVF_BROADCAST;
 	}
@@ -377,10 +401,10 @@ void target_laser_start(gentity_t * self)
 
 	if(!self->damage)
 	{
-		self->damage = 1;
+		self->damage = 9999;
 	}
 
-	if(self->spawnflags & 1)
+	if(self->start_on)
 		target_laser_on(self);
 	else
 		target_laser_off(self);
@@ -388,6 +412,8 @@ void target_laser_start(gentity_t * self)
 
 void SP_target_laser(gentity_t * self)
 {
+	G_SpawnBoolean("start_on", "0", &self->start_on);
+
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
 	self->nextthink = level.time + FRAMETIME;
@@ -433,15 +459,17 @@ if RANDOM is checked, only one of the targets will be fired, not all of them
 */
 void target_relay_use(gentity_t * self, gentity_t * other, gentity_t * activator)
 {
-	if((self->spawnflags & 1) && activator->client && activator->client->sess.sessionTeam != TEAM_RED)
+	if(self->red_only && activator->client && activator->client->sess.sessionTeam != TEAM_RED)
 	{
 		return;
 	}
-	if((self->spawnflags & 2) && activator->client && activator->client->sess.sessionTeam != TEAM_BLUE)
+
+	if(self->blue_only && activator->client && activator->client->sess.sessionTeam != TEAM_BLUE)
 	{
 		return;
 	}
-	if(self->spawnflags & 4)
+
+	if(self->random)
 	{
 		gentity_t      *ent;
 
@@ -457,6 +485,10 @@ void target_relay_use(gentity_t * self, gentity_t * other, gentity_t * activator
 
 void SP_target_relay(gentity_t * self)
 {
+	G_SpawnBoolean("red_only", "0", &self->red_only);
+	G_SpawnBoolean("blue_only", "0", &self->blue_only);
+	G_SpawnFloat("random", "0", &self->random);
+
 	self->use = target_relay_use;
 }
 

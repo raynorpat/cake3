@@ -69,7 +69,7 @@ typedef enum
 	MOVER_2TO1
 } moverState_t;
 
-#define SP_PODIUM_MODEL		"models/mapobjects/podium/podium4.md3"
+#define SP_PODIUM_MODEL		"models/meshes/ppodium.md5mesh"
 
 //============================================================================
 
@@ -169,6 +169,7 @@ struct gentity_s
 	char           *targetShaderName;
 	char           *targetShaderNewName;
 	gentity_t      *target_ent;
+	int             group;
 
 	float           speed;
 	vec3_t          movedir;
@@ -189,12 +190,27 @@ struct gentity_s
 	int             health;
 
 	qboolean        takedamage;
-
+	qboolean        crusher;	// doors that squeeze players
 	int             damage;
 	int             splashDamage;	// quad will increase this without increasing radius
 	int             splashRadius;
 	int             methodOfDeath;
 	int             splashMethodOfDeath;
+
+	// triggers / targets
+	qboolean        start_on;
+	qboolean        start_off;
+	qboolean        silent;
+	qboolean        no_protection;
+	qboolean        slow;
+	qboolean        red_only;
+	qboolean        blue_only;
+	qboolean        priv;
+
+	// portal cameras
+	qboolean        slowrotate;
+	qboolean        fastrotate;
+	qboolean        swing;
 
 	int             count;
 
@@ -212,12 +228,17 @@ struct gentity_s
 	int             watertype;
 	int             waterlevel;
 
-	int             noise_index;
+	int             soundIndex;
+	qboolean        soundLooping;
+	qboolean        soundWaitForTrigger;
+	qboolean        soundGlobal;
+	qboolean        soundActivator;
 
 	// timing variables
 	float           wait;
 	float           random;
 
+	qboolean        suspended;	// item will spawn where it was placed in map and won't drop to the floor
 	gitem_t        *item;		// for bonus items
 	
 #ifdef LUA
@@ -487,6 +508,7 @@ qboolean        G_SpawnString(const char *key, const char *defaultString, char *
 // spawn string returns a temporary reference, you must CopyString() if you want to keep it
 qboolean        G_SpawnFloat(const char *key, const char *defaultString, float *out);
 qboolean        G_SpawnInt(const char *key, const char *defaultString, int *out);
+qboolean        G_SpawnBoolean(const char *key, const char *defaultString, qboolean * out);
 qboolean        G_SpawnVector(const char *key, const char *defaultString, float *out);
 void            G_SpawnEntitiesFromString(void);
 char           *G_NewString(const char *string);
