@@ -585,6 +585,22 @@ static void CG_AddTestLight(void)
 }
 
 
+/*
+=================
+CG_TestGib_f
+=================
+*/
+void CG_TestGib_f(void)
+{
+	vec3_t          origin;
+
+	// raynorpat: spawn the gibs out in front of the testing player :)
+	VectorMA(cg.refdef.vieworg, 100, cg.refdef.viewaxis[0], origin);
+
+	CG_GibPlayer(origin);
+//  CG_ParticleBloodCloud(cg.testModelEntity.origin, cg.refdef.viewaxis[0]);
+//  CG_BloodPool(cgs.media.bloodSpurtShader, cg.testModelEntity.origin);
+}
 
 
 //============================================================================
@@ -651,13 +667,16 @@ static void CG_OffsetThirdPersonView(void)
 	vec3_t          view;
 	vec3_t          focusAngles;
 	trace_t         trace;
-	static vec3_t   mins = { -4, -4, -4 };
-	static vec3_t   maxs = { 4, 4, 4 };
+	static vec3_t   mins = { -8, -8, -8 };
+	static vec3_t   maxs = { 8, 8, 8 };
 	vec3_t          focusPoint;
 	float           focusDist;
 	float           forwardScale, sideScale;
+	vec3_t          surfNormal;
 
-	cg.refdef.vieworg[2] += cg.predictedPlayerState.viewheight;
+	VectorSet(surfNormal, 0.0f, 0.0f, 1.0f);
+
+	VectorMA(cg.refdef.vieworg, cg.predictedPlayerState.viewheight, surfNormal, cg.refdef.vieworg);
 
 	VectorCopy(cg.refdefViewAngles, focusAngles);
 
@@ -668,19 +687,13 @@ static void CG_OffsetThirdPersonView(void)
 		cg.refdefViewAngles[YAW] = cg.predictedPlayerState.stats[STAT_DEAD_YAW];
 	}
 
-	if(focusAngles[PITCH] > 45)
-	{
-		focusAngles[PITCH] = 45;	// don't go too far overhead
-	}
 	AngleVectors(focusAngles, forward, NULL, NULL);
 
 	VectorMA(cg.refdef.vieworg, FOCUS_DISTANCE, forward, focusPoint);
 
 	VectorCopy(cg.refdef.vieworg, view);
 
-	view[2] += 8;
-
-	cg.refdefViewAngles[PITCH] *= 0.5;
+	VectorMA(view, 12, surfNormal, view);
 
 	AngleVectors(cg.refdefViewAngles, forward, right, up);
 
@@ -928,6 +941,11 @@ static int CG_CalcFov(void)
 	if(cg.predictedPlayerState.pm_type == PM_INTERMISSION)
 	{
 		// if in intermission, use a fixed value
+		fov_x = 90;
+	}
+	else if(cg.predictedPlayerState.pm_type == PM_SPECTATOR)
+	{
+		// if a spectator, use a fixed value
 		fov_x = 90;
 	}
 	else

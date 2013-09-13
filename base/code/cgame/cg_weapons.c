@@ -657,7 +657,7 @@ static qboolean CG_RegisterWeaponAnimation(animation_t * anim, const char *filen
 	{
 		frameRate = 1;
 	}
-	anim->frameLerp = 1000 / frameRate;
+	anim->frameTime = 1000 / frameRate;
 	anim->initialLerp = 1000 / frameRate;
 
 	if(loop)
@@ -767,11 +767,6 @@ void CG_RegisterWeapon(int weaponNum)
 	Com_StripExtension(path, path, sizeof(path));
 	strcat(path, "_hand.md3");
 	weaponInfo->handsModel = trap_R_RegisterModel(path);
-
-	if(!weaponInfo->handsModel)
-	{
-		weaponInfo->handsModel = trap_R_RegisterModel("models/weapons2/shotgun/shotgun_hand.md3");
-	}
 
 	strcpy(path, item->models[0]);
 	Com_StripExtension(path, path, sizeof(path));
@@ -1052,6 +1047,301 @@ static int CG_MapTorsoToWeaponFrame(clientInfo_t * ci, int frame)
 	return 0;
 }
 
+/*
+===============
+CG_SetWeaponLerpFrameAnimation
+
+may include ANIM_TOGGLEBIT
+===============
+*/
+static void CG_SetWeaponLerpFrameAnimation(weaponInfo_t * wi, lerpFrame_t * lf, int weaponNumber, int weaponAnimation,
+										   int weaponTime)
+{
+	animation_t    *anim;
+	int             shouldTime, wouldTime;
+
+	// save old animation
+	lf->old_animationNumber = lf->animationNumber;
+	lf->old_animation = lf->animation;
+	lf->old_weaponNumber = lf->weaponNumber;
+
+	lf->weaponNumber = weaponNumber;
+	lf->animationNumber = weaponAnimation;
+
+	if(weaponAnimation < 0 || weaponAnimation >= MAX_WEAPON_STATES)
+	{
+		CG_Error("bad weapon animation number: %i", weaponAnimation);
+	}
+
+	anim = &wi->viewModel_animations[weaponAnimation];
+
+	lf->animation = anim;
+	lf->animationStartTime = lf->frameTime + anim->initialLerp;
+
+	shouldTime = weaponTime;
+	wouldTime = anim->numFrames * anim->frameTime;
+
+	if(shouldTime != wouldTime && shouldTime > 0)
+	{
+		lf->animationScale = (float)wouldTime / shouldTime;
+	}
+	else
+	{
+		lf->animationScale = 1.0f;
+	}
+
+	if(lf->old_animationNumber <= 0 || lf->old_weaponNumber != lf->weaponNumber)
+	{
+		// skip initial / invalid blending
+		lf->blendlerp = 0.0f;
+		return;
+	}
+
+	// TODO: blend through two blendings!
+
+	if((lf->blendlerp <= 0.0f))
+		lf->blendlerp = 1.0f;
+	else
+		lf->blendlerp = 1.0f - lf->blendlerp;	// use old blending for smooth blending between two blended animations
+
+#if 0
+	memcpy(&lf->oldSkeleton, &lf->skeleton, sizeof(refSkeleton_t));
+#else
+	if(!trap_R_BuildSkeleton(&lf->oldSkeleton, lf->old_animation->handle, lf->oldFrame, lf->frame, lf->blendlerp, lf->old_animation->clearOrigin))
+	{
+		CG_Printf("CG_SetWeaponLerpFrameAnimation: can't build old skeleton\n");
+		return;
+	}
+#endif
+
+	if(cg_debugWeaponAnim.integer)
+	{
+		Com_Printf("CG_SetWeaponLerpFrameAnimation: weapon=%i new anim=%i old anim=%i time=%i\n", weaponNumber, weaponAnimation, lf->old_animationNumber, weaponTime);
+	}
+}
+
+/*
+===============
+CG_RunWeaponLerpFrame
+
+Sets cg.snap, cg.oldFrame, and cg.backlerp
+cg.time should be between oldFrameTime and frameTime after exit
+===============
+*/
+static void CG_RunWeaponLerpFrame(weaponInfo_t * wi, lerpFrame_t * lf, int weaponNumber, int weaponAnimation, int weaponTime,
+								  float speedScale)
+{
+	int             f, numFrames;
+	animation_t    *anim;
+	qboolean        animChanged;
+
+	// debugging tool to get no animations
+	if(cg_animSpeed.integer == 0)
+	{
+		lf->oldFrame = lf->frame = lf->backlerp = 0;
+		return;
+	}
+
+	// see if the animation sequence is switching
+	if(weaponAnimation != lf->animationNumber || !lf->animation || lf->weaponNumber != weaponNumber)
+	{
+		CG_SetWeaponLerpFrameAnimation(wi, lf, weaponNumber, weaponAnimation, weaponTime);
+
+		if(!lf->animation)
+		{
+			memcpy(&lf->oldSkeleton, &lf->skeleton, sizeof(refSkeleton_t));
+		}
+
+		animChanged = qtrue;
+	}
+	else
+	{
+		animChanged = qfalse;
+	}
+
+	// if we have passed the current frame, move it to
+	// oldFrame and calculate a new frame
+	if(cg.time >= lf->frameTime || animChanged)
+	{
+		if(animChanged)
+		{
+			lf->oldFrame = 0;
+			lf->oldFrameTime = cg.time;
+		}
+		else
+		{
+			lf->oldFrame = lf->frame;
+			lf->oldFrameTime = lf->frameTime;
+		}
+
+		// get the next frame based on the animation
+		anim = lf->animation;
+		if(!anim->frameTime)
+		{
+			if(cg_debugWeaponAnim.integer)
+			{
+				CG_Printf("!anim->frameTime\n");
+			}
+			return;				// shouldn't happen
+		}
+
+		if(cg.time < lf->animationStartTime)
+		{
+			lf->frameTime = lf->animationStartTime;	// initial lerp
+		}
+		else
+		{
+			lf->frameTime = lf->oldFrameTime + anim->frameTime;
+		}
+
+		f = (lf->frameTime - lf->animationStartTime) / anim->frameTime;
+		f *= lf->animationScale;
+		f *= speedScale;		// adjust for haste, etc
+
+		//CG_Printf("CG_RunWeaponLerpFrame: lf->frameTime=%i anim->frameTime=%i startTime=%i frame=%i weapon=%i\n", lf->frameTime, anim->frameTime, lf->animationStartTime, f, weaponNumber);
+
+		numFrames = anim->numFrames;
+
+		if(anim->flipflop)
+		{
+			numFrames *= 2;
+		}
+
+		if(f >= numFrames)
+		{
+			f -= numFrames;
+
+			if(anim->loopFrames)
+			{
+				//CG_Printf("CG_RunWeaponLerpFrame: looping animation %i for weapon %i\n", weaponAnimation, weaponNumber);
+
+				//f %= anim->numFrames;
+				f %= anim->loopFrames;
+				f += anim->numFrames - anim->loopFrames;
+			}
+			else
+			{
+				f = numFrames - 1;
+				// the animation is stuck at the end, so it
+				// can immediately transition to another sequence
+				lf->frameTime = cg.time;
+			}
+		}
+
+		if(anim->reversed)
+		{
+			lf->frame = anim->firstFrame + anim->numFrames - 1 - f;
+		}
+		else if(anim->flipflop && f >= anim->numFrames)
+		{
+			lf->frame = anim->firstFrame + anim->numFrames - 1 - (f % anim->numFrames);
+		}
+		else
+		{
+			lf->frame = anim->firstFrame + f;
+		}
+
+		if(cg.time > lf->frameTime)
+		{
+			lf->frameTime = cg.time;
+			if(cg_debugWeaponAnim.integer)
+			{
+				CG_Printf("clamp weapon lf->frameTime\n");
+			}
+		}
+	}
+
+	if(lf->frameTime > cg.time + 200)
+	{
+		lf->frameTime = cg.time;
+	}
+
+	if(lf->oldFrameTime > cg.time)
+	{
+		lf->oldFrameTime = cg.time;
+	}
+
+	// calculate current lerp value
+	if(lf->frameTime == lf->oldFrameTime)
+	{
+		lf->backlerp = 0;
+	}
+	else
+	{
+		lf->backlerp = 1.0 - (float)(cg.time - lf->oldFrameTime) / (lf->frameTime - lf->oldFrameTime);
+	}
+
+	// blend old and current animation
+	if(cg_animBlend.value <= 0.0f)
+	{
+		lf->blendlerp = 0.0f;
+	}
+
+	if((lf->blendlerp > 0.0f) && (cg.time > lf->blendtime))
+	{
+#if 0
+		// linear blending
+		lf->blendlerp -= 0.025f;
+#else
+		// exp blending
+		lf->blendlerp -= lf->blendlerp / cg_animBlend.value;
+#endif
+		if(lf->blendlerp <= 0.0f)
+		{
+			lf->blendlerp = 0.0f;
+		}
+
+		if(lf->blendlerp >= 1.0f)
+		{
+			lf->blendlerp = 1.0f;
+		}
+
+		lf->blendtime = cg.time + 10;
+	}
+
+	if(!trap_R_BuildSkeleton(&lf->skeleton, lf->animation->handle, lf->oldFrame, lf->frame, 1.0 - lf->backlerp, lf->animation->clearOrigin))
+	{
+		CG_Printf("CG_RunWeaponLerpFrame: Can't build lf->skeleton\n");
+	}
+
+	// lerp between old and new animation if possible
+	if(lf->blendlerp > 0.0f)
+	{
+		if(!trap_R_BlendSkeleton(&lf->skeleton, &lf->oldSkeleton, lf->blendlerp))
+		{
+			CG_Printf("CG_RunWeaponLerpFrame: Can't blend lf->skeleton\n");
+			return;
+		}
+	}
+}
+
+/*
+=================
+CG_WeaponAnimation
+=================
+*/
+static void CG_WeaponAnimation(centity_t * cent, weaponInfo_t * weapon, int weaponNumber, int weaponState, int weaponTime)
+{
+	clientInfo_t   *ci;
+	int             clientNum;
+	float           speedScale;
+
+	clientNum = cent->currentState.clientNum;
+
+	if(cent->currentState.powerups & (1 << PW_HASTE))
+	{
+		speedScale = 1.5;
+	}
+	else
+	{
+		speedScale = 1;
+	}
+
+	ci = &cgs.clientinfo[clientNum];
+
+	// change weapon animation
+	CG_RunWeaponLerpFrame(weapon, &cent->pe.gun, weaponNumber, weaponState, weaponTime, speedScale);
+}
 
 /*
 ==============
@@ -1395,7 +1685,6 @@ void CG_AddPlayerWeapon(refEntity_t * parent, playerState_t * ps, centity_t * ce
 	weapon_t        weaponNum;
 	weaponInfo_t   *weapon;
 	centity_t      *nonPredictedCent;
-	orientation_t   lerped;
 
 	weaponNum = cent->currentState.weapon;
 
@@ -1451,23 +1740,63 @@ void CG_AddPlayerWeapon(refEntity_t * parent, playerState_t * ps, centity_t * ce
 		}
 	}
 
-	trap_R_LerpTag(&lerped, parent->hModel, parent->oldframe, parent->frame, 1.0 - parent->backlerp, "tag_weapon");
-	VectorCopy(parent->origin, gun.origin);
+#if 1
+	if(ps)
+	{
+		CG_PositionEntityOnTag(&gun, parent, parent->hModel, "tag_weapon");
+	}
+	else
+	{
+		int             boneIndex;
 
-	VectorMA(gun.origin, lerped.origin[0], parent->axis[0], gun.origin);
+		switch (weaponNum)
+		{
+			case WP_MACHINEGUN:
+			default:
+			{
+				boneIndex = trap_R_BoneIndex(parent->hModel, "tag_weapon");
+				if(boneIndex >= 0 && boneIndex < cent->pe.torso.skeleton.numBones)
+				{
+					AxisClear(gun.axis);
+					CG_PositionRotatedEntityOnBone(&gun, parent, parent->hModel, "tag_weapon");
+					break;
+				}
 
-	// Make weapon appear left-handed for 2 and centered for 3
-	if(ps && cg_drawGun.integer == 2)
-		VectorMA(gun.origin, -lerped.origin[1], parent->axis[1], gun.origin);
-	else if(!ps || cg_drawGun.integer != 3)
-		VectorMA(gun.origin, lerped.origin[1], parent->axis[1], gun.origin);
+				boneIndex = trap_R_BoneIndex(parent->hModel, "MG_ATTACHER");
+				if(boneIndex >= 0 && boneIndex < cent->pe.torso.skeleton.numBones)
+				{
+					// HACK: this is bone specific
+					vec3_t          angles;
 
-	VectorMA(gun.origin, lerped.origin[2], parent->axis[2], gun.origin);
+					angles[PITCH] = -90;
+					angles[YAW] = 0;
+					angles[ROLL] = -90;
 
-	AxisMultiply(lerped.axis, ((refEntity_t *) parent)->axis, gun.axis);
-	gun.backlerp = parent->backlerp;
+					AnglesToAxis(angles, gun.axis);
+
+					CG_PositionRotatedEntityOnBone(&gun, parent, parent->hModel, "MG_ATTACHER");
+					break;
+				}
+				break;
+			}
+		}
+	}
+#else
+	CG_PositionEntityOnTag(&gun, parent, parent->hModel, "tag_weapon");
+#endif
 
 	CG_AddWeaponWithPowerups(&gun, cent->currentState.powerups);
+
+	// make sure we aren't looking at cg.predictedPlayerEntity for LG
+	nonPredictedCent = &cg_entities[cent->currentState.clientNum];
+
+	// if the index of the nonPredictedCent is not the same as the clientNum
+	// then this is a fake player (like on teh single player podiums), so
+	// go ahead and use the cent
+	if((nonPredictedCent - cg_entities) != cent->currentState.clientNum)
+	{
+		nonPredictedCent = cent;
+	}
 
 	// add the spinning barrel
 	if(weapon->barrelModel)
@@ -1487,17 +1816,6 @@ void CG_AddPlayerWeapon(refEntity_t * parent, playerState_t * ps, centity_t * ce
 		CG_PositionRotatedEntityOnTag(&barrel, &gun, weapon->weaponModel, "tag_barrel");
 
 		CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
-	}
-
-	// make sure we aren't looking at cg.predictedPlayerEntity for LG
-	nonPredictedCent = &cg_entities[cent->currentState.clientNum];
-
-	// if the index of the nonPredictedCent is not the same as the clientNum
-	// then this is a fake player (like on teh single player podiums), so
-	// go ahead and use the cent
-	if((nonPredictedCent - cg_entities) != cent->currentState.clientNum)
-	{
-		nonPredictedCent = cent;
 	}
 
 	// add the flash
@@ -1635,7 +1953,6 @@ void CG_AddViewWeapon(playerState_t * ps)
 
 	if(weapon->viewModel && weapon->viewModel_animations[WEAPON_READY].handle)
 	{
-#if 0
 		refEntity_t     gun;
 		vec3_t          angles;
 		centity_t      *nonPredictedCent;
@@ -1766,7 +2083,6 @@ void CG_AddViewWeapon(playerState_t * ps)
 		}
 
 		CG_AddWeaponWithPowerups(&gun, cent->currentState.powerups);
-#endif
 	}
 	else
 	{
@@ -2466,7 +2782,8 @@ CG_MissileHitPlayer
 */
 void CG_MissileHitPlayer(int weapon, vec3_t origin, vec3_t dir, int entityNum)
 {
-	CG_Bleed(origin, entityNum);
+//	CG_Bleed(origin, entityNum);
+//	CG_ParticleBlood(origin, dir, 3);
 
 	// some weapons will make an explosion with the blood, while
 	// others will just make the blood
@@ -2811,7 +3128,8 @@ void CG_Bullet(vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, i
 	// impact splash and mark
 	if(flesh)
 	{
-		CG_Bleed(end, fleshEntityNum);
+		//CG_Bleed(end, fleshEntityNum);  OLD
+		//CG_ParticleBlood(end, trace.plane.normal, 3);
 	}
 	else
 	{

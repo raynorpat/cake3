@@ -20,12 +20,11 @@ along with XreaL source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-//
+
 // cg_predict.c -- this file generates cg.predictedPlayerState by either
 // interpolating between snapshots from the server or locally predicting
 // ahead the client's movement.
 // It also handles local physics interaction, like fragments bouncing off walls
-
 #include "cg_local.h"
 
 static pmove_t  cg_pmove;
@@ -90,8 +89,9 @@ CG_ClipMoveToEntities
 
 ====================
 */
-static void CG_ClipMoveToEntities(const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
-								  int skipNumber, int mask, trace_t * tr)
+static void CG_ClipMoveToEntities(const vec3_t start, const vec3_t mins,
+								  const vec3_t maxs, const vec3_t end, int skipNumber,
+								  int mask, trace_t * tr, traceType_t collisionType)
 {
 	int             i, x, zd, zu;
 	trace_t         trace;
@@ -136,16 +136,36 @@ static void CG_ClipMoveToEntities(const vec3_t start, const vec3_t mins, const v
 		}
 
 
-		trap_CM_TransformedBoxTrace(&trace, start, end, mins, maxs, cmodel, mask, origin, angles);
+		if(collisionType == TT_CAPSULE)
+		{
+			trap_CM_TransformedCapsuleTrace(&trace, start, end, mins, maxs, cmodel, mask, origin, angles);
+		}
+		else if(collisionType == TT_AABB)
+		{
+			trap_CM_TransformedBoxTrace(&trace, start, end, mins, maxs, cmodel, mask, origin, angles);
+		}
+		else if(collisionType == TT_BISPHERE)
+		{
+			trap_CM_TransformedBiSphereTrace(&trace, start, end, mins[0], maxs[0], cmodel, mask, origin);
+		}
 
 		if(trace.allsolid || trace.fraction < tr->fraction)
 		{
 			trace.entityNum = ent->number;
-			*tr = trace;
+			if(tr->lateralFraction < trace.lateralFraction)
+			{
+				float           oldLateralFraction = tr->lateralFraction;
+
+				*tr = trace;
+				tr->lateralFraction = oldLateralFraction;
+			}
+			else
+				*tr = trace;
 		}
 		else if(trace.startsolid)
 		{
 			tr->startsolid = qtrue;
+			tr->entityNum = ent->number;
 		}
 		if(tr->allsolid)
 		{
@@ -167,7 +187,47 @@ void CG_Trace(trace_t * result, const vec3_t start, const vec3_t mins, const vec
 	trap_CM_BoxTrace(&t, start, end, mins, maxs, 0, mask);
 	t.entityNum = t.fraction != 1.0 ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
 	// check all other solid models
-	CG_ClipMoveToEntities(start, mins, maxs, end, skipNumber, mask, &t);
+	CG_ClipMoveToEntities(start, mins, maxs, end, skipNumber, mask, &t, TT_AABB);
+
+	*result = t;
+}
+
+/*
+================
+CG_CapTrace
+================
+*/
+void CG_CapTrace(trace_t * result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
+				 int skipNumber, int mask)
+{
+	trace_t         t;
+
+	trap_CM_CapsuleTrace(&t, start, end, mins, maxs, 0, mask);
+	t.entityNum = t.fraction != 1.0 ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
+	// check all other solid models
+	CG_ClipMoveToEntities(start, mins, maxs, end, skipNumber, mask, &t, TT_CAPSULE);
+
+	*result = t;
+}
+
+/*
+================
+CG_BiSphereTrace
+================
+*/
+void CG_BiSphereTrace(trace_t * result, const vec3_t start, const vec3_t end,
+					  const float startRadius, const float endRadius, int skipNumber, int mask)
+{
+	trace_t         t;
+	vec3_t          mins, maxs;
+
+	mins[0] = startRadius;
+	maxs[0] = endRadius;
+
+	trap_CM_BiSphereTrace(&t, start, end, startRadius, endRadius, 0, mask);
+	t.entityNum = t.fraction != 1.0 ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
+	// check all other solid models
+	CG_ClipMoveToEntities(start, mins, maxs, end, skipNumber, mask, &t, TT_BISPHERE);
 
 	*result = t;
 }
@@ -410,7 +470,7 @@ static void CG_TouchTriggerPrediction(void)
 		VectorCopy(cent->lerpAngles, angles);
 		BG_EvaluateTrajectory(&cent->currentState.pos, cg.physicsTime, origin);
 
-		trap_CM_TransformedBoxTrace(&trace, cg.predictedPlayerState.origin, cg.predictedPlayerState.origin,
+		trap_CM_TransformedCapsuleTrace(&trace, cg.predictedPlayerState.origin, cg.predictedPlayerState.origin,
 						 cg_pmove.mins, cg_pmove.maxs, cmodel, -1, origin, angles);
 
 		if(!trace.startsolid)
@@ -500,7 +560,7 @@ void CG_PredictPlayerState(void)
 
 	// prepare for pmove
 	cg_pmove.ps = &cg.predictedPlayerState;
-	cg_pmove.trace = CG_Trace;
+	cg_pmove.trace = CG_CapTrace;	// FIXME CG_CapTrace;
 	cg_pmove.pointcontents = CG_PointContents;
 	if(cg_pmove.ps->pm_type == PM_DEAD)
 	{

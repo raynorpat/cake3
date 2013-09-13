@@ -480,6 +480,7 @@ void CG_DrawHead(float x, float y, float w, float h, int clientNum, vec3_t headA
 
 	ci = &cgs.clientinfo[clientNum];
 
+	/*
 	if(cg_draw3dIcons.integer)
 	{
 		cm = ci->headModel;
@@ -504,7 +505,7 @@ void CG_DrawHead(float x, float y, float w, float h, int clientNum, vec3_t headA
 
 		CG_Draw3DModel(x, y, w, h, ci->headModel, ci->headSkin, origin, headAngles);
 	}
-	else if(cg_drawIcons.integer)
+	else*/ if(cg_drawIcons.integer)
 	{
 		CG_DrawPic(x, y, w, h, ci->modelIcon);
 	}
@@ -531,6 +532,7 @@ void CG_DrawFlagModel(float x, float y, float w, float h, int team, qboolean for
 	vec3_t          mins, maxs;
 	qhandle_t       handle;
 
+	/*
 	if(!force2D && cg_draw3dIcons.integer)
 	{
 		VectorClear(angles);
@@ -568,7 +570,7 @@ void CG_DrawFlagModel(float x, float y, float w, float h, int team, qboolean for
 		}
 		CG_Draw3DModel(x, y, w, h, handle, 0, origin, angles);
 	}
-	else if(cg_drawIcons.integer)
+	else*/ if(cg_drawIcons.integer)
 	{
 		gitem_t        *item;
 

@@ -1340,7 +1340,8 @@ void CG_EntityEvent(centity_t * cent, vec3_t position)
 			{
 				trap_S_StartSound(NULL, es->number, CHAN_BODY, cgs.media.gibSound);
 			}
-			CG_GibPlayer(cent->lerpOrigin);
+			//CG_GibPlayer(cent->lerpOrigin);
+			CG_ParticleGibEffect(cent->lerpOrigin);
 			break;
 
 		case EV_STOPLOOPINGSOUND:

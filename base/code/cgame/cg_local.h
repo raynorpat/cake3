@@ -86,7 +86,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef enum
 {
-	FOOTSTEP_NORMAL,
+	FOOTSTEP_STONE,
 	FOOTSTEP_BOOT,
 	FOOTSTEP_FLESH,
 	FOOTSTEP_MECH,
@@ -113,7 +113,7 @@ typedef enum
 // because corpses after respawn are outside the normal
 // client numbering range
 
-// when changing animation, set animationTime to frameTime + lerping time
+// when changing animation, set animationStartTime to frameTime + lerping time
 // The current lerp will finish out, then it will lerp to the new animation
 typedef struct
 {
@@ -149,6 +149,30 @@ typedef struct
 	int             old_weaponNumber;
 } lerpFrame_t;
 
+// debugging values:
+int             debug_anim_current;
+int             debug_anim_old;
+float           debug_anim_blend;
+
+
+// player entities need to track more information
+// than any other type of entity.
+
+// note that not every player entity is a client entity,
+// because corpses after respawn are outside the normal
+// client numbering range
+
+//TA: smoothing of view and model for WW transitions
+#define   MAXSMOOTHS          32
+
+typedef struct
+{
+	float           time;
+	float           timeMod;
+
+	vec3_t          rotAxis;
+	float           rotAngle;
+} smooth_t;
 
 typedef struct
 {
@@ -163,6 +187,10 @@ typedef struct
 	float           barrelAngle;
 	int             barrelTime;
 	qboolean        barrelSpinning;
+
+	// death effect
+	int             deathTime;
+	float           deathScale;
 } playerEntity_t;
 
 //=================================================
@@ -369,8 +397,6 @@ typedef struct
 	// gameplay
 	char            modelName[MAX_QPATH];
 	char            skinName[MAX_QPATH];
-	char            headModelName[MAX_QPATH];
-	char            headSkinName[MAX_QPATH];
 	char            redTeam[MAX_TEAMNAME];
 	char            blueTeam[MAX_TEAMNAME];
 	qboolean        deferred;
@@ -383,18 +409,21 @@ typedef struct
 	footstep_t      footsteps;
 	gender_t        gender;		// from model
 
-	qhandle_t       legsModel;
-	qhandle_t       legsSkin;
+	// Tr3B: don't forget to add these values to CG_CopyClientInfoModel !
+	char            firstTorsoBoneName[MAX_QPATH];
+	char            lastTorsoBoneName[MAX_QPATH];
 
-	qhandle_t       torsoModel;
-	qhandle_t       torsoSkin;
+	char            torsoControlBoneName[MAX_QPATH];
+	char            neckControlBoneName[MAX_QPATH];
 
-	qhandle_t       headModel;
-	qhandle_t       headSkin;
+	vec3_t          modelScale;
+
+	qhandle_t       bodyModel;
+	qhandle_t       bodySkin;
 
 	qhandle_t       modelIcon;
 
-	animation_t     animations[MAX_TOTALANIMATIONS];
+	animation_t     animations[MAX_PLAYER_ANIMATIONS];
 
 	sfxHandle_t     sounds[MAX_CUSTOM_SOUNDS];
 } clientInfo_t;
@@ -452,6 +481,7 @@ typedef struct
 	qboolean        registered;
 	qhandle_t       models[MAX_ITEM_MODELS];
 	qhandle_t       skins[MAX_ITEM_MODELS];
+	lerpFrame_t     lerpFrame;
 	qhandle_t       icon;
 } itemInfo_t;
 
@@ -778,19 +808,15 @@ typedef struct
 	qhandle_t       redCubeIcon;
 	qhandle_t       blueCubeIcon;
 #endif
-	qhandle_t       redFlagModel;
-	qhandle_t       blueFlagModel;
-	qhandle_t       neutralFlagModel;
+	qhandle_t       flagModel;
+	animation_t     flagAnimations[MAX_FLAG_ANIMATIONS];
+	qhandle_t       redFlagSkin;
+	qhandle_t       blueFlagSkin;
+	qhandle_t       neutralFlagSkin;
+
 	qhandle_t       redFlagShader[3];
 	qhandle_t       blueFlagShader[3];
 	qhandle_t       flagShader[4];
-
-	qhandle_t       flagPoleModel;
-	qhandle_t       flagFlapModel;
-
-	qhandle_t       redFlagFlapSkin;
-	qhandle_t       blueFlagFlapSkin;
-	qhandle_t       neutralFlagFlapSkin;
 
 	qhandle_t       redFlagBaseModel;
 	qhandle_t       blueFlagBaseModel;
@@ -902,6 +928,9 @@ typedef struct
 	qhandle_t       redKamikazeShader;
 	qhandle_t       blueKamikazeShader;
 #endif
+
+	//effect shaders
+	qhandle_t       unlinkEffect;
 
 	// weapon effect models
 	qhandle_t       dishFlashModel;
@@ -1109,6 +1138,10 @@ typedef struct
 	sfxHandle_t     wstbimpmSound;
 	sfxHandle_t     wstbimpdSound;
 	sfxHandle_t     wstbactvSound;
+
+	// debug utils
+	qhandle_t       debugPlayerAABB;
+	qhandle_t       debugPlayerAABB_twoSided;
 } cgMedia_t;
 
 
@@ -1242,7 +1275,9 @@ extern vmCvar_t cg_crosshairPulse;
 extern vmCvar_t cg_drawStatus;
 extern vmCvar_t cg_draw2D;
 extern vmCvar_t cg_animSpeed;
-extern vmCvar_t cg_debugAnim;
+extern vmCvar_t cg_animBlend;
+extern vmCvar_t cg_debugPlayerAnim;
+extern vmCvar_t cg_debugWeaponAnim;
 extern vmCvar_t cg_debugPosition;
 extern vmCvar_t cg_debugEvents;
 extern vmCvar_t cg_railTrailTime;
@@ -1328,6 +1363,8 @@ extern vmCvar_t cg_recordSPDemoName;
 extern vmCvar_t cg_obeliskRespawnDelay;
 #endif
 
+extern vmCvar_t cg_drawPlayerCollision;
+
 //
 // cg_main.c
 //
@@ -1352,6 +1389,15 @@ void            CG_SetScoreSelection(void *menu);
 score_t        *CG_GetSelectedScore(void);
 void            CG_BuildSpectatorString(void);
 
+//
+// cg_animation.c
+//
+qboolean        CG_RegisterAnimation(animation_t * anim, const char *filename,
+									 qboolean loop, qboolean reversed, qboolean clearOrigin);
+
+void            CG_SetLerpFrameAnimation(lerpFrame_t * lf, animation_t * anims, int animsNum, int newAnimation);
+void            CG_RunLerpFrame(lerpFrame_t * lf, animation_t * anims, int animsNum, int newAnimation, float speedScale);
+
 
 //
 // cg_view.c
@@ -1360,6 +1406,8 @@ void            CG_TestModel_f(void);
 void            CG_TestGun_f(void);
 void            CG_TestModelNextFrame_f(void);
 void            CG_TestModelPrevFrame_f(void);
+void            CG_TestModelIncreaseLerp_f(void);
+void            CG_TestModelDecreaseLerp_f(void);
 void            CG_TestModelNextSkin_f(void);
 void            CG_TestModelPrevSkin_f(void);
 void            CG_TestAnimation_f(void);
@@ -1367,6 +1415,7 @@ void            CG_TestBlend_f(void);
 void            CG_TestOmniLight_f(void);
 void            CG_TestProjLight_f(void);
 void            CG_TestFlashLight_f(void);
+void            CG_TestGib_f(void);
 void            CG_ZoomDown_f(void);
 void            CG_ZoomUp_f(void);
 void            CG_AddBufferedSound(sfxHandle_t sfx);
@@ -1458,6 +1507,7 @@ void            CG_ResetPlayerEntity(centity_t * cent);
 void            CG_AddRefEntityWithPowerups(refEntity_t * ent, entityState_t * state, int team);
 void            CG_NewClientInfo(int clientNum);
 sfxHandle_t     CG_CustomSound(int clientNum, const char *soundName);
+void            CG_DrawPlayerCollision(centity_t * cent, const vec3_t bodyOrigin, const matrix_t bodyRotation);
 
 //
 // cg_predict.c
@@ -1466,6 +1516,10 @@ void            CG_BuildSolidList(void);
 int             CG_PointContents(const vec3_t point, int passEntityNum);
 void            CG_Trace(trace_t * result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
 						 int skipNumber, int mask);
+void            CG_CapTrace(trace_t * result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
+							int skipNumber, int mask);
+void            CG_BiSphereTrace(trace_t * result, const vec3_t start, const vec3_t end,
+								 const float startRadius, const float endRadius, int skipNumber, int mask);
 void            CG_PredictPlayerState(void);
 void            CG_LoadDeferredPlayers(void);
 
@@ -1549,7 +1603,6 @@ localEntity_t  *CG_SmokePuff(const vec3_t p,
 							 float r, float g, float b, float a,
 							 float duration, int startTime, int fadeInTime, int leFlags, qhandle_t hShader);
 void            CG_BubbleTrail(vec3_t start, vec3_t end, float spacing);
-void            CG_SpawnEffect(vec3_t org);
 
 #ifdef MISSIONPACK
 void            CG_KamikazeEffect(vec3_t org);
@@ -1562,7 +1615,6 @@ void            CG_LightningBoltBeam(vec3_t start, vec3_t end);
 void            CG_ScorePlum(int client, vec3_t org, int score);
 
 void            CG_GibPlayer(vec3_t playerOrigin);
-void            CG_BigExplode(vec3_t playerOrigin);
 
 void            CG_Bleed(vec3_t origin, int entityNum);
 
@@ -1699,8 +1751,13 @@ void            CG_BreathPuffs(centity_t * cent, const vec3_t headOrigin, const 
 void            CG_PlayerSprites(centity_t * cent);
 void            CG_PlayerSplash(centity_t * cent);
 qboolean        CG_PlayerShadow(centity_t * cent, float *shadowPlane, int noShadowID);
-qboolean		CG_FindClientModelFile(char *filename, int length, clientInfo_t * ci, const char *teamName, const char *modelName,
+qboolean        CG_FindClientModelFile(char *filename, int length, clientInfo_t * ci, const char *modelName,
 									   const char *skinName, const char *base, const char *ext);
+
+//
+// cg_animation.c
+//
+void            CG_RunLerpFrame(lerpFrame_t * lf, animation_t * anims, int animsNum, int newAnimation, float speedScale);
 
 //===============================================
 

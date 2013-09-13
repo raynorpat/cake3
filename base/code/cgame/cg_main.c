@@ -124,7 +124,9 @@ vmCvar_t        cg_crosshairPulse;
 vmCvar_t        cg_draw2D;
 vmCvar_t        cg_drawStatus;
 vmCvar_t        cg_animSpeed;
-vmCvar_t        cg_debugAnim;
+vmCvar_t        cg_animBlend;
+vmCvar_t        cg_debugPlayerAnim;
+vmCvar_t        cg_debugWeaponAnim;
 vmCvar_t        cg_debugPosition;
 vmCvar_t        cg_debugEvents;
 vmCvar_t        cg_errorDecay;
@@ -213,6 +215,8 @@ vmCvar_t        cg_recordSPDemoName;
 vmCvar_t        cg_obeliskRespawnDelay;
 #endif
 
+vmCvar_t        cg_drawPlayerCollision;
+
 typedef struct
 {
 	vmCvar_t       *vmCvar;
@@ -268,7 +272,9 @@ static cvarTable_t cvarTable[] = {
 	{&cg_bobroll, "cg_bobroll", "0.002", CVAR_ARCHIVE},
 	{&cg_swingSpeed, "cg_swingSpeed", "0.3", CVAR_CHEAT},
 	{&cg_animSpeed, "cg_animspeed", "1", CVAR_CHEAT},
-	{&cg_debugAnim, "cg_debuganim", "0", CVAR_CHEAT},
+	{&cg_animBlend, "cg_animblend", "5.0", CVAR_ARCHIVE},
+	{&cg_debugPlayerAnim, "cg_debugPlayerAnim", "0", CVAR_CHEAT},
+	{&cg_debugWeaponAnim, "cg_debugWeaponAnim", "0", CVAR_CHEAT},
 	{&cg_debugPosition, "cg_debugposition", "0", CVAR_CHEAT},
 	{&cg_debugEvents, "cg_debugevents", "0", CVAR_CHEAT},
 	{&cg_errorDecay, "cg_errordecay", "100", 0},
@@ -341,6 +347,7 @@ static cvarTable_t cvarTable[] = {
 	{&cg_trueLightning, "cg_trueLightning", "0.0", CVAR_ARCHIVE},
 	{&cg_particles, "cg_particles", "1", CVAR_ARCHIVE},
 	{&cg_particleCollision, "cg_particleCollision", "0", CVAR_ARCHIVE},
+	{&cg_drawPlayerCollision, "cg_drawPlayerCollision", "0", CVAR_CHEAT},
 //  { &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 
@@ -743,7 +750,7 @@ static void CG_RegisterSounds(void)
 	for(i = 0; i < 4; i++)
 	{
 		Com_sprintf(name, sizeof(name), "sound/player/footsteps/stone%i.ogg", i + 1);
-		cgs.media.footsteps[FOOTSTEP_NORMAL][i] = trap_S_RegisterSound(name);
+		cgs.media.footsteps[FOOTSTEP_STONE][i] = trap_S_RegisterSound(name);
 
 		Com_sprintf(name, sizeof(name), "sound/player/footsteps/softrug%i.ogg", i + 1);
 		cgs.media.footsteps[FOOTSTEP_BOOT][i] = trap_S_RegisterSound(name);
@@ -929,6 +936,9 @@ static void CG_RegisterGraphics(void)
 	cgs.media.regenShader = trap_R_RegisterShader("powerups/regen");
 	cgs.media.hastePuffShader = trap_R_RegisterShader("hasteSmokePuff");
 
+	// effects
+	cgs.media.unlinkEffect = trap_R_RegisterShader("player/unlink_effect");
+
 #ifdef MISSIONPACK
 	if(cgs.gametype == GT_HARVESTER || cg_buildScript.integer)
 	{
@@ -944,22 +954,22 @@ static void CG_RegisterGraphics(void)
 	if(cgs.gametype == GT_CTF || cg_buildScript.integer)
 	{
 #endif
-		cgs.media.redFlagModel = trap_R_RegisterModel("models/flags/r_flag.md3");
-		cgs.media.blueFlagModel = trap_R_RegisterModel("models/flags/b_flag.md3");
+		cgs.media.flagModel = trap_R_RegisterModel("models/flags/flag.md5mesh");
+		CG_RegisterAnimation(&cgs.media.flagAnimations[FLAG_IDLE], "models/flags/flag_idle.md5anim", qtrue, qfalse, qtrue);
+		CG_RegisterAnimation(&cgs.media.flagAnimations[FLAG_RUN], "models/flags/flag_run.md5anim", qtrue, qfalse, qtrue);
+
+		cgs.media.redFlagSkin = trap_R_RegisterSkin("models/flags/flag_red.skin");
+		cgs.media.blueFlagSkin = trap_R_RegisterSkin("models/flags/flag_blue.skin");
+
 		cgs.media.redFlagShader[0] = trap_R_RegisterShaderNoMip("icons/iconf_red1");
 		cgs.media.redFlagShader[1] = trap_R_RegisterShaderNoMip("icons/iconf_red2");
 		cgs.media.redFlagShader[2] = trap_R_RegisterShaderNoMip("icons/iconf_red3");
+
 		cgs.media.blueFlagShader[0] = trap_R_RegisterShaderNoMip("icons/iconf_blu1");
 		cgs.media.blueFlagShader[1] = trap_R_RegisterShaderNoMip("icons/iconf_blu2");
 		cgs.media.blueFlagShader[2] = trap_R_RegisterShaderNoMip("icons/iconf_blu3");
+
 #ifdef MISSIONPACK
-		cgs.media.flagPoleModel = trap_R_RegisterModel("models/flag2/flagpole.md3");
-		cgs.media.flagFlapModel = trap_R_RegisterModel("models/flag2/flagflap3.md3");
-
-		cgs.media.redFlagFlapSkin = trap_R_RegisterSkin("models/flag2/red.skin");
-		cgs.media.blueFlagFlapSkin = trap_R_RegisterSkin("models/flag2/blue.skin");
-		cgs.media.neutralFlagFlapSkin = trap_R_RegisterSkin("models/flag2/white.skin");
-
 		cgs.media.redFlagBaseModel = trap_R_RegisterModel("models/mapobjects/flagbase/red_base.md3");
 		cgs.media.blueFlagBaseModel = trap_R_RegisterModel("models/mapobjects/flagbase/blue_base.md3");
 		cgs.media.neutralFlagBaseModel = trap_R_RegisterModel("models/mapobjects/flagbase/ntrl_base.md3");
@@ -969,7 +979,8 @@ static void CG_RegisterGraphics(void)
 #ifdef MISSIONPACK
 	if(cgs.gametype == GT_1FCTF || cg_buildScript.integer)
 	{
-		cgs.media.neutralFlagModel = trap_R_RegisterModel("models/flags/n_flag.md3");
+		cgs.media.neutralFlagSkin = trap_R_RegisterSkin("models/flags/flag_neutral.skin");
+
 		cgs.media.flagShader[0] = trap_R_RegisterShaderNoMip("icons/iconf_neutral1");
 		cgs.media.flagShader[1] = trap_R_RegisterShaderNoMip("icons/iconf_red2");
 		cgs.media.flagShader[2] = trap_R_RegisterShaderNoMip("icons/iconf_blu2");
@@ -1112,6 +1123,10 @@ static void CG_RegisterGraphics(void)
 		}
 		cgs.gameModels[i] = trap_R_RegisterModel(modelName);
 	}
+
+	// debug utils
+	cgs.media.debugPlayerAABB = trap_R_RegisterShader("debugPlayerAABB");
+	cgs.media.debugPlayerAABB_twoSided = trap_R_RegisterShader("debugPlayerAABB_twoSided");
 
 #ifdef MISSIONPACK
 	// new stuff

@@ -482,6 +482,18 @@ static void CG_Item(centity_t * cent)
 		ent.customSkin = cg_items[es->modelindex].skins[0];
 	}
 
+#if 0
+	if(item->animations[0])
+	{
+		CG_RunLerpFrame(&cent->pe.flag, cg_items[es->modelindex].animations[0], es->an MAX_FLAG_ANIMATIONS, FLAG_IDLE, 1);
+
+		memcpy(&flag.skeleton, &cent->pe.flag.skeleton, sizeof(refSkeleton_t));
+
+		// transform relative bones to absolute ones required for vertex skinning
+		CG_TransformSkeleton(&flag.skeleton, NULL);
+	}
+#endif
+
 	// add to refresh list
 	trap_R_AddRefEntityToScene(&ent);
 
