@@ -1094,6 +1094,8 @@ void ClientThink_real(gentity_t * ent)
 
 	pm.ps = &client->ps;
 	pm.cmd = *ucmd;
+	pm.trace = trap_TraceCapsule;	// FIXME Capsule;
+
 	if(pm.ps->pm_type == PM_DEAD)
 	{
 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;
@@ -1102,11 +1104,14 @@ void ClientThink_real(gentity_t * ent)
 	{
 		pm.tracemask = MASK_PLAYERSOLID | CONTENTS_BOTCLIP;
 	}
+	else if(pm.ps->pm_type == PM_SPECTATOR)
+	{
+		pm.trace = trap_TraceCapsuleNoEnts;
+	}
 	else
 	{
 		pm.tracemask = MASK_PLAYERSOLID;
 	}
-	pm.trace = trap_Trace;
 	pm.pointcontents = trap_PointContents;
 	pm.debugLevel = g_debugMove.integer;
 	pm.noFootsteps = (g_dmflags.integer & DF_NO_FOOTSTEPS) > 0;
