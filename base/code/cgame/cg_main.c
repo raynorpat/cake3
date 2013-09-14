@@ -217,6 +217,9 @@ vmCvar_t        cg_obeliskRespawnDelay;
 
 vmCvar_t        cg_drawPlayerCollision;
 
+vmCvar_t		cg_motionblur;
+vmCvar_t		cg_motionblurMinSpeed;
+
 typedef struct
 {
 	vmCvar_t       *vmCvar;
@@ -348,7 +351,10 @@ static cvarTable_t cvarTable[] = {
 	{&cg_particles, "cg_particles", "1", CVAR_ARCHIVE},
 	{&cg_particleCollision, "cg_particleCollision", "0", CVAR_ARCHIVE},
 	{&cg_drawPlayerCollision, "cg_drawPlayerCollision", "0", CVAR_CHEAT},
-//  { &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
+	{&cg_motionblur, "cg_motionblur", "0.1", CVAR_ARCHIVE},
+	{&cg_motionblurMinSpeed, "cg_motionblurMinSpeed", "450", CVAR_ARCHIVE},
+
+//  {&cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE}
 };
 
 static int      cvarTableSize = ARRAY_LEN(cvarTable);

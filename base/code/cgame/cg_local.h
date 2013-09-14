@@ -1365,6 +1365,9 @@ extern vmCvar_t cg_obeliskRespawnDelay;
 
 extern vmCvar_t cg_drawPlayerCollision;
 
+extern vmCvar_t cg_motionblur;
+extern vmCvar_t cg_motionblurMinSpeed;
+
 //
 // cg_main.c
 //
