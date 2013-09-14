@@ -20,38 +20,48 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-/* blurY_fp.glsl */
+/* motionBlur_fp.glsl */
 
 uniform sampler2D	u_ColorMap;
-uniform float		u_DeformMagnitude;
-uniform vec2    	u_TexScale;
+uniform sampler2D	u_DepthMap;
+
+uniform vec3        u_blurVec;
 
 void	main()
 {
-	vec2 st = gl_FragCoord.st * u_TexScale;
+	vec2 st = gl_FragCoord.st;
+	vec4 color = vec4( 0.0 );
 
-#if 0
-	float gaussFact[3] = float[3](1.0, 2.0, 1.0);
-	float gaussSum = 4;
-	const int tap = 1;	
-#elif 0
-	float gaussFact[5] = float[5](1.0, 4.0, 6.0, 4.0, 1.0);
-	float gaussSum = 16.0;
-	const int tap = 2;
-#elif 1
-	float gaussFact[7] = float[7](1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0);
-	float gaussSum = 64.0;
-	const int tap = 3;
-#endif
+	// calculate the screen texcoord in the 0.0 to 1.0 range
+	st *= r_FBufScale;
 
-	// do a full gaussian blur
-	vec4 sumColors = vec4(0.0);
+	// scale by the screen non-power-of-two-adjust
+	st *= r_NPOTScale;
 
-	for(int t = -tap; t <= tap; t++)
-    {
-	    float weight = gaussFact[t + tap];
-		sumColors += texture2D(u_ColorMap, st + vec2(0, t) * u_TexScale * u_DeformMagnitude) * weight;
-	}
+	float depth = texture2D( u_DepthMap, st ).r;
+
+	if( depth >= 1.0 )
+	{
+		discard;
+		return;
+    }
+	depth /= 1.0 - depth;
+
+	vec3 start = vec3(st * 2.0 - 1.0, 1.0) * depth;
+	vec3 end   = start + u_blurVec.yzx;
+
+	float weight = 1.0;
+	float total = 0.0;
 	
-	gl_FragColor = sumColors * (1.0 / gaussSum);
+	for( int i = 0; i < 6; i ++ )
+	{
+		vec3 pos = mix( start, end, float(i) * 0.1 );
+		pos /= pos.z;
+
+		color += weight * texture2D( u_ColorMap, 0.5 * pos.xy + 0.5 );
+		total += weight;
+		weight *= 0.5;
+    }
+
+	gl_FragColor = color / total;
 }

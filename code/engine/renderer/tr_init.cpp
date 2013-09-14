@@ -1566,7 +1566,7 @@ void R_Register(void)
 	r_printShaders = ri.Cvar_Get("r_printShaders", "0", CVAR_ARCHIVE);
 
 	r_bloom = ri.Cvar_Get("r_bloom", "0", CVAR_ARCHIVE);
-	r_bloomBlur = ri.Cvar_Get("r_bloomBlur", "5.0", CVAR_CHEAT);
+	r_bloomBlur = ri.Cvar_Get("r_bloomBlur", "2.5", CVAR_CHEAT);
 	r_bloomPasses = ri.Cvar_Get("r_bloomPasses", "2", CVAR_CHEAT);
 	r_rotoscope = ri.Cvar_Get("r_rotoscope", "0", CVAR_ARCHIVE);
 	r_cameraPostFX = ri.Cvar_Get("r_cameraPostFX", "0", CVAR_ARCHIVE);

@@ -1525,6 +1525,12 @@ typedef struct shaderProgram_s
 
 	int32_t         u_Time;
 	float           t_Time;
+
+	int32_t			u_blurVec;
+	vec3_t			t_blurVec;
+
+	GLint           u_TexScale;
+	vec2_t          t_TexScale;
 } shaderProgram_t;
 
 #define	SHADER_PROGRAM_T_OFS(x) ((size_t)&(((shaderProgram_t *)0)->x))
@@ -2321,6 +2327,7 @@ typedef struct
 	float           fov_x, fov_y;
 	vec3_t          vieworg;
 	vec3_t          viewaxis[3];	// transformation matrix
+	vec3_t			blurVec;
 
 	int             time;		// time in milliseconds for shader effects and other time dependent rendering issues
 	int             rdflags;	// RDF_NOWORLDMODEL, etc

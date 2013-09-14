@@ -29,6 +29,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 
 // *INDENT-OFF*
+static const unsigned int GL_SHADER_VERSION = 1;
+
+struct GLShaderHeader
+{
+	unsigned int version;
+};
+
+struct GLShaderProgramHeader
+{
+	GLenum   binaryFormat;
+	GLint    binaryLength;
+};
 
 class GLUniform;
 class GLCompileMacro;
@@ -139,13 +151,16 @@ protected:
 											GLenum shaderType) const;
 
 	void				CompileAndLinkGPUShaderProgram(	shaderProgram_t * program,
-														const char *programName,
 														const std::string& vertexShaderText,
 														const std::string& fragmentShaderText,
 														const std::string& compileMacros,
 														int iteration) const;
 
+	void				LoadShader();
+	bool				LoadShaderBinary();
+	void				SaveShaderBinary();
 	void				CompilePermutations();
+
 	virtual void		BuildShaderVertexLibNames( std::string& vertexInlines ) {};
 	virtual void		BuildShaderFragmentLibNames( std::string& fragmentInlines ) {};
 	virtual void		BuildShaderCompileMacros( std::string& compileMacros ) {};
@@ -163,8 +178,6 @@ private:
 
 protected:
 	void				ValidateProgram(GLuint program) const;
-	void				SaveShaderProgram(GLuint program, const char *pname, int i) const;
-	bool				LoadShaderProgram(GLuint program, const char *pname, int i) const;
 	void				ShowProgramUniforms(GLuint program) const;
 	
 public:
@@ -2697,6 +2710,98 @@ public:
 	}
 };
 
+class u_blurVec :
+GLUniform
+{
+public:
+	u_blurVec( GLShader *shader ) :
+		GLUniform( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "u_blurVec";
+	}
+
+	void                            UpdateShaderProgramUniformLocation( shaderProgram_t *shaderProgram ) const
+	{
+		shaderProgram->u_blurVec = glGetUniformLocation( shaderProgram->program, GetName() );
+	}
+
+	void SetUniform_blurVec( vec3_t value )
+	{
+		shaderProgram_t *program = _shader->GetProgram();
+
+#if defined( USE_UNIFORM_FIREWALL )
+		if ( VectorCompare( program->t_blurVec, value ) )
+		{
+			return;
+		}
+
+		VectorCopy( value, program->t_blurVec );
+#endif
+
+#if defined( LOG_GLSL_UNIFORMS )
+
+		if ( r_logFile->integer )
+		{
+			GLimp_LogComment( va( "--- SetUniform_blurVec( program = %s, value = %f %f %f ) ---\n", program->name, value[0], value[1], value[2] ) );
+		}
+
+#endif
+
+		glUniform3fv( program->u_blurVec, 1, value );
+	}
+};
+
+class u_TexScale:
+GLUniform
+{
+public:
+	u_TexScale(GLShader* shader):
+	  GLUniform(shader)
+	{
+	}
+
+	const char* GetName() const
+	{
+		return "u_TexScale";
+	}
+
+	void				UpdateShaderProgramUniformLocation(shaderProgram_t *shaderProgram) const
+	{
+		shaderProgram->u_TexScale = glGetUniformLocation(shaderProgram->program, GetName());
+	}
+
+	void SetUniform_TexScale(vec2_t value)
+	{
+		shaderProgram_t* program = _shader->GetProgram();
+
+#if defined(USE_UNIFORM_FIREWALL)
+		if(program->t_TexScale[0] == value[0] && program->t_TexScale[1] == value[1])
+		{
+			return;
+		}
+
+		program->t_TexScale[0] = value[0];
+		program->t_TexScale[1] = value[1];
+#endif
+
+#if defined(LOG_GLSL_UNIFORMS)
+
+		if(r_logFile->integer)
+		{
+			GLimp_LogComment(va("--- SetUniform_TexScale( program = %s, value = %f,%f ) ---\n", program->name, value[0], value[1]));
+		}
+
+#endif
+
+		glUniform2f(program->u_TexScale, value[0], value[1]);
+	}
+};
+
+
 class GLShader_generic:
 public GLShader,
 public u_ColorMap,
@@ -3289,7 +3394,8 @@ public:
 class GLShader_blurX:
 public GLShader,
 public u_ModelViewProjectionMatrix,
-public u_DeformMagnitude
+public u_DeformMagnitude,
+public u_TexScale
 {
 public:
 	GLShader_blurX();
@@ -3300,7 +3406,8 @@ public:
 class GLShader_blurY:
 public GLShader,
 public u_ModelViewProjectionMatrix,
-public u_DeformMagnitude
+public u_DeformMagnitude,
+public u_TexScale
 {
 public:
 	GLShader_blurY();
@@ -3423,6 +3530,16 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 
+class GLShader_motionblur :
+public GLShader,
+public u_blurVec
+{
+public:
+	GLShader_motionblur();
+	void SetShaderProgramUniformLocations( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+};
+
 extern GLShader_generic* gl_genericShader;
 extern GLShader_lightMapping* gl_lightMappingShader;
 extern GLShader_vertexLighting_DBS_entity* gl_vertexLightingShader_DBS_entity;
@@ -3455,5 +3572,6 @@ extern GLShader_liquid* gl_liquidShader;
 extern GLShader_volumetricFog* gl_volumetricFogShader;
 extern GLShader_screenSpaceAmbientOcclusion* gl_screenSpaceAmbientOcclusionShader;
 extern GLShader_depthOfField* gl_depthOfFieldShader;
+extern GLShader_motionblur* gl_motionblurShader;
 
 #endif	// GL_SHADER_H

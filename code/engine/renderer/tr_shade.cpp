@@ -145,6 +145,9 @@ void GLSL_InitGPUShaders(void)
 	// depth of field post process effect
 	gl_depthOfFieldShader = new GLShader_depthOfField();
 
+	// motion blur post process effect
+	gl_motionblurShader = new GLShader_motionblur();
+
 	endTime = ri.Milliseconds();
 
 	ri.Printf(PRINT_ALL, "GLSL shaders load time = %5.2f seconds\n", (endTime - startTime) / 1000.0);
@@ -340,6 +343,12 @@ void GLSL_ShutdownGPUShaders(void)
 	{
 		delete gl_depthOfFieldShader;
 		gl_depthOfFieldShader = NULL;
+	}
+
+	if(gl_motionblurShader)
+	{
+		delete gl_motionblurShader;
+		gl_motionblurShader = NULL;
 	}
 
 	glState.currentProgram = 0;
