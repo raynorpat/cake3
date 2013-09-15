@@ -632,20 +632,11 @@ void RE_BeginFrame(stereoFrame_t stereoFrame)
 				case GL_INVALID_OPERATION:
 					strcpy(s, "GL_INVALID_OPERATION");
 					break;
-				case GL_STACK_OVERFLOW:
-					strcpy(s, "GL_STACK_OVERFLOW");
-					break;
-				case GL_STACK_UNDERFLOW:
-					strcpy(s, "GL_STACK_UNDERFLOW");
-					break;
 				case GL_OUT_OF_MEMORY:
 					strcpy(s, "GL_OUT_OF_MEMORY");
 					break;
-				case GL_TABLE_TOO_LARGE:
-					strcpy(s, "GL_TABLE_TOO_LARGE");
-					break;
-				case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-					strcpy(s, "GL_INVALID_FRAMEBUFFER_OPERATION_EXT");
+				case GL_INVALID_FRAMEBUFFER_OPERATION:
+					strcpy(s, "GL_INVALID_FRAMEBUFFER_OPERATION");
 					break;
 				default:
 					Com_sprintf(s, sizeof(s), "0x%X", err);

@@ -35,8 +35,9 @@ project "XreaL"
 		
 		"renderer/**.c", "renderer/**.cpp", "renderer/**.h",
 		
-		"../libs/glew/src/glew.c",
-		"../libs/glew/src/glew.h",
+		"../libs/gl3w/src/gl3w.c",
+		"../libs/gl3w/include/GL3/gl3.h",
+		"../libs/gl3w/include/GL3/gl3w.h",
 		
 		"../libs/jpeg/**.c", "../../libs/jpeg/**.h",
 		"../libs/png/**.c", "../../libs/png/**.h",
@@ -163,7 +164,7 @@ project "XreaL"
 	{
 		"../shared",
 		"../libs/zlib",
-		"../libs/glew/include",
+		"../libs/gl3w/include",
 		"../libs/freetype/include",
 		"../libs/ogg/include",
 		"../libs/vorbis/include",
@@ -287,16 +288,6 @@ project "XreaL"
 			
 			"sys/xreal.ico",
 			"sys/win_resource.rc",
-			
-			"../libs/glew/src/wglew.h",
-			
-			--"code/glfw/lib/win32/*.c", "code/glfw/lib/win32/*.h",
-		}
-		excludes
-		{
-			--"win32/win_gamma.c",
-			--"win32/win_glimp.c",
-			--"win32/win_eh.cpp",
 		}
 		defines
 		{
@@ -344,10 +335,6 @@ project "XreaL"
 		
 	configuration { "vs*", "x32" }
 		targetdir 	"../../bin/win32"
-		files
-		{
-			"gldraw.c",
-		}
 		libdirs
 		{
 			"../libs/sdl2/lib",
@@ -412,7 +399,6 @@ project "XreaL"
 			"sys/sdl_glimp.c",
 			"sys/sdl_input.c",
 			"sys/sdl_snd.c",
-			"../libs/glew/src/glew.c",
 		}
 		--buildoptions
 		--{
@@ -552,10 +538,6 @@ project "XreaL-dedicated"
 		--{
 		--	"/NODEFAULTLIB:libc"
 		--}
-		-- buildoptions
-		-- {
-			-- "/EHa",
-		-- }
 		defines
 		{
 			"WIN32",

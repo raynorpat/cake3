@@ -164,7 +164,7 @@ void GL_BindProgram(shaderProgram_t * program)
 
 	if(glState.currentProgram != program)
 	{
-		glUseProgramObjectARB(program->program);
+		glUseProgram(program->program);
 		glState.currentProgram = program;
 	}
 }
@@ -178,7 +178,7 @@ void GL_BindNullProgram(void)
 
 	if(glState.currentProgram)
 	{
-		glUseProgramObjectARB(0);
+		glUseProgram(0);
 		glState.currentProgram = NULL;
 	}
 }
@@ -192,11 +192,11 @@ void GL_SelectTexture(int unit)
 
 	if(unit >= 0 && unit <= 31)
 	{
-		glActiveTextureARB(GL_TEXTURE0_ARB + unit);
+		glActiveTexture(GL_TEXTURE0 + unit);
 
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment(va("glActiveTextureARB( GL_TEXTURE%i_ARB )\n", unit));
+			GLimp_LogComment(va("glActiveTexture( GL_TEXTURE%i )\n", unit));
 		}
 	}
 	else
@@ -726,17 +726,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_POSITION )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_POSITION )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_POSITION);
+			glEnableVertexAttribArray(ATTR_INDEX_POSITION);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_POSITION )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_POSITION )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_POSITION);
+			glDisableVertexAttribArray(ATTR_INDEX_POSITION);
 		}
 	}
 
@@ -746,17 +746,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_TEXCOORD )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_TEXCOORD )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_TEXCOORD0);
+			glEnableVertexAttribArray(ATTR_INDEX_TEXCOORD0);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_TEXCOORD )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_TEXCOORD )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_TEXCOORD0);
+			glDisableVertexAttribArray(ATTR_INDEX_TEXCOORD0);
 		}
 	}
 
@@ -766,17 +766,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_LIGHTCOORD )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_LIGHTCOORD )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_TEXCOORD1);
+			glEnableVertexAttribArray(ATTR_INDEX_TEXCOORD1);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_LIGHTCOORD )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_LIGHTCOORD )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_TEXCOORD1);
+			glDisableVertexAttribArray(ATTR_INDEX_TEXCOORD1);
 		}
 	}
 
@@ -786,17 +786,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_TANGENT )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_TANGENT )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_TANGENT);
+			glEnableVertexAttribArray(ATTR_INDEX_TANGENT);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_TANGENT )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_TANGENT )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_TANGENT);
+			glDisableVertexAttribArray(ATTR_INDEX_TANGENT);
 		}
 	}
 
@@ -806,17 +806,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_BINORMAL )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_BINORMAL )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_BINORMAL);
+			glEnableVertexAttribArray(ATTR_INDEX_BINORMAL);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_BINORMAL )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_BINORMAL )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_BINORMAL);
+			glDisableVertexAttribArray(ATTR_INDEX_BINORMAL);
 		}
 	}
 
@@ -826,17 +826,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_NORMAL )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_NORMAL )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_NORMAL);
+			glEnableVertexAttribArray(ATTR_INDEX_NORMAL);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_NORMAL )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_NORMAL )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_NORMAL);
+			glDisableVertexAttribArray(ATTR_INDEX_NORMAL);
 		}
 	}
 
@@ -846,17 +846,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_COLOR )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_COLOR )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_COLOR);
+			glEnableVertexAttribArray(ATTR_INDEX_COLOR);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_COLOR )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_COLOR )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_COLOR);
+			glDisableVertexAttribArray(ATTR_INDEX_COLOR);
 		}
 	}
 
@@ -867,17 +867,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_PAINTCOLOR )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_PAINTCOLOR )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_PAINTCOLOR);
+			glEnableVertexAttribArray(ATTR_INDEX_PAINTCOLOR);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_PAINTCOLOR )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_PAINTCOLOR )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_PAINTCOLOR);
+			glDisableVertexAttribArray(ATTR_INDEX_PAINTCOLOR);
 		}
 	}
 
@@ -887,17 +887,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_LIGHTDIRECTION )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_LIGHTDIRECTION )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_LIGHTDIRECTION);
+			glEnableVertexAttribArray(ATTR_INDEX_LIGHTDIRECTION);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_LIGHTDIRECTION )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_LIGHTDIRECTION )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_LIGHTDIRECTION);
+			glDisableVertexAttribArray(ATTR_INDEX_LIGHTDIRECTION);
 		}
 	}
 #endif
@@ -908,17 +908,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_BONE_INDEXES )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_BONE_INDEXES )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_BONE_INDEXES);
+			glEnableVertexAttribArray(ATTR_INDEX_BONE_INDEXES);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_BONE_INDEXES )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_BONE_INDEXES )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_BONE_INDEXES);
+			glDisableVertexAttribArray(ATTR_INDEX_BONE_INDEXES);
 		}
 	}
 
@@ -928,17 +928,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_BONE_WEIGHTS )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_BONE_WEIGHTS )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_BONE_WEIGHTS);
+			glEnableVertexAttribArray(ATTR_INDEX_BONE_WEIGHTS);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_BONE_WEIGHTS )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_BONE_WEIGHTS )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_BONE_WEIGHTS);
+			glDisableVertexAttribArray(ATTR_INDEX_BONE_WEIGHTS);
 		}
 	}
 
@@ -948,17 +948,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_POSITION2 )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_POSITION2 )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_POSITION2);
+			glEnableVertexAttribArray(ATTR_INDEX_POSITION2);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_POSITION2 )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_POSITION2 )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_POSITION2);
+			glDisableVertexAttribArray(ATTR_INDEX_POSITION2);
 		}
 	}
 
@@ -968,17 +968,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_TANGENT2 )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_TANGENT2 )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_TANGENT2);
+			glEnableVertexAttribArray(ATTR_INDEX_TANGENT2);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_TANGENT2 )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_TANGENT2 )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_TANGENT2);
+			glDisableVertexAttribArray(ATTR_INDEX_TANGENT2);
 		}
 	}
 
@@ -988,17 +988,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_BINORMAL2 )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_BINORMAL2 )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_BINORMAL2);
+			glEnableVertexAttribArray(ATTR_INDEX_BINORMAL2);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_BINORMAL2 )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_BINORMAL2 )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_BINORMAL2);
+			glDisableVertexAttribArray(ATTR_INDEX_BINORMAL2);
 		}
 	}
 
@@ -1008,17 +1008,17 @@ void GL_VertexAttribsState(uint32_t stateBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glEnableVertexAttribArrayARB( ATTR_INDEX_NORMAL2 )\n");
+				GLimp_LogComment("glEnableVertexAttribArray( ATTR_INDEX_NORMAL2 )\n");
 			}
-			glEnableVertexAttribArrayARB(ATTR_INDEX_NORMAL2);
+			glEnableVertexAttribArray(ATTR_INDEX_NORMAL2);
 		}
 		else
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glDisableVertexAttribArrayARB( ATTR_INDEX_NORMAL2 )\n");
+				GLimp_LogComment("glDisableVertexAttribArray( ATTR_INDEX_NORMAL2 )\n");
 			}
-			glDisableVertexAttribArrayARB(ATTR_INDEX_NORMAL2);
+			glDisableVertexAttribArray(ATTR_INDEX_NORMAL2);
 		}
 	}
 
@@ -1046,10 +1046,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_POSITION )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_POSITION )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_POSITION, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsXYZ + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeXYZ)));
+		glVertexAttribPointer(ATTR_INDEX_POSITION, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsXYZ + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeXYZ)));
 		glState.vertexAttribPointersSet |= ATTR_POSITION;
 	}
 
@@ -1057,10 +1057,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_TEXCOORD )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_TEXCOORD )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_TEXCOORD0, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsTexCoords));
+		glVertexAttribPointer(ATTR_INDEX_TEXCOORD0, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsTexCoords));
 		glState.vertexAttribPointersSet |= ATTR_TEXCOORD;
 	}
 
@@ -1068,10 +1068,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_LIGHTCOORD )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_LIGHTCOORD )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_TEXCOORD1, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsLightCoords));
+		glVertexAttribPointer(ATTR_INDEX_TEXCOORD1, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsLightCoords));
 		glState.vertexAttribPointersSet |= ATTR_LIGHTCOORD;
 	}
 
@@ -1079,10 +1079,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_TANGENT )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_TANGENT )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_TANGENT, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsTangents + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeTangents)));
+		glVertexAttribPointer(ATTR_INDEX_TANGENT, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsTangents + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeTangents)));
 		glState.vertexAttribPointersSet |= ATTR_TANGENT;
 	}
 
@@ -1090,10 +1090,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_BINORMAL )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_BINORMAL )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_BINORMAL, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsBinormals + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeBinormals)));
+		glVertexAttribPointer(ATTR_INDEX_BINORMAL, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsBinormals + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeBinormals)));
 		glState.vertexAttribPointersSet |= ATTR_BINORMAL;
 	}
 
@@ -1101,10 +1101,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_NORMAL )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_NORMAL )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_NORMAL, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsNormals + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeNormals)));
+		glVertexAttribPointer(ATTR_INDEX_NORMAL, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsNormals + (glState.vertexAttribsOldFrame * glState.currentVBO->sizeNormals)));
 		glState.vertexAttribPointersSet |= ATTR_NORMAL;
 	}
 
@@ -1112,10 +1112,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_COLOR )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_COLOR )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_COLOR, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsColors));
+		glVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsColors));
 		glState.vertexAttribPointersSet |= ATTR_COLOR;
 	}
 
@@ -1124,10 +1124,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_PAINTCOLOR )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_PAINTCOLOR )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_PAINTCOLOR, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsPaintColors));
+		glVertexAttribPointer(ATTR_INDEX_PAINTCOLOR, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsPaintColors));
 		glState.vertexAttribPointersSet |= ATTR_PAINTCOLOR;
 	}
 
@@ -1135,10 +1135,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_LIGHTDIRECTION )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_LIGHTDIRECTION )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_LIGHTDIRECTION, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsLightDirections));
+		glVertexAttribPointer(ATTR_INDEX_LIGHTDIRECTION, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsLightDirections));
 		glState.vertexAttribPointersSet |= ATTR_LIGHTDIRECTION;
 	}
 #endif // #if !defined(COMPAT_Q3A) && !defined(COMPAT_ET)
@@ -1147,10 +1147,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_BONE_INDEXES )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_BONE_INDEXES )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_BONE_INDEXES, 4, GL_INT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsBoneIndexes));
+		glVertexAttribPointer(ATTR_INDEX_BONE_INDEXES, 4, GL_INT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsBoneIndexes));
 		glState.vertexAttribPointersSet |= ATTR_BONE_INDEXES;
 	}
 
@@ -1158,10 +1158,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 	{
 		if(r_logFile->integer)
 		{
-			GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_BONE_WEIGHTS )\n");
+			GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_BONE_WEIGHTS )\n");
 		}
 
-		glVertexAttribPointerARB(ATTR_INDEX_BONE_WEIGHTS, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsBoneWeights));
+		glVertexAttribPointer(ATTR_INDEX_BONE_WEIGHTS, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsBoneWeights));
 		glState.vertexAttribPointersSet |= ATTR_BONE_WEIGHTS;
 	}
 
@@ -1171,10 +1171,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_POSITION2 )\n");
+				GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_POSITION2 )\n");
 			}
 
-			glVertexAttribPointerARB(ATTR_INDEX_POSITION2, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsXYZ + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeXYZ)));
+			glVertexAttribPointer(ATTR_INDEX_POSITION2, 4, GL_FLOAT, 0, 0, BUFFER_OFFSET(glState.currentVBO->ofsXYZ + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeXYZ)));
 			glState.vertexAttribPointersSet |= ATTR_POSITION2;
 		}
 
@@ -1182,10 +1182,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_TANGENT2 )\n");
+				GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_TANGENT2 )\n");
 			}
 
-			glVertexAttribPointerARB(ATTR_INDEX_TANGENT2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsTangents + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeTangents)));
+			glVertexAttribPointer(ATTR_INDEX_TANGENT2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsTangents + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeTangents)));
 			glState.vertexAttribPointersSet |= ATTR_TANGENT2;
 		}
 
@@ -1193,10 +1193,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_BINORMAL2 )\n");
+				GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_BINORMAL2 )\n");
 			}
 
-			glVertexAttribPointerARB(ATTR_INDEX_BINORMAL2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsBinormals + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeBinormals)));
+			glVertexAttribPointer(ATTR_INDEX_BINORMAL2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsBinormals + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeBinormals)));
 			glState.vertexAttribPointersSet |= ATTR_BINORMAL2;
 		}
 
@@ -1204,10 +1204,10 @@ void GL_VertexAttribPointers(uint32_t attribBits)
 		{
 			if(r_logFile->integer)
 			{
-				GLimp_LogComment("glVertexAttribPointerARB( ATTR_INDEX_NORMAL2 )\n");
+				GLimp_LogComment("glVertexAttribPointer( ATTR_INDEX_NORMAL2 )\n");
 			}
 
-			glVertexAttribPointerARB(ATTR_INDEX_NORMAL2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsNormals + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeNormals)));
+			glVertexAttribPointer(ATTR_INDEX_NORMAL2, 3, GL_FLOAT, 0, 16, BUFFER_OFFSET(glState.currentVBO->ofsNormals + (glState.vertexAttribsNewFrame * glState.currentVBO->sizeNormals)));
 			glState.vertexAttribPointersSet |= ATTR_NORMAL2;
 		}
 	}
@@ -2321,7 +2321,7 @@ static void RB_RenderInteractionsShadowMapped()
 							}
 
 							R_BindFBO(tr.shadowMapFBO[light->shadowLOD]);
-							R_AttachFBOTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + cubeSide,
+							R_AttachFBOTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + cubeSide,
 												 tr.shadowCubeFBOImage[light->shadowLOD]->texnum, 0);
 							if(!r_ignoreGLErrors->integer)
 							{
@@ -4378,7 +4378,7 @@ static void RB_RenderInteractionsDeferredShadowMapped()
 							}
 
 							R_BindFBO(tr.shadowMapFBO[light->shadowLOD]);
-							R_AttachFBOTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + cubeSide,
+							R_AttachFBOTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + cubeSide,
 												 tr.shadowCubeFBOImage[light->shadowLOD]->texnum, 0);
 							if(!r_ignoreGLErrors->integer)
 							{
@@ -6377,7 +6377,7 @@ void RB_RenderScreenSpaceAmbientOcclusion(qboolean deferred)
 	GL_State(GLS_DEPTHTEST_DISABLE);	// | GLS_DEPTHMASK_TRUE);
 	GL_Cull(CT_TWO_SIDED);
 
-	glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+	glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 	// set uniforms
 	/*
@@ -6405,12 +6405,12 @@ void RB_RenderScreenSpaceAmbientOcclusion(qboolean deferred)
 	   MatrixCopy(backEnd.viewParms.projectionMatrix, projectMatrix);
 	   MatrixInverse(projectMatrix);
 
-	   glUniform3fARB(tr.screenSpaceAmbientOcclusionShader.u_ViewOrigin, viewOrigin[0], viewOrigin[1], viewOrigin[2]);
-	   glUniform3fvARB(tr.screenSpaceAmbientOcclusionShader.u_SSAOJitter, 32, &jitter[0][0]);
-	   glUniform1fARB(tr.screenSpaceAmbientOcclusionShader.u_SSAORadius, r_screenSpaceAmbientOcclusionRadius->value);
+	   glUniform3f(tr.screenSpaceAmbientOcclusionShader.u_ViewOrigin, viewOrigin[0], viewOrigin[1], viewOrigin[2]);
+	   glUniform3fv(tr.screenSpaceAmbientOcclusionShader.u_SSAOJitter, 32, &jitter[0][0]);
+	   glUniform1f(tr.screenSpaceAmbientOcclusionShader.u_SSAORadius, r_screenSpaceAmbientOcclusionRadius->value);
 
-	   glUniformMatrix4fvARB(tr.screenSpaceAmbientOcclusionShader.u_UnprojectMatrix, 1, GL_FALSE, backEnd.viewParms.unprojectionMatrix);
-	   glUniformMatrix4fvARB(tr.screenSpaceAmbientOcclusionShader.u_ProjectMatrix, 1, GL_FALSE, projectMatrix);
+	   glUniformMatrix4fv(tr.screenSpaceAmbientOcclusionShader.u_UnprojectMatrix, 1, GL_FALSE, backEnd.viewParms.unprojectionMatrix);
+	   glUniformMatrix4fv(tr.screenSpaceAmbientOcclusionShader.u_ProjectMatrix, 1, GL_FALSE, projectMatrix);
 	 */
 
 	// capture current color buffer for u_CurrentMap
@@ -6471,7 +6471,7 @@ void RB_RenderDepthOfField()
 	GL_State(GLS_DEPTHTEST_DISABLE);	// | GLS_DEPTHMASK_TRUE);
 	GL_Cull(CT_TWO_SIDED);
 
-	glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+	glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 	// set uniforms
 
@@ -6808,7 +6808,7 @@ void RB_RenderBloom()
 				
 				gl_screenShader->BindProgram();
 				GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 				gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
 
@@ -6821,7 +6821,7 @@ void RB_RenderBloom()
 
 				gl_screenShader->BindProgram();
 				GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 				gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
 
@@ -6835,7 +6835,7 @@ void RB_RenderBloom()
 
 				gl_screenShader->BindProgram();
 				GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 				gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
 
@@ -6919,7 +6919,7 @@ void RB_CameraPostFX(void)
 	gl_cameraEffectsShader->BindProgram();
 
 	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
-	//glUniform1fARB(tr.cameraEffectsShader.u_BlurMagnitude, r_bloomBlur->value);
+	//glUniform1f(tr.cameraEffectsShader.u_BlurMagnitude, r_bloomBlur->value);
 
 	MatrixIdentity(grain);
 
@@ -7125,7 +7125,7 @@ void RB_RenderDeferredShadingResultToFrameBuffer()
 	else
 	{
 		gl_screenShader->BindProgram();
-		glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+		glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 		gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
 
@@ -7202,7 +7202,7 @@ void RB_RenderDeferredHDRResultToFrameBuffer()
 	{
 		gl_screenShader->BindProgram();
 
-		glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+		glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 		gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
 	}
@@ -7409,17 +7409,17 @@ static void IssueLightOcclusionQuery(link_t * queue, trRefLight_t * light, qbool
 		GL_CheckErrors();
 
 		// begin the occlusion query
-		glBeginQueryARB(GL_SAMPLES_PASSED, light->occlusionQueryObject);
+		glBeginQuery(GL_SAMPLES_PASSED, light->occlusionQueryObject);
 
 		GL_CheckErrors();
 
 		RenderLightOcclusionVolume(light);
 
 		// end the query
-		glEndQueryARB(GL_SAMPLES_PASSED);
+		glEndQuery(GL_SAMPLES_PASSED);
 
 #if 1
-		if(!glIsQueryARB(light->occlusionQueryObject))
+		if(!glIsQuery(light->occlusionQueryObject))
 		{
 			ri.Error(ERR_FATAL, "IssueLightOcclusionQuery: light %i has no occlusion query object in slot %i: %i", light - tr.world->lights, backEnd.viewParms.viewCount, light->occlusionQueryObject);
 		}
@@ -7470,7 +7470,7 @@ static void IssueLightMultiOcclusionQueries(link_t * multiQueue, link_t * indivi
 		// begin the occlusion query
 		GL_CheckErrors();
 
-		glBeginQueryARB(GL_SAMPLES_PASSED, multiQueryLight->occlusionQueryObject);
+		glBeginQuery(GL_SAMPLES_PASSED, multiQueryLight->occlusionQueryObject);
 
 		GL_CheckErrors();
 
@@ -7489,12 +7489,12 @@ static void IssueLightMultiOcclusionQueries(link_t * multiQueue, link_t * indivi
 		backEnd.pc.c_occlusionQueriesMulti++;
 
 		// end the query
-		glEndQueryARB(GL_SAMPLES_PASSED);
+		glEndQuery(GL_SAMPLES_PASSED);
 
 		GL_CheckErrors();
 
 #if 0
-		if(!glIsQueryARB(multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+		if(!glIsQuery(multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 		{
 			ri.Error(ERR_FATAL, "IssueMultiOcclusionQueries: node %i has no occlusion query object in slot %i: %i", multiQueryNode - tr.world->nodes, backEnd.viewParms.viewCount, multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]);
 		}
@@ -7524,9 +7524,9 @@ static qboolean LightOcclusionResultAvailable(trRefLight_t *light)
 		glFinish();
 
 		available = 0;
-		//if(glIsQueryARB(light->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+		//if(glIsQuery(light->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 		{
-			glGetQueryObjectivARB(light->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+			glGetQueryObjectiv(light->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
 			GL_CheckErrors();
 		}
 
@@ -7549,7 +7549,7 @@ static void GetLightOcclusionQueryResult(trRefLight_t *light)
 		glFinish();
 
 #if 0
-		if(!glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+		if(!glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 		{
 			ri.Error(ERR_FATAL, "GetOcclusionQueryResult: node %i has no occlusion query object in slot %i: %i", node - tr.world->nodes, backEnd.viewParms.viewCount, node->occlusionQueryObjects[backEnd.viewParms.viewCount]);
 		}
@@ -7558,16 +7558,16 @@ static void GetLightOcclusionQueryResult(trRefLight_t *light)
 		available = 0;
 		while(!available)
 		{
-			//if(glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+			//if(glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 			{
-				glGetQueryObjectivARB(light->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+				glGetQueryObjectiv(light->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
 				//GL_CheckErrors();
 			}
 		}
 
 		backEnd.pc.c_occlusionQueriesAvailable++;
 
-		glGetQueryObjectivARB(light->occlusionQueryObject, GL_QUERY_RESULT, &ocSamples);
+		glGetQueryObjectiv(light->occlusionQueryObject, GL_QUERY_RESULT, &ocSamples);
 
 		//ri.Printf(PRINT_ALL, "GetOcclusionQueryResult(%i): available = %i, samples = %i\n", node - tr.world->nodes, available, ocSamples);
 
@@ -7631,7 +7631,7 @@ void RB_RenderLightOcclusionQueries()
 		growList_t      invisibleList;
 		int             startTime = 0, endTime = 0;
 
-		glVertexAttrib4fARB(ATTR_INDEX_COLOR, 1.0f, 0.0f, 0.0f, 0.05f);
+		glVertexAttrib4f(ATTR_INDEX_COLOR, 1.0f, 0.0f, 0.0f, 0.05f);
 
 		if(r_speeds->integer == RSPEEDS_OCCLUSION_QUERIES)
 		{
@@ -8005,17 +8005,17 @@ static void IssueEntityOcclusionQuery(link_t * queue, trRefEntity_t * entity, qb
 		GL_CheckErrors();
 
 		// begin the occlusion query
-		glBeginQueryARB(GL_SAMPLES_PASSED, entity->occlusionQueryObject);
+		glBeginQuery(GL_SAMPLES_PASSED, entity->occlusionQueryObject);
 
 		GL_CheckErrors();
 
 		RenderEntityOcclusionVolume(entity);
 
 		// end the query
-		glEndQueryARB(GL_SAMPLES_PASSED);
+		glEndQuery(GL_SAMPLES_PASSED);
 
 #if 0
-		if(!glIsQueryARB(entity->occlusionQueryObject))
+		if(!glIsQuery(entity->occlusionQueryObject))
 		{
 			ri.Error(ERR_FATAL, "IssueOcclusionQuery: entity %i has no occlusion query object in slot %i: %i", light - tr.world->lights, backEnd.viewParms.viewCount, light->occlusionQueryObject);
 		}
@@ -8064,7 +8064,7 @@ static void IssueEntityMultiOcclusionQueries(link_t * multiQueue, link_t * indiv
 		// begin the occlusion query
 		GL_CheckErrors();
 
-		glBeginQueryARB(GL_SAMPLES_PASSED, multiQueryEntity->occlusionQueryObject);
+		glBeginQuery(GL_SAMPLES_PASSED, multiQueryEntity->occlusionQueryObject);
 
 		GL_CheckErrors();
 
@@ -8083,12 +8083,12 @@ static void IssueEntityMultiOcclusionQueries(link_t * multiQueue, link_t * indiv
 		backEnd.pc.c_occlusionQueriesMulti++;
 
 		// end the query
-		glEndQueryARB(GL_SAMPLES_PASSED);
+		glEndQuery(GL_SAMPLES_PASSED);
 
 		GL_CheckErrors();
 
 #if 0
-		if(!glIsQueryARB(multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+		if(!glIsQuery(multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 		{
 			ri.Error(ERR_FATAL, "IssueEntityMultiOcclusionQueries: node %i has no occlusion query object in slot %i: %i", multiQueryNode - tr.world->nodes, backEnd.viewParms.viewCount, multiQueryNode->occlusionQueryObjects[backEnd.viewParms.viewCount]);
 		}
@@ -8118,9 +8118,9 @@ static qboolean EntityOcclusionResultAvailable(trRefEntity_t *entity)
 		glFinish();
 
 		available = 0;
-		//if(glIsQueryARB(light->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+		//if(glIsQuery(light->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 		{
-			glGetQueryObjectivARB(entity->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+			glGetQueryObjectiv(entity->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
 			GL_CheckErrors();
 		}
 
@@ -8145,16 +8145,16 @@ static void GetEntityOcclusionQueryResult(trRefEntity_t *entity)
 		available = 0;
 		while(!available)
 		{
-			//if(glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+			//if(glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 			{
-				glGetQueryObjectivARB(entity->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+				glGetQueryObjectiv(entity->occlusionQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
 				//GL_CheckErrors();
 			}
 		}
 
 		backEnd.pc.c_occlusionQueriesAvailable++;
 
-		glGetQueryObjectivARB(entity->occlusionQueryObject, GL_QUERY_RESULT, &ocSamples);
+		glGetQueryObjectiv(entity->occlusionQueryObject, GL_QUERY_RESULT, &ocSamples);
 
 		//ri.Printf(PRINT_ALL, "GetOcclusionQueryResult(%i): available = %i, samples = %i\n", node - tr.world->nodes, available, ocSamples);
 
@@ -8213,7 +8213,7 @@ void RB_RenderEntityOcclusionQueries()
 		growList_t      invisibleList;
 		int             startTime = 0, endTime = 0;
 
-		glVertexAttrib4fARB(ATTR_INDEX_COLOR, 1.0f, 0.0f, 0.0f, 0.05f);
+		glVertexAttrib4f(ATTR_INDEX_COLOR, 1.0f, 0.0f, 0.0f, 0.05f);
 
 		if(r_speeds->integer == RSPEEDS_OCCLUSION_QUERIES)
 		{
@@ -8440,7 +8440,7 @@ void RB_RenderBspOcclusionQueries()
 			node = (bspNode_t *) l->data;
 
 			// begin the occlusion query
-			glBeginQueryARB(GL_SAMPLES_PASSED, node->occlusionQueryObjects[backEnd.viewParms.viewCount]);
+			glBeginQuery(GL_SAMPLES_PASSED, node->occlusionQueryObjects[backEnd.viewParms.viewCount]);
 
 			R_BindVBO(node->volumeVBO);
 			R_BindIBO(node->volumeIBO);
@@ -8454,10 +8454,10 @@ void RB_RenderBspOcclusionQueries()
 
 			// end the query
 			// don't read back immediately so that we give the query time to be ready
-			glEndQueryARB(GL_SAMPLES_PASSED);
+			glEndQuery(GL_SAMPLES_PASSED);
 
 #if 0
-			if(!glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+			if(!glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 			{
 				ri.Error(ERR_FATAL, "node %i has no occlusion query object in slot %i: %i", j, 0, node->occlusionQueryObjects[backEnd.viewParms.viewCount]);
 			}
@@ -8497,7 +8497,7 @@ void RB_CollectBspOcclusionQueries()
 		{
 			node = (bspNode_t *) l->data;
 
-			if(glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+			if(glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 			{
 				ocCount++;
 			}
@@ -8515,9 +8515,9 @@ void RB_CollectBspOcclusionQueries()
 				if(node->issueOcclusionQuery)
 				{
 					available = 0;
-					if(glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+					if(glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 					{
-						glGetQueryObjectivARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+						glGetQueryObjectiv(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
 						GL_CheckErrors();
 					}
 
@@ -8540,9 +8540,9 @@ void RB_CollectBspOcclusionQueries()
 			node = (bspNode_t *) l->data;
 
 			available = 0;
-			if(glIsQueryARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
+			if(glIsQuery(node->occlusionQueryObjects[backEnd.viewParms.viewCount]))
 			{
-				glGetQueryObjectivARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+				glGetQueryObjectiv(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
 				GL_CheckErrors();
 			}
 
@@ -8551,7 +8551,7 @@ void RB_CollectBspOcclusionQueries()
 				backEnd.pc.c_occlusionQueriesAvailable++;
 
 				// get the object and store it in the occlusion bits for the light
-				glGetQueryObjectivARB(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT, &node->occlusionQuerySamples[backEnd.viewParms.viewCount]);
+				glGetQueryObjectiv(node->occlusionQueryObjects[backEnd.viewParms.viewCount], GL_QUERY_RESULT, &node->occlusionQuerySamples[backEnd.viewParms.viewCount]);
 
 				if(node->occlusionQuerySamples[backEnd.viewParms.viewCount] <= 0)
 				{
@@ -8677,20 +8677,20 @@ static void RB_RenderDebugUtils()
 				glBegin(GL_LINES);
 
 				// draw orientation
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorRed);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorRed);
 				glVertex3fv(vec3_origin);
 				glVertex3fv(forward);
 
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorGreen);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorGreen);
 				glVertex3fv(vec3_origin);
 				glVertex3fv(left);
 
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorBlue);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorBlue);
 				glVertex3fv(vec3_origin);
 				glVertex3fv(up);
 
 				// draw special vectors
-				glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorYellow);
+				glVertexAttrib4fv(ATTR_INDEX_COLOR, colorYellow);
 				glVertex3fv(vec3_origin);
 				VectorSubtract(light->origin, backEnd.orientation.origin, tmp);
 				light->transformed[0] = DotProduct(tmp, backEnd.orientation.axis[0]);
@@ -10627,9 +10627,9 @@ static void RB_RenderView(void)
 			if(HDR_ENABLED())
 			{
 				// copy color of the main context to deferredRenderFBO
-				glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, 0);
-				glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.deferredRenderFBO->frameBuffer);
-				glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.deferredRenderFBO->frameBuffer);
+				glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 									   0, 0, glConfig.vidWidth, glConfig.vidHeight,
 									   GL_COLOR_BUFFER_BIT,
 									   GL_NEAREST);
@@ -10737,16 +10737,16 @@ static void RB_RenderView(void)
 		{
 			if(glConfig2.framebufferBlitAvailable)
 			{
-				glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, tr.deferredRenderFBO->frameBuffer);
-				glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.downScaleFBO_quarter->frameBuffer);
-				glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, tr.deferredRenderFBO->frameBuffer);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.downScaleFBO_quarter->frameBuffer);
+				glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 										0, 0, glConfig.vidWidth * 0.25f, glConfig.vidHeight * 0.25f,
 										GL_COLOR_BUFFER_BIT,
 										GL_LINEAR);
 
-				glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, tr.deferredRenderFBO->frameBuffer);
-				glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.downScaleFBO_64x64->frameBuffer);
-				glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, tr.deferredRenderFBO->frameBuffer);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.downScaleFBO_64x64->frameBuffer);
+				glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 									   0, 0, 64, 64,
 									   GL_COLOR_BUFFER_BIT,
 									   GL_LINEAR);
@@ -10767,9 +10767,9 @@ static void RB_RenderView(void)
 			if(glConfig2.framebufferBlitAvailable)
 			{
 				// copy deferredRenderFBO to downScaleFBO_quarter
-				glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, 0);
-				glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.downScaleFBO_quarter->frameBuffer);
-				glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.downScaleFBO_quarter->frameBuffer);
+				glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 										0, 0, glConfig.vidWidth * 0.25f, glConfig.vidHeight * 0.25f,
 										GL_COLOR_BUFFER_BIT,
 										GL_NEAREST);
@@ -10944,8 +10944,8 @@ void RE_StretchRaw(int x, int y, int w, int h, int cols, int rows, const byte * 
 
 	RB_SetGL2D();
 
-	glVertexAttrib4fARB(ATTR_INDEX_NORMAL, 0, 0, 1, 1);
-	glVertexAttrib4fARB(ATTR_INDEX_COLOR, tr.identityLight, tr.identityLight, tr.identityLight, 1);
+	glVertexAttrib4f(ATTR_INDEX_NORMAL, 0, 0, 1, 1);
+	glVertexAttrib4f(ATTR_INDEX_COLOR, tr.identityLight, tr.identityLight, tr.identityLight, 1);
 
 	gl_genericShader->DisableAlphaTesting();
 	gl_genericShader->DisablePortalClipping();
@@ -11000,14 +11000,14 @@ void RE_StretchRaw(int x, int y, int w, int h, int cols, int rows, const byte * 
 
 	/*
 	   glBegin(GL_QUADS);
-	   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 0.5f / cols, 0.5f / rows, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x, y, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, (cols - 0.5f) / cols, 0.5f / rows, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x + w, y, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, (cols - 0.5f) / cols, (rows - 0.5f) / rows, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x + w, y + h, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 0.5f / cols, (rows - 0.5f) / rows, 0, 1);
-	   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x, y + h, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 0.5f / cols, 0.5f / rows, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_POSITION, x, y, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, (cols - 0.5f) / cols, 0.5f / rows, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_POSITION, x + w, y, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, (cols - 0.5f) / cols, (rows - 0.5f) / rows, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_POSITION, x + w, y + h, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 0.5f / cols, (rows - 0.5f) / rows, 0, 1);
+	   glVertexAttrib4f(ATTR_INDEX_POSITION, x, y + h, 0, 1);
 	   glEnd();
 	 */
 
@@ -11610,14 +11610,14 @@ void RB_ShowImages(void)
 
 		/*
 		   glBegin(GL_QUADS);
-		   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 0, 0, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x, y, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 1, 0, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x + w, y, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 1, 1, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x + w, y + h, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_TEXCOORD0, 0, 1, 0, 1);
-		   glVertexAttrib4fARB(ATTR_INDEX_POSITION, x, y + h, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 0, 0, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_POSITION, x, y, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 1, 0, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_POSITION, x + w, y, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 1, 1, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_POSITION, x + w, y + h, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_TEXCOORD0, 0, 1, 0, 1);
+		   glVertexAttrib4f(ATTR_INDEX_POSITION, x, y + h, 0, 1);
 		   glEnd();
 		 */
 	}
@@ -11705,7 +11705,6 @@ const void     *RB_RenderToTexture(const void *data)
 	GL_Bind(cmd->image);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cmd->x, cmd->y, cmd->w, cmd->h, 0);
 //  glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, cmd->x, cmd->y, cmd->w, cmd->h );
 

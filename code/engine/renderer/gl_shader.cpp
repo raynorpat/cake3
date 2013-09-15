@@ -236,12 +236,12 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 		if(shaderType == GL_VERTEX_SHADER)
 		{
 			Com_sprintf(filename, sizeof(filename), "glsl/%s_vp.glsl", token);
-			ri.Printf(PRINT_ALL, "...loading vertex shader '%s'\n", filename);
+			ri.Printf(PRINT_DEVELOPER, "...loading vertex shader '%s'\n", filename);
 		}
 		else
 		{
 			Com_sprintf(filename, sizeof(filename), "glsl/%s_fp.glsl", token);
-			ri.Printf(PRINT_ALL, "...loading vertex shader '%s'\n", filename);
+			ri.Printf(PRINT_DEVELOPER, "...loading vertex shader '%s'\n", filename);
 		}
 	
 		libSize = ri.FS_ReadFile(filename, (void **)&libBuffer);
@@ -261,12 +261,12 @@ std::string	GLShader::BuildGPUShaderText(	const char *mainShaderName,
 	if(shaderType == GL_VERTEX_SHADER)
 	{
 		Com_sprintf(filename, sizeof(filename), "glsl/%s_vp.glsl", mainShaderName);
-		ri.Printf(PRINT_ALL, "...loading vertex main() shader '%s'\n", filename);
+		ri.Printf(PRINT_DEVELOPER, "...loading vertex main() shader '%s'\n", filename);
 	}
 	else
 	{
 		Com_sprintf(filename, sizeof(filename), "glsl/%s_fp.glsl", mainShaderName);
-		ri.Printf(PRINT_ALL, "...loading fragment main() shader '%s'\n", filename);
+		ri.Printf(PRINT_DEVELOPER, "...loading fragment main() shader '%s'\n", filename);
 	}
 
 	mainSize = ri.FS_ReadFile(filename, (void **)&mainBuffer);
@@ -726,7 +726,6 @@ void GLShader::LoadShader()
 
 bool GLShader::LoadShaderBinary()
 {
-#ifdef GLEW_ARB_get_program_binary
 	GLint          success;
 	GLint          fileLength;
 	void           *binary;
@@ -741,7 +740,7 @@ bool GLShader::LoadShaderBinary()
 	}
 
 	// Don't even try if the necessary functions aren't available
-	if( !GLEW_ARB_get_program_binary )
+	if( glProgramBinary != NULL )
 	{
 		return false;
 	}
@@ -836,14 +835,10 @@ bool GLShader::LoadShaderBinary()
 	ri.FS_FreeFile( binary );
 	ri.Printf( PRINT_ALL, "...loaded %i cached %s shader permutations\n", numLoaded, this->GetName().c_str() );
 	return true;
-#else
-	return false;
-#endif
 }
 
 void GLShader::SaveShaderBinary()
 {
-#ifdef GLEW_ARB_get_program_binary
 	GLint                 binaryLength;
 	GLuint                binarySize = 0;
 	byte                  *binary;
@@ -851,7 +846,7 @@ void GLShader::SaveShaderBinary()
 	GLShaderHeader        shaderHeader;
 
 	// Don't even try if the necessary functions aren't available
-	if( !GLEW_ARB_get_program_binary )
+	if( glGetProgramBinary != NULL )
 	{
 		return;
 	}
@@ -905,7 +900,6 @@ void GLShader::SaveShaderBinary()
 	ri.FS_WriteFile( va( "glsl/%s.bin", this->GetName().c_str() ), binary, binarySize );
 
 	ri.Hunk_FreeTempMemory( binary );
-#endif
 }
 
 void GLShader::CompileAndLinkGPUShaderProgram(	shaderProgram_t * program,
@@ -920,10 +914,10 @@ void GLShader::CompileAndLinkGPUShaderProgram(	shaderProgram_t * program,
 
 	if(glConfig.driverType == GLDRV_OPENGL3)
 	{
-		// HACK: abuse the GLSL preprocessor to turn GLSL 1.20 shaders into 1.30 ones
+		// HACK: abuse the GLSL preprocessor to turn GLSL 1.20 shaders into 1.50 ones
 
-		vertexHeader += "#version 130\n";
-		fragmentHeader += "#version 130\n";
+		vertexHeader += "#version 150\n";
+		fragmentHeader += "#version 150\n";
 
 		vertexHeader += "#define attribute in\n";
 		vertexHeader += "#define varying out\n";
@@ -1011,7 +1005,7 @@ void GLShader::CompilePermutations()
 		{
 			size_t ticsNeeded = (size_t)(((double)(i + 1) / numPermutations) * 50.0);
 
-			do { ri.Printf(PRINT_ALL, "*"); }
+			do { ri.Printf(PRINT_DEVELOPER, "*"); }
 			while ( ++tics < ticsNeeded );
 
 			nextTicCount = (size_t)((tics / 50.0) * numPermutations);
@@ -1020,10 +1014,10 @@ void GLShader::CompilePermutations()
 			{
 				if(tics < 51)
 				{
-					ri.Printf(PRINT_ALL, "*");
+					ri.Printf(PRINT_DEVELOPER, "*");
 				}
 
-				ri.Printf(PRINT_ALL, "\n");
+				ri.Printf(PRINT_DEVELOPER, "\n");
 			}
 		}
 
@@ -1074,7 +1068,7 @@ void GLShader::CompilePermutations()
 	SelectProgram();
 
 	int endTime = ri.Milliseconds();
-	ri.Printf( PRINT_DEVELOPER, "...compiled %i %s shader permutations in %5.2f seconds\n", ( int ) numCompiled, this->GetName().c_str(), ( endTime - startTime ) / 1000.0 );
+	ri.Printf(PRINT_DEVELOPER, "...compiled %i %s shader permutations in %5.2f seconds\n", ( int ) numCompiled, this->GetName().c_str(), ( endTime - startTime ) / 1000.0);
 }
 
 void GLShader::CompileGPUShader(GLuint program, const char *programName, const char *shaderText, int shaderTextSize, GLenum shaderType) const

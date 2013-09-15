@@ -322,23 +322,17 @@ typedef enum
 
 typedef enum
 {
-	GLDRV_DEFAULT,				// old OpenGL system
-// XreaL BEGIN
-	GLDRV_OPENGL3,				// new driver system
-	GLDRV_MESA,					// crap
-// XreaL END
-
+	GLDRV_DEFAULT,				// OpenGL 2.0 with compatibility profile
+	GLDRV_OPENGL3,				// OpenGL 3.2 with core profile
+	GLDRV_MESA,					// software based OpenGL 2.0
 } glDriverType_t;
 
 typedef enum
 {
 	GLHW_GENERIC,				// where everthing works the way it should
-// XreaL BEGIN
 	GLHW_ATI,					// where you don't have proper GLSL support
 	GLHW_ATI_DX10,				// ATI Radeon HD series DX10 hardware
 	GLHW_NV_DX10				// Geforce 8/9 class DX10 hardware
-// XreaL END
-
 } glHardwareType_t;
 
 typedef struct
@@ -349,7 +343,6 @@ typedef struct
 	char            extensions_string[BIG_INFO_STRING];
 
 	int             maxTextureSize;	// queried from GL
-	int             maxActiveTextures;	// multitexture ability
 
 	int             colorBits, depthBits, stencilBits;
 
@@ -401,8 +394,6 @@ typedef struct
 
 	qboolean        vertexArrayObjectAvailable;
 
-	qboolean        stencilWrapAvailable;
-
 	float           maxTextureAnisotropy;
 	qboolean        textureAnisotropyAvailable;
 
@@ -411,8 +402,6 @@ typedef struct
 	int             maxColorAttachments;
 	qboolean        framebufferPackedDepthStencilAvailable;
 	qboolean        framebufferBlitAvailable;
-
-	qboolean        generateMipmapAvailable;
 } glconfig2_t;
 // XreaL END
 

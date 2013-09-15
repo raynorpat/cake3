@@ -59,10 +59,10 @@ const matrix_t flipZMatrix = {
 };
 
 const GLenum geometricRenderTargets[] = {
-	GL_COLOR_ATTACHMENT0_EXT,
-	GL_COLOR_ATTACHMENT1_EXT,
-	GL_COLOR_ATTACHMENT2_EXT,
-	GL_COLOR_ATTACHMENT3_EXT
+	GL_COLOR_ATTACHMENT0,
+	GL_COLOR_ATTACHMENT1,
+	GL_COLOR_ATTACHMENT2,
+	GL_COLOR_ATTACHMENT3
 };
 
 int             shadowMapResolutions[5] = { 2048, 1024, 512, 256, 128 };
@@ -3284,7 +3284,7 @@ void R_DebugBoundingBox(const vec3_t origin, const vec3_t mins, const vec3_t max
 
 	// draw bounding box
 	glBegin(GL_LINES);
-	glVertexAttrib4fvARB(ATTR_INDEX_COLOR, color);
+	glVertexAttrib4fv(ATTR_INDEX_COLOR, color);
 	for(i = 0; i < 4; i++)
 	{
 		// top plane

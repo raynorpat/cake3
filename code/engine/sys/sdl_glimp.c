@@ -40,11 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../sys/sys_local.h"
 #include "sdl_icon.h"
 
-#if defined(WIN32)
-#include <GL/wglew.h>
-#else
-#include <GL/glxew.h>
-#endif
+#include <GL3/gl3w.h>
 
 typedef enum
 {
@@ -106,6 +102,7 @@ GLimp_LogComment
 */
 void GLimp_LogComment(const char *comment)
 {
+/*
 	static char		buf[4096];
 
 	if(r_logFile->integer && GLEW_GREMEDY_string_marker)
@@ -115,6 +112,7 @@ void GLimp_LogComment(const char *comment)
 
 		glStringMarkerGREMEDY(strlen(buf), buf);
 	}
+*/
 }
 
 /*
@@ -212,9 +210,8 @@ static void GLimp_DetectAvailableModes(void)
 GLimp_SetMode
 ===============
 */
-static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
+static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qboolean coreProfileContext)
 {
-	const char     *glstring;
 	int 			perChannelColorBits;
 	int             colorBits, depthBits, stencilBits;
 	int             i = 0;
@@ -223,7 +220,6 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	SDL_DisplayMode desktopMode;
 	int 			display = 0;
 	int 			x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
-	GLenum			glewResult;
 
 	ri.Printf(PRINT_ALL, "Initializing OpenGL display\n");
 
@@ -394,11 +390,11 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		else
 			perChannelColorBits = 4;
 
-		SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
-		SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
-		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
-		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, testDepthBits );
-		SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, testStencilBits );
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, perChannelColorBits);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, perChannelColorBits);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, perChannelColorBits);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, testDepthBits);
+		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, testStencilBits);
 
 /*
 		if(r_stereoEnabled->integer)
@@ -412,11 +408,25 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 			SDL_GL_SetAttribute(SDL_GL_STEREO, 0);
 		}
 */
+		if(coreProfileContext)
+		{
+			// lets grab an OpenGL 3.2 core profile context
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, r_glMinMajorVersion->integer ? r_glMinMajorVersion->integer : 3);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, r_glMinMinorVersion->integer ? r_glMinMinorVersion->integer : 2);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+			glConfig.driverType = GLDRV_OPENGL3;
+		}
+		else
+		{
+			// set r_glCoreProfile to 0 and set the default driver type
+			ri.Cvar_SetValue("r_glCoreProfile", 0);
+			glConfig.driverType = GLDRV_DEFAULT;
+		}
 
-		if( ( SDL_window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y,
-				glConfig.vidWidth, glConfig.vidHeight, flags ) ) == 0 )
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+		if( ( SDL_window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags ) ) == 0 )
 		{
 			ri.Printf( PRINT_DEVELOPER, "SDL_CreateWindow failed: %s\n", SDL_GetError( ) );
 			continue;
@@ -473,21 +483,17 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 	SDL_FreeSurface( icon );
 
-	glewResult = glewInit();
-	if(GLEW_OK != glewResult)
+	if(gl3wInit())
 	{
-		// glewInit failed, something is seriously wrong
-		ri.Error(ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem: %s", glewGetErrorString(glewResult));
+		// gl3wInit failed, something is seriously wrong
+		ri.Error(ERR_FATAL, "GLimp_SetMode() - could not load OpenGL subsystem");
 	}
 	else
 	{
-		ri.Printf(PRINT_ALL, "Using GLEW %s\n", glewGetString(GLEW_VERSION));
+		ri.Printf(PRINT_ALL, "Using OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	}
 
 	GLimp_DetectAvailableModes();
-
-	glstring = (char *)glGetString(GL_RENDERER);
-	ri.Printf(PRINT_ALL, "GL_RENDERER: %s\n", glstring);
 
 	return RSERR_OK;
 }
@@ -497,7 +503,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 GLimp_StartDriverAndSetMode
 ===============
 */
-static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen, qboolean noborder)
+static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen, qboolean noborder, qboolean coreProfileContext)
 {
 	rserr_t         err;
 
@@ -524,7 +530,7 @@ static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen, qbool
 		fullscreen = qfalse;
 	}
 
-	err = GLimp_SetMode(mode, fullscreen, noborder);
+	err = GLimp_SetMode(mode, fullscreen, noborder, coreProfileContext);
 
 	switch (err)
 	{
@@ -541,6 +547,20 @@ static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen, qbool
 	return qtrue;
 }
 
+static qboolean GLimp_HaveExtension(const char *ext)
+{
+	const char *ptr;
+	
+	if(glConfig.driverType == GLDRV_OPENGL3)
+		return qtrue;
+
+	ptr = Q_stristr( glConfig.extensions_string, ext );
+	if (ptr == NULL)
+		return qfalse;
+	ptr += strlen(ext);
+	return ((*ptr == ' ') || (*ptr == '\0'));  // verify it's complete string.
+}
+
 /*
 ===============
 GLimp_InitExtensions
@@ -548,518 +568,327 @@ GLimp_InitExtensions
 */
 static void GLimp_InitExtensions(void)
 {
-	ri.Printf(PRINT_ALL, "Initializing OpenGL extensions\n");
+	ri.Printf(PRINT_DEVELOPER, "Initializing OpenGL extensions\n");
 
-	// GL_ARB_multitexture
-	if(glConfig.driverType != GLDRV_OPENGL3)
+//	if(glConfig.driverType != GLDRV_OPENGL3)
 	{
-		if(GLEW_ARB_multitexture)
+		// GL_ARB_occlusion_query
+		glConfig2.occlusionQueryAvailable = qfalse;
+		glConfig2.occlusionQueryBits = 0;
+		if(GLimp_HaveExtension("GL_ARB_occlusion_query"))
 		{
-			glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &glConfig.maxActiveTextures);
-
-			if(glConfig.maxActiveTextures > 1)
+			if(r_ext_occlusion_query->value)
 			{
-				ri.Printf(PRINT_ALL, "...using GL_ARB_multitexture\n");
+				glConfig2.occlusionQueryAvailable = qtrue;
+				glGetQueryiv(GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits);
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_occlusion_query\n");
 			}
 			else
 			{
-				ri.Error(ERR_FATAL, "...not using GL_ARB_multitexture, < 2 texture units\n");
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_occlusion_query\n");
 			}
 		}
 		else
 		{
-			ri.Error(ERR_FATAL, "...GL_ARB_multitexture not found\n");
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_occlusion_query not found\n");
 		}
-	}
-	
-
-	// GL_ARB_depth_texture
-	if(GLEW_ARB_depth_texture)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_ARB_depth_texture\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_depth_texture not found\n");
-	}
-
-	// GL_ARB_texture_cube_map
-	if(GLEW_ARB_texture_cube_map)
-	{
-		glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize);
-		ri.Printf(PRINT_ALL, "...using GL_ARB_texture_cube_map\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_texture_cube_map not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_ARB_vertex_program
-	if(GLEW_ARB_vertex_program)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_ARB_vertex_program\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_vertex_program not found\n");
-	}
-
-	// GL_ARB_vertex_buffer_object
-	if(GLEW_ARB_vertex_buffer_object)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_ARB_vertex_buffer_object\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_vertex_buffer_object not found\n");
-	}
-
-	// GL_ARB_occlusion_query
-	glConfig2.occlusionQueryAvailable = qfalse;
-	glConfig2.occlusionQueryBits = 0;
-	if(GLEW_ARB_occlusion_query)
-	{
-		if(r_ext_occlusion_query->value)
-		{
-			glConfig2.occlusionQueryAvailable = qtrue;
-			glGetQueryivARB(GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits);
-			ri.Printf(PRINT_ALL, "...using GL_ARB_occlusion_query\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_occlusion_query\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_occlusion_query not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_ARB_shader_objects
-	if(GLEW_ARB_shader_objects)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_ARB_shader_objects\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_shader_objects not found\n");
-	}
-
-	// GL_ARB_vertex_shader
-	if(GLEW_ARB_vertex_shader)
-	{
-		int				reservedComponents;
-
 		GL_CheckErrors();
-		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms); GL_CheckErrors();
-		//glGetIntegerv(GL_MAX_VARYING_FLOATS_ARB, &glConfig.maxVaryingFloats); GL_CheckErrors();
-		glGetIntegerv(GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs); GL_CheckErrors();
+		
+		// GL_ARB_vertex_shader
+		if(GLimp_HaveExtension("GL_ARB_vertex_shader"))
+		{
+			int				reservedComponents;
 
-		reservedComponents = 16 * 10; // approximation how many uniforms we have besides the bone matrices
+			GL_CheckErrors();
+			glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &glConfig2.maxVertexUniforms); GL_CheckErrors();
+			//glGetIntegerv(GL_MAX_VARYING_FLOATS, &glConfig.maxVaryingFloats); GL_CheckErrors();
+			glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &glConfig2.maxVertexAttribs); GL_CheckErrors();
 
+			reservedComponents = 16 * 10; // approximation how many uniforms we have besides the bone matrices
+
+			/*
+			if(glConfig.driverType == GLDRV_MESA)
+			{
+				// HACK
+				// restrict to number of vertex uniforms to 512 because of:
+				// xreal.x86_64: nv50_program.c:4181: nv50_program_validate_data: Assertion `p->param_nr <= 512' failed
+
+				glConfig2.maxVertexUniforms = Q_bound(0, glConfig2.maxVertexUniforms, 512);
+			}
+			*/
+
+			glConfig2.maxVertexSkinningBones = (int) Q_bound(0.0, (Q_max(glConfig2.maxVertexUniforms - reservedComponents, 0) / 16), MAX_BONES);
+			glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ((glConfig2.maxVertexSkinningBones >= 12) ? qtrue : qfalse);
+
+			ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_vertex_shader\n");
+		}
+		else
+		{
+			ri.Error(ERR_FATAL, "...GL_ARB_vertex_shader not found\n");
+		}
+		GL_CheckErrors();
+
+		// GL_ARB_shading_language_100
+		if(GLimp_HaveExtension("GL_ARB_shading_language_100"))
+		{
+			Q_strncpyz(glConfig2.shadingLanguageVersion, (char*)glGetString(GL_SHADING_LANGUAGE_VERSION), sizeof(glConfig2.shadingLanguageVersion));
+			ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_shading_language_100\n");
+		}
+		else
+		{
+			ri.Printf(ERR_FATAL, "...GL_ARB_shading_language_100 not found\n");
+		}
+		GL_CheckErrors();
+
+		// GL_ARB_texture_non_power_of_two
+		glConfig2.textureNPOTAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_ARB_texture_non_power_of_two"))
+		{
+			if(r_ext_texture_non_power_of_two->integer)
+			{
+				glConfig2.textureNPOTAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_texture_non_power_of_two\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_texture_non_power_of_two\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_texture_non_power_of_two not found\n");
+		}
+
+		// GL_ARB_draw_buffers
+		glConfig2.drawBuffersAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_ARB_draw_buffers"))
+		{
+			glGetIntegerv(GL_MAX_DRAW_BUFFERS, &glConfig2.maxDrawBuffers);
+
+			if(r_ext_draw_buffers->integer)
+			{
+				glConfig2.drawBuffersAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_draw_buffers\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_draw_buffers\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_draw_buffers not found\n");
+		}
+
+		// GL_ARB_half_float_pixel
+		glConfig2.textureHalfFloatAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_ARB_half_float_pixel"))
+		{
+			if(r_ext_half_float_pixel->integer)
+			{
+				glConfig2.textureHalfFloatAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_half_float_pixel\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_half_float_pixel\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_half_float_pixel not found\n");
+		}
+
+		// GL_ARB_texture_float
+		glConfig2.textureFloatAvailable = qfalse;
+		if(GLimp_HaveExtension("GLEW_ARB_texture_float"))
+		{
+			if(r_ext_texture_float->integer)
+			{
+				glConfig2.textureFloatAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_texture_float\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_texture_float\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_texture_float not found\n");
+		}
+
+		// GL_ARB_texture_compression
+		glConfig.textureCompression = TC_NONE;
+		if(GLimp_HaveExtension("GL_ARB_texture_compression"))
+		{
+			if(r_ext_compressed_textures->integer)
+			{
+				glConfig2.ARBTextureCompressionAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_texture_compression\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_texture_compression\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_texture_compression not found\n");
+		}
+
+		// GL_ARB_vertex_array_object
+		glConfig2.vertexArrayObjectAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_ARB_vertex_array_object"))
+		{
+			if(r_ext_vertex_array_object->integer)
+			{
+				glConfig2.vertexArrayObjectAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_vertex_array_object\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_vertex_array_object\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_vertex_array_object not found\n");
+		}
+
+		// GL_EXT_texture_compression_s3tc
+		if(GLimp_HaveExtension("GL_EXT_texture_compression_s3tc"))
+		{
+			if(r_ext_compressed_textures->integer)
+			{
+				glConfig.textureCompression = TC_S3TC;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_EXT_texture_compression_s3tc\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_EXT_texture_compression_s3tc\n");
+			}
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_EXT_texture_compression_s3tc not found\n");
+		}
+
+		// GL_EXT_texture3D
+		glConfig2.texture3DAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_EXT_texture3D"))
+		{
+			//if(r_ext_texture3d->value)
+			{
+				glConfig2.texture3DAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_EXT_texture3D\n");
+			}
+			/*
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_EXT_texture3D\n");
+			}
+			*/
+		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_EXT_texture3D not found\n");
+		}
+
+		// GL_EXT_texture_filter_anisotropic
+		glConfig2.textureAnisotropyAvailable = qfalse;
 		/*
-		if(glConfig.driverType == GLDRV_MESA)
+		if(GLimp_HaveExtension("GL_EXT_texture_filter_anisotropic"))
 		{
-			// HACK
-			// restrict to number of vertex uniforms to 512 because of:
-			// xreal.x86_64: nv50_program.c:4181: nv50_program_validate_data: Assertion `p->param_nr <= 512' failed
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy);
 
-			glConfig2.maxVertexUniforms = Q_bound(0, glConfig2.maxVertexUniforms, 512);
+			if(r_ext_texture_filter_anisotropic->value)
+			{
+				glConfig2.textureAnisotropyAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_EXT_texture_filter_anisotropic\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_EXT_texture_filter_anisotropic\n");
+			}
 		}
+		else
+		{
+			ri.Printf(PRINT_DEVELOPER, "...GL_EXT_texture_filter_anisotropic not found\n");
+		}
+		GL_CheckErrors();
 		*/
-
-		glConfig2.maxVertexSkinningBones = (int) Q_bound(0.0, (Q_max(glConfig2.maxVertexUniforms - reservedComponents, 0) / 16), MAX_BONES);
-		glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ((glConfig2.maxVertexSkinningBones >= 12) ? qtrue : qfalse);
-
-		ri.Printf(PRINT_ALL, "...using GL_ARB_vertex_shader\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_vertex_shader not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_ARB_fragment_shader
-	if(GLEW_ARB_fragment_shader)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_ARB_fragment_shader\n");
-	}
-	else
-	{
-		ri.Error(ERR_FATAL, "...GL_ARB_fragment_shader not found\n");
-	}
-
-	// GL_ARB_shading_language_100
-	if(GLEW_ARB_shading_language_100)
-	{
-		Q_strncpyz(glConfig2.shadingLanguageVersion, (char*)glGetString(GL_SHADING_LANGUAGE_VERSION_ARB),
-				   sizeof(glConfig2.shadingLanguageVersion));
-		ri.Printf(PRINT_ALL, "...using GL_ARB_shading_language_100\n");
-	}
-	else
-	{
-		ri.Printf(ERR_FATAL, "...GL_ARB_shading_language_100 not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_ARB_texture_non_power_of_two
-	glConfig2.textureNPOTAvailable = qfalse;
-	if(GLEW_ARB_texture_non_power_of_two)
-	{
-		if(r_ext_texture_non_power_of_two->integer)
+		
+		// GL_ARB_framebuffer_object
+		glConfig2.framebufferObjectAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_ARB_framebuffer_object"))
 		{
-			glConfig2.textureNPOTAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_texture_non_power_of_two\n");
+			glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize);
+			glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments);
+
+			if(r_ext_framebuffer_object->value)
+			{
+				glConfig2.framebufferObjectAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_ARB_framebuffer_object\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_ARB_framebuffer_object\n");
+			}
 		}
 		else
 		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_texture_non_power_of_two\n");
+			ri.Printf(PRINT_DEVELOPER, "...GL_ARB_framebuffer_object not found\n");
 		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_texture_non_power_of_two not found\n");
-	}
+		GL_CheckErrors();
 
-	// GL_ARB_draw_buffers
-	glConfig2.drawBuffersAvailable = qfalse;
-	if(GLEW_ARB_draw_buffers)
-	{
-		glGetIntegerv(GL_MAX_DRAW_BUFFERS_ARB, &glConfig2.maxDrawBuffers);
-
-		if(r_ext_draw_buffers->integer)
+		// GL_EXT_packed_depth_stencil
+		glConfig2.framebufferPackedDepthStencilAvailable = qfalse;
+		if(GLimp_HaveExtension("GLEW_EXT_packed_depth_stencil") && glConfig.driverType != GLDRV_MESA)
 		{
-			glConfig2.drawBuffersAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_draw_buffers\n");
+			if(r_ext_packed_depth_stencil->integer)
+			{
+				glConfig2.framebufferPackedDepthStencilAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_EXT_packed_depth_stencil\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_EXT_packed_depth_stencil\n");
+			}
 		}
 		else
 		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_draw_buffers\n");
+			ri.Printf(PRINT_DEVELOPER, "...GL_EXT_packed_depth_stencil not found\n");
 		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_draw_buffers not found\n");
-	}
 
-	// GL_ARB_half_float_pixel
-	glConfig2.textureHalfFloatAvailable = qfalse;
-	if(GLEW_ARB_half_float_pixel)
-	{
-		if(r_ext_half_float_pixel->integer)
+		// GL_EXT_framebuffer_blit
+		glConfig2.framebufferBlitAvailable = qfalse;
+		if(GLimp_HaveExtension("GL_EXT_framebuffer_blit"))
 		{
-			glConfig2.textureHalfFloatAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_half_float_pixel\n");
+			if(r_ext_framebuffer_blit->integer)
+			{
+				glConfig2.framebufferBlitAvailable = qtrue;
+				ri.Printf(PRINT_DEVELOPER, "...using GL_EXT_framebuffer_blit\n");
+			}
+			else
+			{
+				ri.Printf(PRINT_DEVELOPER, "...ignoring GL_EXT_framebuffer_blit\n");
+			}
 		}
 		else
 		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_half_float_pixel\n");
+			ri.Printf(PRINT_DEVELOPER, "...GL_EXT_framebuffer_blit not found\n");
 		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_half_float_pixel not found\n");
-	}
 
-	// GL_ARB_texture_float
-	glConfig2.textureFloatAvailable = qfalse;
-	if(GLEW_ARB_texture_float)
-	{
-		if(r_ext_texture_float->integer)
+		// GL_GREMEDY_string_marker
+		if(GLimp_HaveExtension("GL_GREMEDY_string_marker"))
 		{
-			glConfig2.textureFloatAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_texture_float\n");
+			ri.Printf(PRINT_DEVELOPER, "...using GL_GREMEDY_string_marker\n");
 		}
 		else
 		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_texture_float\n");
+			ri.Printf(PRINT_DEVELOPER, "...GL_GREMEDY_string_marker not found\n");
 		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_texture_float not found\n");
-	}
-
-	// GL_ARB_texture_compression
-	glConfig.textureCompression = TC_NONE;
-	if(GLEW_ARB_texture_compression)
-	{
-		if(r_ext_compressed_textures->integer)
-		{
-			glConfig2.ARBTextureCompressionAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_texture_compression\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_texture_compression\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_texture_compression not found\n");
-	}
-
-	// GL_ARB_vertex_array_object
-	glConfig2.vertexArrayObjectAvailable = qfalse;
-	if(GLEW_ARB_vertex_array_object)
-	{
-		if(r_ext_vertex_array_object->integer)
-		{
-			glConfig2.vertexArrayObjectAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_ARB_vertex_array_object\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ARB_vertex_array_object\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ARB_vertex_array_object not found\n");
-	}
-
-	// GL_EXT_texture_compression_s3tc
-	if(GLEW_EXT_texture_compression_s3tc)
-	{
-		if(r_ext_compressed_textures->integer)
-		{
-			glConfig.textureCompression = TC_S3TC;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_texture_compression_s3tc\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_texture_compression_s3tc\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_texture_compression_s3tc not found\n");
-	}
-
-	// GL_EXT_texture3D
-	glConfig2.texture3DAvailable = qfalse;
-	if(GLEW_EXT_texture3D)
-	{
-		//if(r_ext_texture3d->value)
-		{
-			glConfig2.texture3DAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_texture3D\n");
-		}
-		/*
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_texture3D\n");
-		}
-		*/
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_texture3D not found\n");
-	}
-
-	// GL_EXT_stencil_wrap
-	glConfig2.stencilWrapAvailable = qfalse;
-	if(GLEW_EXT_stencil_wrap)
-	{
-		if(r_ext_stencil_wrap->value)
-		{
-			glConfig2.stencilWrapAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_stencil_wrap\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_stencil_wrap\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_stencil_wrap not found\n");
-	}
-
-	// GL_EXT_texture_filter_anisotropic
-	glConfig2.textureAnisotropyAvailable = qfalse;
-	if(GLEW_EXT_texture_filter_anisotropic)
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy);
-
-		if(r_ext_texture_filter_anisotropic->value)
-		{
-			glConfig2.textureAnisotropyAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_texture_filter_anisotropic\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_EXT_stencil_two_side
-	if(GLEW_EXT_stencil_two_side)
-	{
-		if(r_ext_stencil_two_side->value)
-		{
-			ri.Printf(PRINT_ALL, "...using GL_EXT_stencil_two_side\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_stencil_two_side\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_stencil_two_side not found\n");
-	}
-
-	// GL_EXT_depth_bounds_test
-	if(GLEW_EXT_depth_bounds_test)
-	{
-		if(r_ext_depth_bounds_test->value)
-		{
-			ri.Printf(PRINT_ALL, "...using GL_EXT_depth_bounds_test\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_depth_bounds_test\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_depth_bounds_test not found\n");
-	}
-
-	// GL_EXT_framebuffer_object
-	glConfig2.framebufferObjectAvailable = qfalse;
-	if(GLEW_EXT_framebuffer_object)
-	{
-		glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE_EXT, &glConfig2.maxRenderbufferSize);
-		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS_EXT, &glConfig2.maxColorAttachments);
-
-		if(r_ext_framebuffer_object->value)
-		{
-			glConfig2.framebufferObjectAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_framebuffer_object\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_framebuffer_object\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_framebuffer_object not found\n");
-	}
-	GL_CheckErrors();
-
-	// GL_EXT_packed_depth_stencil
-	glConfig2.framebufferPackedDepthStencilAvailable = qfalse;
-	if(GLEW_EXT_packed_depth_stencil && glConfig.driverType != GLDRV_MESA)
-	{
-		if(r_ext_packed_depth_stencil->integer)
-		{
-			glConfig2.framebufferPackedDepthStencilAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_packed_depth_stencil\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_packed_depth_stencil\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_packed_depth_stencil not found\n");
-	}
-
-	// GL_EXT_framebuffer_blit
-	glConfig2.framebufferBlitAvailable = qfalse;
-	if(GLEW_EXT_framebuffer_blit)
-	{
-		if(r_ext_framebuffer_blit->integer)
-		{
-			glConfig2.framebufferBlitAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXT_framebuffer_blit\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXT_framebuffer_blit\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXT_framebuffer_blit not found\n");
-	}
-
-	// GL_EXTX_framebuffer_mixed_formats
-	/*
-	glConfig.framebufferMixedFormatsAvailable = qfalse;
-	if(GLEW_EXTX_framebuffer_mixed_formats)
-	{
-		if(r_extx_framebuffer_mixed_formats->integer)
-		{
-			glConfig.framebufferMixedFormatsAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_EXTX_framebuffer_mixed_formats\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_EXTX_framebuffer_mixed_formats\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_EXTX_framebuffer_mixed_formats not found\n");
-	}
-	*/
-
-	// GL_ATI_separate_stencil
-	if(GLEW_ATI_separate_stencil)
-	{
-		if(r_ext_separate_stencil->value)
-		{
-			ri.Printf(PRINT_ALL, "...using GL_ATI_separate_stencil\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_ATI_separate_stencil\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_ATI_separate_stencil not found\n");
-	}
-
-	// GL_SGIS_generate_mipmap
-	glConfig2.generateMipmapAvailable = qfalse;
-	if(GLEW_SGIS_generate_mipmap)
-	{
-		if(r_ext_generate_mipmap->value)
-		{
-			glConfig2.generateMipmapAvailable = qtrue;
-			ri.Printf(PRINT_ALL, "...using GL_SGIS_generate_mipmap\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, "...ignoring GL_SGIS_generate_mipmap\n");
-		}
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_SGIS_generate_mipmap not found\n");
-	}
-
-	// GL_GREMEDY_string_marker
-	if(GLEW_GREMEDY_string_marker)
-	{
-		ri.Printf(PRINT_ALL, "...using GL_GREMEDY_string_marker\n");
-	}
-	else
-	{
-		ri.Printf(PRINT_ALL, "...GL_GREMEDY_string_marker not found\n");
 	}
 }
 
@@ -1077,8 +906,6 @@ void GLimp_Init(void)
 {
 	qboolean        success = qtrue;
 
-	glConfig.driverType = GLDRV_DEFAULT;
-
 	r_sdlDriver = ri.Cvar_Get("r_sdlDriver", "", CVAR_ROM);
 	r_allowResize = ri.Cvar_Get("r_allowResize", "0", CVAR_ARCHIVE);
 	r_centerWindow = ri.Cvar_Get("r_centerWindow", "0", CVAR_ARCHIVE);
@@ -1094,13 +921,13 @@ void GLimp_Init(void)
 	Sys_GLimpInit();
 
 	// Create the window and set up the context
-	if(GLimp_StartDriverAndSetMode(r_mode->integer, r_fullscreen->integer, r_noborder->integer))
+	if(GLimp_StartDriverAndSetMode(r_mode->integer, r_fullscreen->integer, r_noborder->integer, r_glCoreProfile->integer))
 		goto success;
 
 	// Try again, this time in a platform specific "safe mode"
 	Sys_GLimpSafeInit();
 
-	if(GLimp_StartDriverAndSetMode(r_mode->integer, r_fullscreen->integer, qfalse))
+	if(GLimp_StartDriverAndSetMode(r_mode->integer, r_fullscreen->integer, qfalse, qfalse))
 		goto success;
 
 	// Finally, try the default screen resolution
@@ -1108,7 +935,7 @@ void GLimp_Init(void)
 	{
 		ri.Printf(PRINT_ALL, "Setting r_mode %d failed, falling back on r_mode %d\n", r_mode->integer, R_MODE_FALLBACK);
 
-		if(GLimp_StartDriverAndSetMode(R_MODE_FALLBACK, qfalse, qfalse))
+		if(GLimp_StartDriverAndSetMode(R_MODE_FALLBACK, qfalse, qfalse, qfalse))
 			goto success;
 	}
 
@@ -1120,8 +947,7 @@ void GLimp_Init(void)
 	glConfig.hardwareType = GLHW_GENERIC;
 
 	// Only using SDL_SetWindowBrightness to determine if hardware gamma is supported
-	glConfig.deviceSupportsGamma = !r_ignorehwgamma->integer &&
-		SDL_SetWindowBrightness( SDL_window, 1.0f ) >= 0;
+	glConfig.deviceSupportsGamma = !r_ignorehwgamma->integer &&	SDL_SetWindowBrightness( SDL_window, 1.0f ) >= 0;
 
 	// get our config strings
 	Q_strncpyz(glConfig.vendor_string, (char *)glGetString(GL_VENDOR), sizeof(glConfig.vendor_string));

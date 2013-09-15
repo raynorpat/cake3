@@ -538,11 +538,6 @@ void RB_RenderFlares(void)
 		return;
 	}
 
-	if(backEnd.viewParms.isPortal)
-	{
-		glDisable(GL_CLIP_PLANE0);
-	}
-
 	GL_CheckErrors();
 
 	GL_PushMatrix();

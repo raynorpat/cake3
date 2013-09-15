@@ -1492,7 +1492,7 @@ static void IssueOcclusionQuery(link_t * queue, bspNode_t * node, qboolean reset
 #endif
 
 	// begin the occlusion query
-	glBeginQueryARB(GL_SAMPLES_PASSED, node->occlusionQueryObjects[tr.viewCount]);
+	glBeginQuery(GL_SAMPLES_PASSED, node->occlusionQueryObjects[tr.viewCount]);
 
 	GL_CheckErrors();
 
@@ -1507,10 +1507,10 @@ static void IssueOcclusionQuery(link_t * queue, bspNode_t * node, qboolean reset
 	Tess_DrawElements();
 
 	// end the query
-	glEndQueryARB(GL_SAMPLES_PASSED);
+	glEndQuery(GL_SAMPLES_PASSED);
 
 #if 1
-	if(!glIsQueryARB(node->occlusionQueryObjects[tr.viewCount]))
+	if(!glIsQuery(node->occlusionQueryObjects[tr.viewCount]))
 	{
 		ri.Error(ERR_FATAL, "IssueOcclusionQuery: node %i has no occlusion query object in slot %i: %i", node - tr.world->nodes, tr.viewCount, node->occlusionQueryObjects[tr.viewCount]);
 	}
@@ -1562,7 +1562,7 @@ static void IssueMultiOcclusionQueries(link_t * multiQueue, link_t * individualQ
 	}
 #endif
 
-	glBeginQueryARB(GL_SAMPLES_PASSED, multiQueryNode->occlusionQueryObjects[tr.viewCount]);
+	glBeginQuery(GL_SAMPLES_PASSED, multiQueryNode->occlusionQueryObjects[tr.viewCount]);
 
 	GL_CheckErrors();
 
@@ -1608,7 +1608,7 @@ static void IssueMultiOcclusionQueries(link_t * multiQueue, link_t * individualQ
 	tr.pc.c_occlusionQueriesMulti++;
 
 	// end the query
-	glEndQueryARB(GL_SAMPLES_PASSED);
+	glEndQuery(GL_SAMPLES_PASSED);
 
 	GL_CheckErrors();
 
@@ -1642,7 +1642,7 @@ static qboolean ResultAvailable(bspNode_t *node)
 	available = 0;
 	//if(glIsQueryARB(node->occlusionQueryObjects[tr.viewCount]))
 	{
-		glGetQueryObjectivARB(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+		glGetQueryObjectiv(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT_AVAILABLE, &available);
 		GL_CheckErrors();
 	}
 
@@ -1670,14 +1670,14 @@ static void GetOcclusionQueryResult(bspNode_t *node)
 	available = 0;
 	while(!available)
 	{
-		//if(glIsQueryARB(node->occlusionQueryObjects[tr.viewCount]))
+		//if(glIsQuery(node->occlusionQueryObjects[tr.viewCount]))
 		{
-			glGetQueryObjectivARB(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+			glGetQueryObjectiv(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT_AVAILABLE, &available);
 			//GL_CheckErrors();
 		}
 	}
 
-	glGetQueryObjectivARB(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT, &ocSamples);
+	glGetQueryObjectiv(node->occlusionQueryObjects[tr.viewCount], GL_QUERY_RESULT, &ocSamples);
 
 
 	if(r_logFile->integer)

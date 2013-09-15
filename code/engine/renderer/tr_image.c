@@ -152,8 +152,8 @@ void GL_TextureMode(const char *string)
 			glTexParameterf(image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 
 			// set texture anisotropy
-			if(glConfig2.textureAnisotropyAvailable)
-				glTexParameterf(image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value);
+//			if(glConfig2.textureAnisotropyAvailable)
+//				glTexParameterf(image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value);
 		}
 	}
 }
@@ -224,7 +224,7 @@ void R_ImageList_f(void)
 				ri.Printf(PRINT_ALL, "2D   ");
 				break;
 
-			case GL_TEXTURE_CUBE_MAP_ARB:
+			case GL_TEXTURE_CUBE_MAP:
 				texels += image->uploadWidth * image->uploadHeight * 6;
 				imageDataSize = image->uploadWidth * image->uploadHeight * 6;
 
@@ -254,51 +254,53 @@ void R_ImageList_f(void)
 				imageDataSize *= 6;
 				break;
 
-			case GL_RGB16F_ARB:
+			case GL_RGB16F:
 				ri.Printf(PRINT_ALL, "RGB16F   ");
 				imageDataSize *= 6;
 				break;
 
-			case GL_RGB32F_ARB:
+			case GL_RGB32F:
 				ri.Printf(PRINT_ALL, "RGB32F   ");
 				imageDataSize *= 12;
 				break;
 
-			case GL_RGBA16F_ARB:
+			case GL_RGBA16F:
 				ri.Printf(PRINT_ALL, "RGBA16F  ");
 				imageDataSize *= 8;
 				break;
 
-			case GL_RGBA32F_ARB:
+			case GL_RGBA32F:
 				ri.Printf(PRINT_ALL, "RGBA32F  ");
 				imageDataSize *= 16;
 				break;
 
-			case GL_ALPHA16F_ARB:
+/*
+			case GL_ALPHA16F:
 				ri.Printf(PRINT_ALL, "A16F     ");
 				imageDataSize *= 2;
 				break;
 
-			case GL_ALPHA32F_ARB:
+			case GL_ALPHA32F:
 				ri.Printf(PRINT_ALL, "A32F     ");
 				imageDataSize *= 4;
 				break;
 
-			case GL_LUMINANCE_ALPHA16F_ARB:
+			case GL_LUMINANCE_ALPHA16F:
 				ri.Printf(PRINT_ALL, "LA16F    ");
 				imageDataSize *= 4;
 				break;
 
-			case GL_LUMINANCE_ALPHA32F_ARB:
+			case GL_LUMINANCE_ALPHA32F:
 				ri.Printf(PRINT_ALL, "LA32F    ");
 				imageDataSize *= 8;
 				break;
-
-			case GL_COMPRESSED_RGBA_ARB:
+*/
+			case GL_COMPRESSED_RGBA:
 				ri.Printf(PRINT_ALL, "ARB      ");
 				imageDataSize *= 4;	// FIXME
 				break;
 
+/*
 			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 				ri.Printf(PRINT_ALL, "DXT1     ");
 				imageDataSize *= 4 / 8;
@@ -318,18 +320,18 @@ void R_ImageList_f(void)
 				ri.Printf(PRINT_ALL, "DXT5     ");
 				imageDataSize *= 4 / 4;
 				break;
-
-			case GL_DEPTH_COMPONENT16_ARB:
+*/
+			case GL_DEPTH_COMPONENT16:
 				ri.Printf(PRINT_ALL, "D16      ");
 				imageDataSize *= 2;
 				break;
 
-			case GL_DEPTH_COMPONENT24_ARB:
+			case GL_DEPTH_COMPONENT24:
 				ri.Printf(PRINT_ALL, "D24      ");
 				imageDataSize *= 3;
 				break;
 
-			case GL_DEPTH_COMPONENT32_ARB:
+			case GL_DEPTH_COMPONENT32:
 				ri.Printf(PRINT_ALL, "D32      ");
 				imageDataSize *= 4;
 				break;
@@ -1103,7 +1105,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 	// clamp to the current upper OpenGL limit
 	// scale both axis down equally so we don't have to
 	// deal with a half mip resampling
-	if(image->type == GL_TEXTURE_CUBE_MAP_ARB)
+	if(image->type == GL_TEXTURE_CUBE_MAP)
 	{
 		while(scaledWidth > glConfig2.maxCubeMapTextureSize || scaledHeight > glConfig2.maxCubeMapTextureSize)
 		{
@@ -1125,8 +1127,8 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 	// set target
 	switch (image->type)
 	{
-		case GL_TEXTURE_CUBE_MAP_ARB:
-			target = GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB;
+		case GL_TEXTURE_CUBE_MAP:
+			target = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
 			break;
 
 		default:
@@ -1145,40 +1147,40 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 
 		if(image->bits & IF_DEPTH16)
 		{
-			internalFormat = GL_DEPTH_COMPONENT16_ARB;
+			internalFormat = GL_DEPTH_COMPONENT16;
 		}
 		else if(image->bits & IF_DEPTH24)
 		{
-			internalFormat = GL_DEPTH_COMPONENT24_ARB;
+			internalFormat = GL_DEPTH_COMPONENT24;
 		}
 		else if(image->bits & IF_DEPTH32)
 		{
-			internalFormat = GL_DEPTH_COMPONENT32_ARB;
+			internalFormat = GL_DEPTH_COMPONENT32;
 		}
 	}
 	else if(image->bits & (IF_PACKED_DEPTH24_STENCIL8))
 	{
-		format = GL_DEPTH_STENCIL_EXT;
-		internalFormat = GL_DEPTH24_STENCIL8_EXT;
+		format = GL_DEPTH_STENCIL;
+		internalFormat = GL_DEPTH24_STENCIL8;
 	}
 	else if(glConfig2.textureFloatAvailable &&
 			(image->bits & (IF_RGBA16F | IF_RGBA32F | IF_RGBA16 | IF_LA16F | IF_LA32F | IF_ALPHA16F | IF_ALPHA32F)))
 	{
 		if(image->bits & IF_RGBA16F)
 		{
-			internalFormat = GL_RGBA16F_ARB;
+			internalFormat = GL_RGBA16F;
 		}
 		else if(image->bits & IF_RGBA32F)
 		{
-			internalFormat = GL_RGBA32F_ARB;
+			internalFormat = GL_RGBA32F;
 		}
 		else if(image->bits & IF_LA16F)
 		{
-			internalFormat = GL_LUMINANCE_ALPHA16F_ARB;
+			internalFormat = GL_RG16F;
 		}
 		else if(image->bits & IF_LA32F)
 		{
-			internalFormat = GL_LUMINANCE_ALPHA32F_ARB;
+			internalFormat = GL_RG32F;
 		}
 		else if(image->bits & IF_RGBA16)
 		{
@@ -1186,11 +1188,11 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 		}
 		else if(image->bits & IF_ALPHA16F)
 		{
-			internalFormat = GL_ALPHA16F_ARB;
+			internalFormat = GL_R16F;
 		}
 		else if(image->bits & IF_ALPHA32F)
 		{
-			internalFormat = GL_ALPHA32F_ARB;
+			internalFormat = GL_R32F;
 		}
 	}
 	else if(image->bits & IF_RGBE)
@@ -1243,11 +1245,13 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 		// select proper internal format
 		if(samples == 3)
 		{
+			/*
 			if(glConfig.textureCompression == TC_S3TC && !(image->bits & IF_NOCOMPRESSION))
 			{
 				internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			}
 			else
+			*/
 			{
 				internalFormat = GL_RGB8;
 			}
@@ -1256,10 +1260,12 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 		{
 			if(image->bits & IF_ALPHA)
 			{
-				internalFormat = GL_ALPHA8;
+				internalFormat = GL_R8;
+				format = GL_RED;
 			}
 			else
 			{
+				/*
 				if(glConfig.textureCompression == TC_S3TC && !(image->bits & IF_NOCOMPRESSION))
 				{
 					if(image->bits & IF_DISPLACEMAP)
@@ -1276,6 +1282,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 					}
 				}
 				else
+				*/
 				{
 					internalFormat = GL_RGBA8;
 				}
@@ -1300,7 +1307,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 
 		if(!(image->bits & (IF_NORMALMAP | IF_RGBA16F | IF_RGBA32F | IF_LA16F | IF_LA32F)))
 		{
-			R_LightScaleTexture((unsigned *)scaledBuffer, scaledWidth, scaledHeight, image->filterType == FT_DEFAULT);
+			R_LightScaleTexture((unsigned *)scaledBuffer, scaledWidth, scaledHeight, (image->filterType == FT_DEFAULT));
 		}
 
 		image->uploadWidth = scaledWidth;
@@ -1309,7 +1316,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 
 		switch (image->type)
 		{
-			case GL_TEXTURE_CUBE_MAP_ARB:
+			case GL_TEXTURE_CUBE_MAP:
 				glTexImage2D(target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE,
 							  scaledBuffer);
 				break;
@@ -1317,7 +1324,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 			default:
 				if(image->bits & IF_PACKED_DEPTH24_STENCIL8)
 				{
-					glTexImage2D(target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8_EXT, NULL);
+					glTexImage2D(target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, NULL);
 				}
 				else
 				{
@@ -1333,16 +1340,9 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 				glGenerateMipmap(image->type);
 				glTexParameteri(image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);	// default to trilinear
 			}
-			else if(glConfig2.generateMipmapAvailable)
-			{
-				// raynorpat: if hardware mipmap generation is available, use it
-				//glHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);	// make sure its nice
-				glTexParameteri(image->type, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-				glTexParameteri(image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);	// default to trilinear
-			}
 		}
 
-		if(glConfig.driverType != GLDRV_OPENGL3 && !glConfig2.framebufferObjectAvailable && !glConfig2.generateMipmapAvailable)
+		if(glConfig.driverType != GLDRV_OPENGL3 && !glConfig2.framebufferObjectAvailable)
 		{
 			if(image->filterType == FT_DEFAULT && !(image->bits & (IF_DEPTH16 | IF_DEPTH24 | IF_DEPTH32 | IF_PACKED_DEPTH24_STENCIL8)))
 			{
@@ -1378,7 +1378,7 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 
 					switch (image->type)
 					{
-						case GL_TEXTURE_CUBE_MAP_ARB:
+						case GL_TEXTURE_CUBE_MAP:
 							glTexImage2D(target + i, mipLevel, internalFormat, mipWidth, mipHeight, 0, format, GL_UNSIGNED_BYTE,
 										  scaledBuffer);
 							break;
@@ -1400,8 +1400,8 @@ void R_UploadImage(const byte ** dataArray, int numData, image_t * image)
 	{
 		case FT_DEFAULT:
 			// set texture anisotropy
-			if(glConfig2.textureAnisotropyAvailable)
-				glTexParameterf(image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value);
+//			if(glConfig2.textureAnisotropyAvailable)
+//				glTexParameterf(image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value);
 
 			glTexParameterf(image->type, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 			glTexParameterf(image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max);
@@ -1574,7 +1574,7 @@ image_t        *R_CreateCubeImage(const char *name,
 #if defined(USE_D3D10)
 	// TODO
 #else
-	image->type = GL_TEXTURE_CUBE_MAP_ARB;
+	image->type = GL_TEXTURE_CUBE_MAP;
 #endif
 
 	image->width = width;
@@ -1605,7 +1605,10 @@ image_t        *R_CreateCubeImage(const char *name,
 
 
 static void     R_LoadImage(char **buffer, byte ** pic, int *width, int *height, int *bits, const char *materialName);
+
+#ifdef USE_DDS
 image_t        *R_LoadDDSImage(const char *name, int bits, filterType_t filterType, wrapType_t wrapType);
+#endif
 
 static qboolean ParseHeightMap(char **text, byte ** pic, int *width, int *height, int *bits, const char *materialName)
 {
@@ -2172,6 +2175,7 @@ image_t        *R_FindImageFile(const char *imageName, int bits, filterType_t fi
 #if defined(USE_D3D10)
 	// TODO
 #else
+#ifdef USE_DDS
 	if(glConfig.textureCompression == TC_S3TC && !(bits & IF_NOCOMPRESSION) && Q_stricmpn(imageName, "fonts", 5))
 	{
 		Q_strncpyz(ddsName, imageName, sizeof(ddsName));
@@ -2186,6 +2190,7 @@ image_t        *R_FindImageFile(const char *imageName, int bits, filterType_t fi
 			return image;
 		}
 	}
+#endif
 #endif
 
 #if 0
@@ -2480,6 +2485,7 @@ image_t        *R_FindCubeImage(const char *imageName, int bits, filterType_t fi
 #if defined(USE_D3D10)
 	// TODO
 #else
+#ifdef USE_DDS
 	if(glConfig.textureCompression == TC_S3TC && !(bits & IF_NOCOMPRESSION) && Q_stricmpn(imageName, "fonts", 5))
 	{
 		Q_strncpyz(ddsName, imageName, sizeof(ddsName));
@@ -2494,6 +2500,7 @@ image_t        *R_FindCubeImage(const char *imageName, int bits, filterType_t fi
 			return image;
 		}
 	}
+#endif
 #endif
 
 #if 0

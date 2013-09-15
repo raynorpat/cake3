@@ -109,16 +109,11 @@ cvar_t         *r_ext_draw_buffers;
 cvar_t         *r_ext_vertex_array_object;
 cvar_t         *r_ext_half_float_pixel;
 cvar_t         *r_ext_texture_float;
-cvar_t         *r_ext_stencil_wrap;
 cvar_t         *r_ext_texture_filter_anisotropic;
-cvar_t         *r_ext_stencil_two_side;
-cvar_t         *r_ext_separate_stencil;
-cvar_t         *r_ext_depth_bounds_test;
 cvar_t         *r_ext_framebuffer_object;
 cvar_t         *r_ext_packed_depth_stencil;
 cvar_t         *r_ext_framebuffer_blit;
 cvar_t         *r_extx_framebuffer_mixed_formats;
-cvar_t         *r_ext_generate_mipmap;
 
 cvar_t         *r_ignoreGLErrors;
 cvar_t         *r_logFile;
@@ -387,11 +382,17 @@ static void InitOpenGL(void)
 		// OpenGL driver constants
 		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &temp);
 		glConfig.maxTextureSize = temp;
+		glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &glConfig2.maxCubeMapTextureSize);
+		glConfig2.maxCubeMapTextureSize = temp;
 
 		// stubbed or broken drivers may have reported 0...
 		if(glConfig.maxTextureSize <= 0)
 		{
 			glConfig.maxTextureSize = 0;
+		}
+		if(glConfig2.maxCubeMapTextureSize <= 0)
+		{
+			glConfig2.maxCubeMapTextureSize = 0;
 		}
 
 #if defined(GLSL_COMPILE_STARTUP_ONLY)
@@ -453,20 +454,11 @@ void GL_CheckErrors_(const char *fileName, int line)
 		case GL_INVALID_OPERATION:
 			strcpy(s, "GL_INVALID_OPERATION");
 			break;
-		case GL_STACK_OVERFLOW:
-			strcpy(s, "GL_STACK_OVERFLOW");
-			break;
-		case GL_STACK_UNDERFLOW:
-			strcpy(s, "GL_STACK_UNDERFLOW");
-			break;
 		case GL_OUT_OF_MEMORY:
 			strcpy(s, "GL_OUT_OF_MEMORY");
 			break;
-		case GL_TABLE_TOO_LARGE:
-			strcpy(s, "GL_TABLE_TOO_LARGE");
-			break;
-		case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-			strcpy(s, "GL_INVALID_FRAMEBUFFER_OPERATION_EXT");
+		case GL_INVALID_FRAMEBUFFER_OPERATION:
+			strcpy(s, "GL_INVALID_FRAMEBUFFER_OPERATION");
 			break;
 		default:
 			Com_sprintf(s, sizeof(s), "0x%X", err);
@@ -1106,37 +1098,16 @@ void GL_SetDefaultState(void)
 
 	GL_CheckErrors();
 
-	glVertexAttrib4fARB(ATTR_INDEX_COLOR, 1, 1, 1, 1);
+	glVertexAttrib4f(ATTR_INDEX_COLOR, 1, 1, 1, 1);
 
 	GL_CheckErrors();
 
 	// initialize downstream texture units if we're running
 	// in a multitexture environment
-	if(glConfig.driverType == GLDRV_OPENGL3)
+	for(i = 31; i >= 0; i--)
 	{
-		for(i = 31; i >= 0; i--)
-		{
-			GL_SelectTexture(i);
-			GL_TextureMode(r_textureMode->string);
-		}
-	}
-	else
-	{
-		if(GLEW_ARB_multitexture)
-		{
-			for(i = glConfig.maxActiveTextures - 1; i >= 0; i--)
-			{
-				GL_SelectTexture(i);
-				GL_TextureMode(r_textureMode->string);
-
-				/*
-				if(i != 0)
-					glDisable(GL_TEXTURE_2D);
-				else
-					glEnable(GL_TEXTURE_2D);
-				*/
-			}
-		}
+		GL_SelectTexture(i);
+		GL_TextureMode(r_textureMode->string);
 	}
 
 	GL_CheckErrors();
@@ -1149,10 +1120,10 @@ void GL_SetDefaultState(void)
 	glState.vertexAttribPointersSet = 0;
 
 	glState.currentProgram = 0;
-	glUseProgramObjectARB(0);
+	glUseProgram(0);
 
-	glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
-	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glState.currentVBO = NULL;
 	glState.currentIBO = NULL;
 
@@ -1160,7 +1131,7 @@ void GL_SetDefaultState(void)
 
 	// the vertex array is always enabled, but the color and texture
 	// arrays are enabled and disabled around the compiled vertex array call
-	glEnableVertexAttribArrayARB(ATTR_INDEX_POSITION);
+	glEnableVertexAttribArray(ATTR_INDEX_POSITION);
 
 	/*
 	   OpenGL 3.0 spec: E.1. PROFILES AND DEPRECATED FEATURES OF OPENGL 3.0 405
@@ -1172,8 +1143,8 @@ void GL_SetDefaultState(void)
 
 	if(glConfig2.framebufferObjectAvailable)
 	{
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 		glState.currentFBO = NULL;
 	}
 
@@ -1182,12 +1153,12 @@ void GL_SetDefaultState(void)
 	   if(glConfig2.drawBuffersAvailable && glConfig2.maxDrawBuffers >= 4)
 	   {
 	   // enable all attachments as draw buffers
-	   GLenum drawbuffers[] = {GL_DRAW_BUFFER0_ARB,
-	   GL_DRAW_BUFFER1_ARB,
-	   GL_DRAW_BUFFER2_ARB,
-	   GL_DRAW_BUFFER3_ARB};
+	   GLenum drawbuffers[] = {GL_DRAW_BUFFER0,
+	   GL_DRAW_BUFFER1,
+	   GL_DRAW_BUFFER2,
+	   GL_DRAW_BUFFER3};
 
-	   glDrawBuffersARB(4, drawbuffers);
+	   glDrawBuffers(4, drawbuffers);
 	   }
 	 */
 
@@ -1217,10 +1188,6 @@ GfxInfo_f
 */
 void GfxInfo_f(void)
 {
-	/*const char     *enablestrings[] = {
-		"disabled",
-		"enabled"
-	};*/
 	const char     *fsstrings[] = {
 		"windowed",
 		"fullscreen"
@@ -1228,27 +1195,13 @@ void GfxInfo_f(void)
 
 	ri.Printf(PRINT_ALL, "\nGL_VENDOR: %s\n", glConfig.vendor_string);
 	ri.Printf(PRINT_ALL, "GL_RENDERER: %s\n", glConfig.renderer_string);
-	ri.Printf(PRINT_ALL, "GL_VERSION: %s\n", glConfig.version_string);
-	ri.Printf(PRINT_ALL, "GL_EXTENSIONS: %s\n", glConfig.extensions_string);
+	ri.Printf(PRINT_ALL, "GL_VERSION: %s\n\n", glConfig.version_string);
+
 	ri.Printf(PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize);
-
-	if(glConfig.driverType != GLDRV_OPENGL3)
-	{
-		ri.Printf(PRINT_ALL, "GL_MAX_TEXTURE_UNITS_ARB: %d\n", glConfig.maxActiveTextures);
-	}
-
-	/*
-	   if(glConfig.fragmentProgramAvailable)
-	   {
-	   ri.Printf(PRINT_ALL, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %d\n", glConfig.maxTextureImageUnits);
-	   }
-	 */
-
-	ri.Printf(PRINT_ALL, "GL_SHADING_LANGUAGE_VERSION_ARB: %s\n", glConfig2.shadingLanguageVersion);
-
-	ri.Printf(PRINT_ALL, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB %d\n", glConfig2.maxVertexUniforms);
-//	ri.Printf(PRINT_ALL, "GL_MAX_VARYING_FLOATS_ARB %d\n", glConfig2.maxVaryingFloats);
-	ri.Printf(PRINT_ALL, "GL_MAX_VERTEX_ATTRIBS_ARB %d\n", glConfig2.maxVertexAttribs);
+	ri.Printf(PRINT_ALL, "GL_SHADING_LANGUAGE_VERSION: %s\n", glConfig2.shadingLanguageVersion);
+	ri.Printf(PRINT_ALL, "GL_MAX_VERTEX_UNIFORM_COMPONENTS: %d\n", glConfig2.maxVertexUniforms);
+//	ri.Printf(PRINT_ALL, "GL_MAX_VARYING_FLOATS: %d\n", glConfig2.maxVaryingFloats);
+	ri.Printf(PRINT_ALL, "GL_MAX_VERTEX_ATTRIBS: %d\n", glConfig2.maxVertexAttribs);
 
 	if(glConfig2.occlusionQueryAvailable)
 	{
@@ -1257,7 +1210,7 @@ void GfxInfo_f(void)
 
 	if(glConfig2.drawBuffersAvailable)
 	{
-		ri.Printf(PRINT_ALL, "GL_MAX_DRAW_BUFFERS_ARB: %d\n", glConfig2.maxDrawBuffers);
+		ri.Printf(PRINT_ALL, "GL_MAX_DRAW_BUFFERS: %d\n", glConfig2.maxDrawBuffers);
 	}
 
 	if(glConfig2.textureAnisotropyAvailable)
@@ -1267,23 +1220,18 @@ void GfxInfo_f(void)
 
 	if(glConfig2.framebufferObjectAvailable)
 	{
-		ri.Printf(PRINT_ALL, "GL_MAX_RENDERBUFFER_SIZE_EXT: %d\n", glConfig2.maxRenderbufferSize);
-		ri.Printf(PRINT_ALL, "GL_MAX_COLOR_ATTACHMENTS_EXT: %d\n", glConfig2.maxColorAttachments);
+		ri.Printf(PRINT_ALL, "GL_MAX_RENDERBUFFER_SIZE: %d\n", glConfig2.maxRenderbufferSize);
+		ri.Printf(PRINT_ALL, "GL_MAX_COLOR_ATTACHMENTS: %d\n", glConfig2.maxColorAttachments);
 	}
 
 	ri.Printf(PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits,
 			  glConfig.depthBits, glConfig.stencilBits);
-	ri.Printf(PRINT_ALL, "MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight,
+	ri.Printf(PRINT_ALL, "MODE: %d, %d x %d %s hz: ", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight,
 			  fsstrings[r_fullscreen->integer == 1]);
-
 	if(glConfig.displayFrequency)
-	{
 		ri.Printf(PRINT_ALL, "%d\n", glConfig.displayFrequency);
-	}
 	else
-	{
 		ri.Printf(PRINT_ALL, "N/A\n");
-	}
 
 	if(glConfig.deviceSupportsGamma)
 	{
@@ -1299,30 +1247,19 @@ void GfxInfo_f(void)
 
 	if(glConfig.driverType == GLDRV_OPENGL3)
 	{
-		int				contextFlags, profile;
+		int				profile;
 
-		ri.Printf(PRINT_ALL, S_COLOR_GREEN "Using OpenGL 3.x context\n");
+		ri.Printf(PRINT_ALL, S_COLOR_GREEN "Using OpenGL 3.2 context w/ ");
 
 		// check if we have a core-profile
 		glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile);
 		if(profile == GL_CONTEXT_CORE_PROFILE_BIT)
 		{
-			ri.Printf(PRINT_ALL, S_COLOR_GREEN "Having a core profile\n");
+			ri.Printf(PRINT_ALL, S_COLOR_GREEN "a core profile\n");
 		}
 		else
 		{
-			ri.Printf(PRINT_ALL, S_COLOR_RED "Having a compatibility profile\n");
-		}
-		
-		// check if context is forward compatible
-		glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
-		if(contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT)
-		{
-			ri.Printf(PRINT_ALL, S_COLOR_GREEN "Context is forward compatible\n");
-		}
-		else
-		{
-			ri.Printf(PRINT_ALL, S_COLOR_RED "Context is NOT forward compatible\n");
+			ri.Printf(PRINT_ALL, S_COLOR_RED "a compatibility profile\n");
 		}
 	}
 
@@ -1380,13 +1317,7 @@ R_Register
 */
 void R_Register(void)
 {
-//#if defined(_WIN32)
-//	r_glCoreProfile = ri.Cvar_Get("r_glCoreProfile", "1", CVAR_INIT);
-//#else
-	// most open source Linux drivers don't support OpenGL 3
-	r_glCoreProfile = ri.Cvar_Get("r_glCoreProfile", "0", CVAR_INIT);
-//#endif
-
+	r_glCoreProfile = ri.Cvar_Get("r_glCoreProfile", "1", CVAR_INIT);
 	r_glMinMajorVersion = ri.Cvar_Get("r_glMinMajorVersion", "3", CVAR_LATCH);
 	r_glMinMinorVersion = ri.Cvar_Get("r_glMinMinorVersion", "2", CVAR_LATCH);
 
@@ -1398,16 +1329,11 @@ void R_Register(void)
 	r_ext_vertex_array_object = ri.Cvar_Get("r_ext_vertex_array_object", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_half_float_pixel = ri.Cvar_Get("r_ext_half_float_pixel", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_texture_float = ri.Cvar_Get("r_ext_texture_float", "1", CVAR_CHEAT | CVAR_LATCH);
-	r_ext_stencil_wrap = ri.Cvar_Get("r_ext_stencil_wrap", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_texture_filter_anisotropic = ri.Cvar_Get("r_ext_texture_filter_anisotropic", "4", CVAR_ARCHIVE | CVAR_LATCH);
-	r_ext_stencil_two_side = ri.Cvar_Get("r_ext_stencil_two_side", "1", CVAR_CHEAT | CVAR_LATCH);
-	r_ext_separate_stencil = ri.Cvar_Get("r_ext_separate_stencil", "1", CVAR_CHEAT | CVAR_LATCH);
-	r_ext_depth_bounds_test = ri.Cvar_Get("r_ext_depth_bounds_test", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_framebuffer_object = ri.Cvar_Get("r_ext_framebuffer_object", "1", CVAR_ARCHIVE | CVAR_LATCH);
 	r_ext_packed_depth_stencil = ri.Cvar_Get("r_ext_packed_depth_stencil", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_framebuffer_blit = ri.Cvar_Get("r_ext_framebuffer_blit", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_extx_framebuffer_mixed_formats = ri.Cvar_Get("r_extx_framebuffer_mixed_formats", "1", CVAR_ARCHIVE | CVAR_LATCH);
-	r_ext_generate_mipmap = ri.Cvar_Get("r_ext_generate_mipmap", "1", CVAR_CHEAT | CVAR_LATCH);
 
 	r_collapseStages = ri.Cvar_Get("r_collapseStages", "1", CVAR_LATCH | CVAR_CHEAT);
 	r_picmip = ri.Cvar_Get("r_picmip", "1", CVAR_ARCHIVE | CVAR_LATCH);
@@ -2107,7 +2033,7 @@ void R_Init(void)
 
 	if(glConfig2.occlusionQueryBits && glConfig.driverType != GLDRV_MESA)
 	{
-		glGenQueriesARB(MAX_OCCLUSION_QUERIES, tr.occlusionQueryObjects);
+		glGenQueries(MAX_OCCLUSION_QUERIES, tr.occlusionQueryObjects);
 	}
 
 	err = glGetError();
@@ -2165,7 +2091,7 @@ void RE_Shutdown(qboolean destroyWindow)
 
 		if(glConfig2.occlusionQueryBits && glConfig.driverType != GLDRV_MESA)
 		{
-			glDeleteQueriesARB(MAX_OCCLUSION_QUERIES, tr.occlusionQueryObjects);
+			glDeleteQueries(MAX_OCCLUSION_QUERIES, tr.occlusionQueryObjects);
 
 			if(tr.world)
 			{
@@ -2177,7 +2103,7 @@ void RE_Shutdown(qboolean destroyWindow)
 				{
 					node = &tr.world->nodes[j];
 
-					glDeleteQueriesARB(MAX_VIEWS, node->occlusionQueryObjects);
+					glDeleteQueries(MAX_VIEWS, node->occlusionQueryObjects);
 				}
 
 				/*
@@ -2185,7 +2111,7 @@ void RE_Shutdown(qboolean destroyWindow)
 				{
 					light = &tr.world->lights[j];
 
-					glDeleteQueriesARB(MAX_VIEWS, light->occlusionQueryObjects);
+					glDeleteQueries(MAX_VIEWS, light->occlusionQueryObjects);
 				}
 				*/
 			}

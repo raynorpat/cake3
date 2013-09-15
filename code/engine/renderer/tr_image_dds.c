@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 
+#ifdef USE_DDS
+
 typedef struct
 {
 	unsigned int   dwColorSpaceLowValue;	// low boundary of color space that is to
@@ -464,7 +466,7 @@ static void R_UploadCompressedImage2D(image_t * img, GLenum target, int level, G
 
 	if(glConfig2.ARBTextureCompressionAvailable && glConfig.textureCompression == TC_S3TC)
 	{
-		glCompressedTexImage2DARB(target, level, format, width, height, 0, size, data);
+		glCompressedTexImage2D(target, level, format, width, height, 0, size, data);
 		return;
 	}
 
@@ -778,12 +780,12 @@ image_t        *R_LoadDDSImageData(void *pImageData, const char *name, int bits,
 			{
 				case 32:
 					internal_format = usingAlpha ? GL_RGBA8 : GL_RGB8;
-					format = GL_BGRA_EXT;
+					format = GL_BGRA;
 					break;
 
 				case 24:
 					internal_format = GL_RGB8;
-					format = GL_BGR_EXT;
+					format = GL_BGR;
 					break;
 
 				case 16:
@@ -917,17 +919,14 @@ image_t        *R_LoadDDSImageData(void *pImageData, const char *name, int bits,
 		//ret->depth = depth;
 		//ret->uploadDepth = depth;
 
-		ret->type = GL_TEXTURE_3D_EXT;
+		ret->type = GL_TEXTURE_3D;
 		//ret->addrMode = TAM_Normalized;
 
 		GL_Bind(ret);
 
-		if(filterType == FT_DEFAULT && mipLevels == 1 && glConfig2.generateMipmapAvailable)
-			glTexParameteri(ret->type, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-
 		for(i = 0; i < mipLevels; i++)
 		{
-			glTexImage3DEXT(GL_TEXTURE_3D_EXT, i, internal_format, w, h, d, 0, format, type, mipOffsets[i]);
+			glTexImage3D(GL_TEXTURE_3D, i, internal_format, w, h, d, 0, format, type, mipOffsets[i]);
 
 			w >>= 1;
 			if(w == 0)
@@ -956,7 +955,7 @@ image_t        *R_LoadDDSImageData(void *pImageData, const char *name, int bits,
 		}
 		*/
 
-		ret->type = GL_TEXTURE_CUBE_MAP_ARB;
+		ret->type = GL_TEXTURE_CUBE_MAP;
 
 		GL_Bind(ret);
 
@@ -985,44 +984,41 @@ image_t        *R_LoadDDSImageData(void *pImageData, const char *name, int bits,
 		for( i = 0; i <= mipLevels; i++ )											\
 			mipOffsets[ i ] += shift
 
-		if(filterType == FT_DEFAULT && mipLevels == 1 && glConfig2.generateMipmapAvailable)
-			glTexParameteri(ret->type, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-
 		//the faces are stored in the order +x, -x, +y, -y, +z, -z
 		//but there may be missing faces in the sequence which we cannot upload
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_X);
 			shiftMipOffsets();
 		}
 
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_X);
 			shiftMipOffsets();
 		}
 
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_Y);
 			shiftMipOffsets();
 		}
 
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y);
 			shiftMipOffsets();
 		}
 
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_POSITIVE_Z);
 			shiftMipOffsets();
 		}
 
 		if(ddsd->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ)
 		{
-			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB);
+			loadCubeFace(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
 			shiftMipOffsets();
 		}
 	}
@@ -1188,3 +1184,5 @@ image_t        *R_LoadDDSImage(const char *name, int bits, filterType_t filterTy
 
 	return ret;
 }
+
+#endif

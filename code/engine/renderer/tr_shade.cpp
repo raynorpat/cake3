@@ -352,9 +352,9 @@ void GLSL_ShutdownGPUShaders(void)
 	}
 
 	glState.currentProgram = 0;
-	if(glUseProgramObjectARB != NULL)
+	if(glUseProgram != NULL)
 	{
-		glUseProgramObjectARB(0);
+		glUseProgram(0);
 	}
 }
 
@@ -2452,10 +2452,10 @@ static void Render_dispersion_C(int stage)
 	etaDelta = RB_EvalExpression(&pStage->etaDeltaExp, (float)-0.02);
 
 	GLSL_SetUniform_ViewOrigin(&tr.dispersionShader_C, viewOrigin);
-	glUniform3fARB(tr.dispersionShader_C.u_EtaRatio, eta, eta + etaDelta, eta + (etaDelta * 2));
-	glUniform1fARB(tr.dispersionShader_C.u_FresnelPower, RB_EvalExpression(&pStage->fresnelPowerExp, 2.0f));
-	glUniform1fARB(tr.dispersionShader_C.u_FresnelScale, RB_EvalExpression(&pStage->fresnelScaleExp, 2.0f));
-	glUniform1fARB(tr.dispersionShader_C.u_FresnelBias, RB_EvalExpression(&pStage->fresnelBiasExp, 1.0f));
+	glUniform3f(tr.dispersionShader_C.u_EtaRatio, eta, eta + etaDelta, eta + (etaDelta * 2));
+	glUniform1f(tr.dispersionShader_C.u_FresnelPower, RB_EvalExpression(&pStage->fresnelPowerExp, 2.0f));
+	glUniform1f(tr.dispersionShader_C.u_FresnelScale, RB_EvalExpression(&pStage->fresnelScaleExp, 2.0f));
+	glUniform1f(tr.dispersionShader_C.u_FresnelBias, RB_EvalExpression(&pStage->fresnelBiasExp, 1.0f));
 
 	GLSL_SetUniform_ModelMatrix(&tr.dispersionShader_C, backEnd.orientation.transformMatrix);
 	GLSL_SetUniform_ModelViewProjectionMatrix(&tr.dispersionShader_C, glState.modelViewProjectionMatrix[glState.stackIndex]);
@@ -2465,7 +2465,7 @@ static void Render_dispersion_C(int stage)
 		GLSL_SetUniform_VertexSkinning(&tr.dispersionShader_C, tess.vboVertexSkinning);
 
 		if(tess.vboVertexSkinning)
-			glUniformMatrix4fvARB(tr.dispersionShader_C.u_BoneMatrix, MAX_BONES, GL_FALSE, &tess.boneMatrices[0][0]);
+			glUniformMatrix4fv(tr.dispersionShader_C.u_BoneMatrix, MAX_BONES, GL_FALSE, &tess.boneMatrices[0][0]);
 	}
 
 	// bind u_ColorMap
@@ -2538,7 +2538,7 @@ static void Render_screen(int stage)
 	*/
 	{
 		GL_VertexAttribsState(ATTR_POSITION);
-		glVertexAttrib4fvARB(ATTR_INDEX_COLOR, tess.svars.color);
+		glVertexAttrib4fv(ATTR_INDEX_COLOR, tess.svars.color);
 	}
 
 	gl_screenShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
@@ -2572,7 +2572,7 @@ static void Render_portal(int stage)
 	*/
 	{
 		GL_VertexAttribsState(ATTR_POSITION);
-		glVertexAttrib4fvARB(ATTR_INDEX_COLOR, tess.svars.color);
+		glVertexAttrib4fv(ATTR_INDEX_COLOR, tess.svars.color);
 	}
 
 	gl_portalShader->SetUniform_PortalRange(tess.surfaceShader->portalRange);
@@ -2618,9 +2618,9 @@ static void Render_heatHaze(int stage)
 		if(DS_STANDARD_ENABLED())
 		{
 			// copy deferredRenderFBO to occlusionRenderFBO
-			glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, tr.geometricRenderFBO->frameBuffer);
-			glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.occlusionRenderFBO->frameBuffer);
-			glBlitFramebufferEXT(0, 0, tr.deferredRenderFBO->width, tr.deferredRenderFBO->height,
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, tr.geometricRenderFBO->frameBuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.occlusionRenderFBO->frameBuffer);
+			glBlitFramebuffer(0, 0, tr.deferredRenderFBO->width, tr.deferredRenderFBO->height,
 								   0, 0, tr.occlusionRenderFBO->width, tr.occlusionRenderFBO->height,
 								   GL_DEPTH_BUFFER_BIT,
 								   GL_NEAREST);
@@ -2631,16 +2631,16 @@ static void Render_heatHaze(int stage)
 
 			// copy deferredRenderFBO to occlusionRenderFBO
 #if 0
-			glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, tr.deferredRenderFBO->frameBuffer);
-			glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.occlusionRenderFBO->frameBuffer);
-			glBlitFramebufferEXT(0, 0, tr.deferredRenderFBO->width, tr.deferredRenderFBO->height,
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, tr.deferredRenderFBO->frameBuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.occlusionRenderFBO->frameBuffer);
+			glBlitFramebuffer(0, 0, tr.deferredRenderFBO->width, tr.deferredRenderFBO->height,
 								   0, 0, tr.occlusionRenderFBO->width, tr.occlusionRenderFBO->height,
 								   GL_DEPTH_BUFFER_BIT,
 								   GL_NEAREST);
 #else
-			glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, tr.deferredRenderFBO->frameBuffer);
-			glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.occlusionRenderFBO->frameBuffer);
-			glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, tr.deferredRenderFBO->frameBuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.occlusionRenderFBO->frameBuffer);
+			glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 								   0, 0, glConfig.vidWidth, glConfig.vidHeight,
 								   GL_DEPTH_BUFFER_BIT,
 								   GL_NEAREST);
@@ -2651,9 +2651,9 @@ static void Render_heatHaze(int stage)
 		else
 		{
 			// copy depth of the main context to occlusionRenderFBO
-			glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, 0);
-			glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, tr.occlusionRenderFBO->frameBuffer);
-			glBlitFramebufferEXT(0, 0, glConfig.vidWidth, glConfig.vidHeight,
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tr.occlusionRenderFBO->frameBuffer);
+			glBlitFramebuffer(0, 0, glConfig.vidWidth, glConfig.vidHeight,
 								   0, 0, glConfig.vidWidth, glConfig.vidHeight,
 								   GL_DEPTH_BUFFER_BIT,
 								   GL_NEAREST);
@@ -3172,7 +3172,7 @@ static void Render_volumetricFog()
 		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA | GLS_DSTBLEND_SRC_ALPHA);
 		GL_Cull(CT_TWO_SIDED);
 
-		glVertexAttrib4fvARB(ATTR_INDEX_COLOR, colorWhite);
+		glVertexAttrib4fv(ATTR_INDEX_COLOR, colorWhite);
 
 		// set uniforms
 		VectorCopy(backEnd.viewParms.orientation.origin, viewOrigin);	// in world space
