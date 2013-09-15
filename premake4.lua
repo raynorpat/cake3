@@ -38,12 +38,6 @@ newoption
 	description = "Compile with AceBot game code support"
 }
 
-newoption
-{
-	trigger = "with-brainworks",
-	description = "Compile with Brainworks game code support"
-}
-
 --newoption
 --{
 --	trigger = "with-freetype",
@@ -86,6 +80,5 @@ include "base/code/cgame"
 include "base/code/ui"
 
 -- tools
-include "code/tools/bspc"
 include "code/tools/xmap2"
 include "code/tools/master"
