@@ -14,6 +14,7 @@ project "base_cgame"
 		
 		--"**.c", "**.cpp", "**.h",
 		
+		"cg_animation.c",
 		"cg_consolecmds.c",
 		"cg_draw.c",
 		"cg_drawtools.c",
