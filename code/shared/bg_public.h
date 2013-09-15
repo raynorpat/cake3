@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	GAME_VERSION		"XreaL"
 
 // Tr3B: define this to use the new Quake4 like player model system
-//#define XPPM 1
+#define XPPM 1
 
 #if defined(XPPM)
 #define	DEFAULT_MODEL			"shina"
