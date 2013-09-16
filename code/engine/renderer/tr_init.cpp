@@ -113,7 +113,6 @@ cvar_t         *r_ext_texture_filter_anisotropic;
 cvar_t         *r_ext_framebuffer_object;
 cvar_t         *r_ext_packed_depth_stencil;
 cvar_t         *r_ext_framebuffer_blit;
-cvar_t         *r_extx_framebuffer_mixed_formats;
 
 cvar_t         *r_ignoreGLErrors;
 cvar_t         *r_logFile;
@@ -1333,7 +1332,6 @@ void R_Register(void)
 	r_ext_framebuffer_object = ri.Cvar_Get("r_ext_framebuffer_object", "1", CVAR_ARCHIVE | CVAR_LATCH);
 	r_ext_packed_depth_stencil = ri.Cvar_Get("r_ext_packed_depth_stencil", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_framebuffer_blit = ri.Cvar_Get("r_ext_framebuffer_blit", "1", CVAR_CHEAT | CVAR_LATCH);
-	r_extx_framebuffer_mixed_formats = ri.Cvar_Get("r_extx_framebuffer_mixed_formats", "1", CVAR_ARCHIVE | CVAR_LATCH);
 
 	r_collapseStages = ri.Cvar_Get("r_collapseStages", "1", CVAR_LATCH | CVAR_CHEAT);
 	r_picmip = ri.Cvar_Get("r_picmip", "1", CVAR_ARCHIVE | CVAR_LATCH);

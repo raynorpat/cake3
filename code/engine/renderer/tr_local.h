@@ -3983,7 +3983,6 @@ extern cvar_t  *r_ext_texture_filter_anisotropic;
 extern cvar_t  *r_ext_framebuffer_object;
 extern cvar_t  *r_ext_packed_depth_stencil;
 extern cvar_t  *r_ext_framebuffer_blit;
-extern cvar_t  *r_extx_framebuffer_mixed_formats;
 
 extern cvar_t  *r_nobind;		// turns off binding to appropriate textures
 extern cvar_t  *r_collapseStages;
