@@ -4159,13 +4159,8 @@ extern cvar_t  *r_hdrToneMappingOperator;
 extern cvar_t  *r_hdrGamma;
 extern cvar_t  *r_hdrDebug;
 
-#ifdef EXPERIMENTAL
 extern cvar_t  *r_screenSpaceAmbientOcclusion;
-#endif
-#ifdef EXPERIMENTAL
 extern cvar_t  *r_depthOfField;
-#endif
-
 extern cvar_t  *r_reflectionMapping;
 extern cvar_t  *r_highQualityNormalMapping;
 

@@ -6351,11 +6351,8 @@ static void RB_RenderInteractionsDeferredShadowMapped()
 }
 
 
-
-#ifdef EXPERIMENTAL
-void RB_RenderScreenSpaceAmbientOcclusion(qboolean deferred)
+void RB_RenderScreenSpaceAmbientOcclusion(void)
 {
-#if 0
 //  int             i;
 //  vec3_t          viewOrigin;
 //  static vec3_t   jitter[32];
@@ -6420,12 +6417,13 @@ void RB_RenderScreenSpaceAmbientOcclusion(qboolean deferred)
 
 	// bind u_DepthMap
 	GL_SelectTexture(1);
-	if(deferred)
+	if(DS_STANDARD_ENABLED() || HDR_ENABLED())
 	{
-		GL_Bind(tr.deferredPositionFBOImage);
+		GL_Bind(tr.depthRenderImage);
 	}
 	else
 	{
+		// depth texture is not bound to a FBO
 		GL_Bind(tr.depthRenderImage);
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, tr.depthRenderImage->uploadWidth, tr.depthRenderImage->uploadHeight);
 	}
@@ -6448,11 +6446,8 @@ void RB_RenderScreenSpaceAmbientOcclusion(qboolean deferred)
 	GL_PopMatrix();
 
 	GL_CheckErrors();
-#endif
 }
-#endif
 
-#ifdef EXPERIMENTAL
 void RB_RenderDepthOfField()
 {
 	matrix_t        ortho;
@@ -6477,29 +6472,20 @@ void RB_RenderDepthOfField()
 
 	// capture current color buffer for u_CurrentMap
 	GL_SelectTexture(0);
-	if(r_deferredShading->integer && glConfig2.framebufferObjectAvailable && glConfig2.textureFloatAvailable &&
-				   glConfig2.drawBuffersAvailable && glConfig2.maxDrawBuffers >= 4)
-	{
-		GL_Bind(tr.deferredRenderFBOImage);
-	}
-	else if(r_hdrRendering->integer && glConfig2.framebufferObjectAvailable && glConfig2.textureFloatAvailable)
+	if(DS_STANDARD_ENABLED() || HDR_ENABLED())
 	{
 		GL_Bind(tr.deferredRenderFBOImage);
 	}
 	else
 	{
+		// depth texture is not bound to a FBO
 		GL_Bind(tr.currentRenderImage);
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, tr.currentRenderImage->uploadWidth, tr.currentRenderImage->uploadHeight);
 	}
 
 	// bind u_DepthMap
 	GL_SelectTexture(1);
-	if(r_deferredShading->integer && glConfig2.framebufferObjectAvailable && glConfig2.textureFloatAvailable &&
-			   glConfig2.drawBuffersAvailable && glConfig2.maxDrawBuffers >= 4)
-	{
-		GL_Bind(tr.depthRenderImage);
-	}
-	else if(r_hdrRendering->integer && glConfig2.framebufferObjectAvailable && glConfig2.textureFloatAvailable)
+	if(DS_STANDARD_ENABLED() || HDR_ENABLED())
 	{
 		GL_Bind(tr.depthRenderImage);
 	}
@@ -6529,7 +6515,6 @@ void RB_RenderDepthOfField()
 
 	GL_CheckErrors();
 }
-#endif
 
 void RB_RenderGlobalFog()
 {
@@ -10721,7 +10706,7 @@ static void RB_RenderView(void)
 		}
 
 		// render ambient occlusion process effect
-		// Tr3B: needs way more work RB_RenderScreenSpaceAmbientOcclusion(qfalse);
+		RB_RenderScreenSpaceAmbientOcclusion();
 
 		if(HDR_ENABLED())
 			R_BindFBO(tr.deferredRenderFBO);
@@ -10783,25 +10768,20 @@ static void RB_RenderView(void)
 
 		GL_CheckErrors();
 
-#ifdef EXPERIMENTAL
 		// render depth of field post process effect
 		RB_RenderDepthOfField();
-#endif
+
 		// render bloom post process effect
 		RB_RenderBloom();
 
 		// copy offscreen rendered HDR scene to the current OpenGL context
 		RB_RenderDeferredHDRResultToFrameBuffer();
 
-#if 0
 		// add the sun flare
 		RB_DrawSun();
-#endif
 
-#if 0
 		// add light flares on lights that aren't obscured
 		RB_RenderFlares();
-#endif
 
 		// wait until all bsp node occlusion queries are back
 		//RB_CollectBspOcclusionQueries();

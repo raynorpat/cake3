@@ -296,12 +296,8 @@ cvar_t         *r_hdrToneMappingOperator;
 cvar_t         *r_hdrGamma;
 cvar_t         *r_hdrDebug;
 
-#ifdef EXPERIMENTAL
 cvar_t         *r_screenSpaceAmbientOcclusion;
-#endif
-#ifdef EXPERIMENTAL
 cvar_t         *r_depthOfField;
-#endif
 cvar_t         *r_reflectionMapping;
 cvar_t         *r_highQualityNormalMapping;
 cvar_t         *r_bloom;
@@ -1392,13 +1388,9 @@ void R_Register(void)
 	AssertCvarRange(r_forceFog, 0.0f, 1.0f, qfalse);
 	r_wolfFog = ri.Cvar_Get("r_wolfFog", "1", CVAR_CHEAT);
 	r_noFog = ri.Cvar_Get("r_noFog", "0", CVAR_CHEAT);
-#ifdef EXPERIMENTAL
 	r_screenSpaceAmbientOcclusion = ri.Cvar_Get("r_screenSpaceAmbientOcclusion", "0", CVAR_ARCHIVE | CVAR_SHADER);
-	//AssertCvarRange(r_screenSpaceAmbientOcclusion, 0, 2, qtrue);
-#endif
-#ifdef EXPERIMENTAL
+	AssertCvarRange(r_screenSpaceAmbientOcclusion, 0, 2, qtrue);
 	r_depthOfField = ri.Cvar_Get("r_depthOfField", "0", CVAR_ARCHIVE);
-#endif
 
 	r_reflectionMapping = ri.Cvar_Get("r_reflectionMapping", "0", CVAR_CHEAT);
 	r_highQualityNormalMapping = ri.Cvar_Get("r_highQualityNormalMapping", "0", CVAR_ARCHIVE | CVAR_LATCH);
