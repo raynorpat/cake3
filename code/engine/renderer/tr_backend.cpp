@@ -6899,8 +6899,10 @@ void RB_CameraPostFX(void)
 
 	GLimp_LogComment("--- RB_CameraPostFX ---\n");
 
-	if((backEnd.refdef.rdflags & RDF_NOWORLDMODEL) || !r_cameraPostFX->integer || backEnd.viewParms.isPortal ||
-		!tr.grainImage || !tr.vignetteImage)
+	if (!r_cameraPostFX->integer)
+		return;
+
+	if((backEnd.refdef.rdflags & RDF_NOWORLDMODEL) || backEnd.viewParms.isPortal)
 		return;
 
 	// set 2D virtual screen size
@@ -6954,19 +6956,17 @@ void RB_CameraPostFX(void)
 
 	// bind u_GrainMap
 	GL_SelectTexture(1);
-	GL_Bind(tr.grainImage);
-	//GL_Bind(tr.defaultImage);
+	if(r_cameraFilmGrain->integer && tr.grainImage)
+		GL_Bind(tr.grainImage);
+	else
+		GL_Bind(tr.blackImage);
 
 	// bind u_VignetteMap
 	GL_SelectTexture(2);
-	if(r_cameraVignette->integer)
-	{
+	if(r_cameraVignette->integer && tr.vignetteImage)
 		GL_Bind(tr.vignetteImage);
-	}
 	else
-	{
 		GL_Bind(tr.whiteImage);
-	}
 
 	// draw viewport
 	Tess_InstantQuad(backEnd.viewParms.viewportVerts);
