@@ -2127,7 +2127,9 @@ image_t        *R_FindImageFile(const char *imageName, int bits, filterType_t fi
 	byte           *pic = NULL;
 	long            hash;
 	char            buffer[1024];
+#ifdef USE_DDS
 	char            ddsName[1024];
+#endif
 	char           *buffer_p;
 	unsigned long   diff;
 
@@ -2461,7 +2463,9 @@ image_t        *R_FindCubeImage(const char *imageName, int bits, filterType_t fi
 
 	int             bitsIgnore;
 	char            buffer[1024], filename[1024];
+#ifdef USE_DDS
 	char            ddsName[1024];
+#endif
 	char           *filename_p;
 
 	if(!imageName)
