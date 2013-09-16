@@ -3959,7 +3959,6 @@ extern cvar_t  *r_novis;		// disable/enable usage of PVS
 extern cvar_t  *r_nocull;
 extern cvar_t  *r_facePlaneCull;	// enables culling of planar surfaces with back side test
 extern cvar_t  *r_nocurves;
-extern cvar_t  *r_nobatching;
 extern cvar_t  *r_noLightScissors;
 extern cvar_t  *r_noLightVisCull;
 extern cvar_t  *r_noInteractionSort;

@@ -86,7 +86,6 @@ cvar_t         *r_nocull;
 cvar_t         *r_facePlaneCull;
 cvar_t         *r_showcluster;
 cvar_t         *r_nocurves;
-cvar_t         *r_nobatching;
 cvar_t         *r_noLightScissors;
 cvar_t         *r_noLightVisCull;
 cvar_t         *r_noInteractionSort;
@@ -500,22 +499,28 @@ static const vidmode_t r_vidModes[] =
 	{ "2048x1536",         2048, 1536, 1 },
 	{ "2560x1600 (16:10)", 2560, 1600, 1 },
 };
-static const int s_numVidModes = (sizeof(r_vidModes) / sizeof(r_vidModes[0]));
+static const int s_numVidModes = ARRAY_LEN( r_vidModes );
 
 qboolean R_GetModeInfo(int *width, int *height, float *windowAspect, int mode)
 {
 	const vidmode_t *vm;
 
-	if(mode < -1)
+	if ( mode < -2 )
 	{
 		return qfalse;
 	}
+
 	if(mode >= s_numVidModes)
 	{
 		return qfalse;
 	}
 
-	if(mode == -1)
+	if( mode == -2)
+	{
+		// Must set width and height to display size before calling this function!
+		*windowAspect = ( float ) *width / *height;
+	}
+	else if ( mode == -1 )
 	{
 		*width = r_customwidth->integer;
 		*height = r_customheight->integer;
@@ -1118,8 +1123,7 @@ void GL_SetDefaultState(void)
 	glState.vertexAttribsState = 0;
 	glState.vertexAttribPointersSet = 0;
 
-	glState.currentProgram = 0;
-	glUseProgram(0);
+	GL_BindProgram(NULL);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1166,6 +1170,13 @@ void GL_SetDefaultState(void)
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_SCISSOR_TEST);
 	glDisable(GL_BLEND);
+
+	glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+	glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	glClearDepth( 1.0 );
+
+	glDrawBuffer( GL_BACK );
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 	GL_CheckErrors();
 
@@ -1321,7 +1332,7 @@ void R_Register(void)
 	r_glMinMinorVersion = ri.Cvar_Get("r_glMinMinorVersion", "2", CVAR_LATCH);
 
 	// latched and archived variables
-	r_ext_compressed_textures = ri.Cvar_Get("r_ext_compressed_textures", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_compressed_textures = ri.Cvar_Get("r_ext_compressed_textures", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_ext_occlusion_query = ri.Cvar_Get("r_ext_occlusion_query", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_texture_non_power_of_two = ri.Cvar_Get("r_ext_texture_non_power_of_two", "1", CVAR_CHEAT | CVAR_LATCH);
 	r_ext_draw_buffers = ri.Cvar_Get("r_ext_draw_buffers", "1", CVAR_CHEAT | CVAR_LATCH);
@@ -1505,7 +1516,6 @@ void R_Register(void)
 	r_debugSort = ri.Cvar_Get("r_debugSort", "0", CVAR_CHEAT);
 
 	r_nocurves = ri.Cvar_Get("r_nocurves", "0", CVAR_CHEAT);
-	r_nobatching = ri.Cvar_Get("r_nobatching", "0", CVAR_CHEAT);
 	r_noLightScissors = ri.Cvar_Get("r_noLightScissors", "0", CVAR_CHEAT);
 	r_noLightVisCull = ri.Cvar_Get("r_noLightVisCull", "0", CVAR_CHEAT);
 	r_noInteractionSort = ri.Cvar_Get("r_noInteractionSort", "0", CVAR_CHEAT);
@@ -1537,7 +1547,7 @@ void R_Register(void)
 	r_logFile = ri.Cvar_Get("r_logFile", "0", CVAR_CHEAT);
 	r_debugSurface = ri.Cvar_Get("r_debugSurface", "0", CVAR_CHEAT);
 	r_nobind = ri.Cvar_Get("r_nobind", "0", CVAR_CHEAT);
-	r_clear = ri.Cvar_Get("r_clear", "1", CVAR_CHEAT);
+	r_clear = ri.Cvar_Get( "r_clear", "0", CVAR_CHEAT );
 	r_offsetFactor = ri.Cvar_Get("r_offsetFactor", "-1", CVAR_CHEAT);
 	r_offsetUnits = ri.Cvar_Get("r_offsetUnits", "-2", CVAR_CHEAT);
 	r_forceSpecular = ri.Cvar_Get("r_forceSpecular", "0", CVAR_CHEAT);
@@ -1695,10 +1705,9 @@ R_Init
 */
 void R_Init(void)
 {
-	int             err;
 	int             i;
 
-	ri.Printf(PRINT_ALL, "----- R_Init -----\n");
+	ri.Printf(PRINT_DEVELOPER, "----- R_Init -----\n");
 	
 	// RB: Wolf's q_shared.c requires this
 #if defined(COMPAT_ET)
@@ -2034,14 +2043,9 @@ void R_Init(void)
 		glGenQueries(MAX_OCCLUSION_QUERIES, tr.occlusionQueryObjects);
 	}
 
-	err = glGetError();
-	if(err != GL_NO_ERROR)
-	{
-		ri.Error(ERR_FATAL, "R_Init() - glGetError() failed = 0x%x\n", err);
-		//ri.Printf(PRINT_ALL, "glGetError() = 0x%x\n", err);
-	}
+	GL_CheckErrors();
 
-	ri.Printf(PRINT_ALL, "----- finished R_Init -----\n");
+	ri.Printf(PRINT_DEVELOPER, "----- finished R_Init -----\n");
 }
 
 /*
@@ -2051,7 +2055,7 @@ RE_Shutdown
 */
 void RE_Shutdown(qboolean destroyWindow)
 {
-	ri.Printf(PRINT_ALL, "RE_Shutdown( destroyWindow = %i )\n", destroyWindow);
+	ri.Printf(PRINT_DEVELOPER, "RE_Shutdown( destroyWindow = %i )\n", destroyWindow);
 
 	ri.Cmd_RemoveCommand("modellist");
 	ri.Cmd_RemoveCommand("screenshotPNG");
@@ -2118,24 +2122,13 @@ void RE_Shutdown(qboolean destroyWindow)
 #if !defined(GLSL_COMPILE_STARTUP_ONLY) && !defined (USE_D3D10)
 		GLSL_ShutdownGPUShaders();
 #endif
-
-		//GLimp_ShutdownRenderThread();
 	}
 
 	R_DoneFreeType();
 
 	// shut down platform specific OpenGL stuff
-
-	// Tr3B: this should be always executed if we want to avoid some GLSL problems with SMP
-	// Update: Having the JVM running with all its threads can cause problems with an old OpenGL context.
-	// Maybe an OpenGL driver problem. It is safer to destroy the context in that case or you will get really weird crashes when rendering stuff.
-	//
-
-#if !defined(SMP)
 	if(destroyWindow)
-#endif
 	{
-
 #if defined(GLSL_COMPILE_STARTUP_ONLY)
 		GLSL_ShutdownGPUShaders();
 #endif

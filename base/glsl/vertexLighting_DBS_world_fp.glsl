@@ -133,10 +133,12 @@ void	main()
 
 	// compute normal in tangent space from normalmap
 	vec3 N = 2.0 * (texture2D(u_NormalMap, texNormal).xyz - 0.5);
+
 	#if defined(r_NormalScale)
 	N.z *= r_NormalScale;
-	normalize(N);
 	#endif
+
+	N = normalize(N);
 
 #if defined(COMPAT_Q3A)
 	// fake bump mapping
@@ -177,18 +179,14 @@ void	main()
 
 #elif defined(COMPAT_Q3A)
 
-	vec3 N;
+	vec3 N = normalize(var_Normal);
 
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		N = -normalize(var_Normal);
+		N = -N;
 	}
-	else
 #endif
-	{
-		N = normalize(var_Normal);
-	}
 
 	// compute the diffuse term
 	vec4 diffuse = texture2D(u_DiffuseMap, var_TexDiffuseNormal.st);
@@ -255,18 +253,14 @@ void	main()
 	}
 #endif
 
-	vec3 N;
+	vec3 N = normalize(var_Normal);
 
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		N = -normalize(var_Normal);
+		N = -N;
 	}
-	else
 #endif
-	{
-		N = normalize(var_Normal);
-	}
 	
 	vec3 L = normalize(var_LightDirection);
 	

@@ -105,11 +105,9 @@ void	main()
 	// compute incident ray
 	vec3 I = normalize(u_ViewOrigin - var_Position);
 	
-	mat3 tangentToWorldMatrix;
+	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 	if(gl_FrontFacing)
-		tangentToWorldMatrix = mat3(-var_Tangent.xyz, -var_Binormal.xyz, -var_Normal.xyz);
-	else
-		tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
+		tangentToWorldMatrix = -tangentToWorldMatrix;
 	
 	mat3 worldToTangentMatrix;
 #if defined(GLHW_ATI) || defined(GLHW_ATI_DX10) || defined(GLDRV_MESA)
@@ -149,7 +147,7 @@ void	main()
 	vec3 N = normalize(var_Normal);
 
 	vec3 N2 = 2.0 * (texture2D(u_NormalMap, texNormal).xyz - 0.5);
-	N2 = tangentToWorldMatrix * N2;
+	N2 = normalize(tangentToWorldMatrix * N2);
 			
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(I, N), u_FresnelPower) * 

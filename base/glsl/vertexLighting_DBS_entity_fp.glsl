@@ -74,18 +74,14 @@ void	main()
 
 #if defined(USE_NORMAL_MAPPING)
 	// invert tangent space for two sided surfaces
-	mat3 tangentToWorldMatrix;
+	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 	
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		tangentToWorldMatrix = mat3(-var_Tangent.xyz, -var_Binormal.xyz, -var_Normal.xyz);
+		tangentToWorldMatrix = -tangentToWorldMatrix;
 	}
-	else
 #endif
-	{
-		tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
-	}
 	
 	vec2 texNormal = var_TexNormal.st;
 	vec2 texSpecular = var_TexSpecular.st;
@@ -94,17 +90,8 @@ void	main()
 	
 	// ray intersect in view direction
 	
-	mat3 worldToTangentMatrix;
-	#if defined(GLHW_ATI) || defined(GLHW_ATI_DX10) || defined(GLDRV_MESA)
-	worldToTangentMatrix = mat3(tangentToWorldMatrix[0][0], tangentToWorldMatrix[1][0], tangentToWorldMatrix[2][0],
-								tangentToWorldMatrix[0][1], tangentToWorldMatrix[1][1], tangentToWorldMatrix[2][1], 
-								tangentToWorldMatrix[0][2], tangentToWorldMatrix[1][2], tangentToWorldMatrix[2][2]);
-	#else
-	worldToTangentMatrix = transpose(tangentToWorldMatrix);
-	#endif
-
 	// compute view direction in tangent space
-	vec3 Vts = worldToTangentMatrix * (u_ViewOrigin - var_Position.xyz);
+	vec3 Vts = (u_ViewOrigin - var_Position.xyz) * tangentToWorldMatrix;
 	Vts = normalize(Vts);
 	
 	// size and start position of search in texture space
@@ -130,7 +117,7 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in world space from normalmap
-	vec3 N = tangentToWorldMatrix * (2.0 * (texture2D(u_NormalMap, texNormal).xyz - 0.5));
+	vec3 N = normalize(tangentToWorldMatrix * (2.0 * (texture2D(u_NormalMap, texNormal).xyz - 0.5)));
 	
 	// compute half angle in world space
 	vec3 H = normalize(L + V);
@@ -167,20 +154,14 @@ void	main()
 
 #else // USE_NORMAL_MAPPING
 	
-	vec3 N;
+	vec3 N = normalize(var_Normal);
 
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		N = -normalize(var_Normal);
-		// gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-		// return;
+		N = -N;
 	}
-	else
 #endif
-	{
-		N = normalize(var_Normal);
-	}
 		
 	vec3 specular = vec3(0.0);
 	

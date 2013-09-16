@@ -65,17 +65,13 @@ void	main()
 	vec2 texSpecular = var_TexSpecular.st;
 
 	// invert tangent space for two sided surfaces
-	mat3 tangentToWorldMatrix;
+	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		tangentToWorldMatrix = mat3(-var_Tangent.xyz, -var_Binormal.xyz, -var_Normal.xyz);
+		tangentToWorldMatrix = -tangentToWorldMatrix;
 	}
-	else
 #endif
-	{
-		tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
-	}
 	
 	// compute view direction in world space
 	vec3 I = normalize(u_ViewOrigin - var_Position);
@@ -145,11 +141,11 @@ void	main()
 	//N.x = -N.x;
 	//N = normalize(N);
 	//N = normalize(var_Normal.xyz);
-	N = tangentToWorldMatrix * N;
+	N = normalize(tangentToWorldMatrix * N);
 	
 	// compute light direction in world space
-	vec3 L = 2.0 * (texture2D(u_DeluxeMap, var_TexLight).xyz - 0.5);
-	//L = normalize(L);
+	vec3 L = (2.0 * (texture2D(u_DeluxeMap, var_TexLight).xyz - 0.5));
+	L = normalize(L);
 	
 	// compute half angle in world space
 	vec3 H = normalize(L + I);
@@ -204,18 +200,14 @@ void	main()
 	}
 #endif
 
-	vec3 N;
+	vec3 N = normalize(var_Normal);
 
 #if defined(TWOSIDED)
 	if(gl_FrontFacing)
 	{
-		N = -normalize(var_Normal);
+		N = -N;
 	}
-	else
 #endif
-	{
-		N = normalize(var_Normal);
-	}
 	
 	vec3 specular = vec3(0.0, 0.0, 0.0);
 
