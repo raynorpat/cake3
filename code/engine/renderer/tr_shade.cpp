@@ -159,8 +159,6 @@ void GLSL_InitGPUShaders(void)
 
 void GLSL_ShutdownGPUShaders(void)
 {
-//	int				i;
-
 	ri.Printf(PRINT_DEVELOPER, "------- GLSL_ShutdownGPUShaders -------\n");
 
 	if(gl_genericShader)

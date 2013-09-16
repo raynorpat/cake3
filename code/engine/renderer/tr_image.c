@@ -274,27 +274,26 @@ void R_ImageList_f(void)
 				imageDataSize *= 16;
 				break;
 
-/*
-			case GL_ALPHA16F:
-				ri.Printf(PRINT_ALL, "A16F     ");
+			case GL_R16F:
+				ri.Printf(PRINT_ALL, "R16F     ");
 				imageDataSize *= 2;
 				break;
 
-			case GL_ALPHA32F:
-				ri.Printf(PRINT_ALL, "A32F     ");
+			case GL_R32F:
+				ri.Printf(PRINT_ALL, "R32F     ");
 				imageDataSize *= 4;
 				break;
 
-			case GL_LUMINANCE_ALPHA16F:
-				ri.Printf(PRINT_ALL, "LA16F    ");
+			case GL_RG16F:
+				ri.Printf(PRINT_ALL, "RG16F    ");
 				imageDataSize *= 4;
 				break;
 
-			case GL_LUMINANCE_ALPHA32F:
-				ri.Printf(PRINT_ALL, "LA32F    ");
+			case GL_RG32F:
+				ri.Printf(PRINT_ALL, "RG32F    ");
 				imageDataSize *= 8;
 				break;
-*/
+
 			case GL_COMPRESSED_RGBA:
 				ri.Printf(PRINT_ALL, "ARB      ");
 				imageDataSize *= 4;	// FIXME
