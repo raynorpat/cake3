@@ -3903,6 +3903,9 @@ extern cvar_t  *r_glMinMinorVersion;
 extern cvar_t  *r_flares;		// light flares
 extern cvar_t  *r_flareSize;
 extern cvar_t  *r_flareFade;
+// coefficient for the flare intensity falloff function.
+#define FLARE_STDCOEFF "150"
+extern cvar_t  *r_flareCoeff;
 
 extern cvar_t  *r_railWidth;
 extern cvar_t  *r_railCoreWidth;

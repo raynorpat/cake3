@@ -336,15 +336,11 @@ void RB_RenderFlare(flare_t * f)
 {
 	float           size;
 	vec3_t          color;
+	int				iColor[3];
+	float			distance, intensity, factor;
 
 	backEnd.pc.c_flareRenders++;
 
-#if 1
-	//VectorScale(f->color, f->drawIntensity, color);
-	VectorScale(colorWhite, f->drawIntensity, color);
-
-	size = backEnd.viewParms.viewportWidth * (r_flareSize->value / 640.0f + 8 / -f->eyeZ);
-#else
 	/*
 	   As flare sizes stay nearly constant with increasing distance we must decrease the intensity
 	   to achieve a reasonable visual result. The intensity is ~ (size^2 / distance^2) which can be
@@ -357,7 +353,6 @@ void RB_RenderFlare(flare_t * f)
 
 	   The coefficient flareCoeff will determine the falloff speed with increasing distance.
 	 */
-	float           distance, intensity, factor;
 
 	// We don't want too big values anyways when dividing by distance
 	if(f->eyeZ > -1.0f)
@@ -375,7 +370,6 @@ void RB_RenderFlare(flare_t * f)
 	iColor[0] = color[0] * 255;
 	iColor[1] = color[1] * 255;
 	iColor[2] = color[2] * 255;
-#endif
 
 	Tess_Begin(Tess_StageIteratorGeneric, NULL, tr.flareShader, NULL, qfalse, qfalse, -1, f->fogNum);
 
@@ -472,7 +466,6 @@ void RB_RenderFlares(void)
 	if(!r_flares->integer)
 		return;
 
-#if 0
 	if(r_flareCoeff->modified)
 	{
 		if(r_flareCoeff->value == 0.0f)
@@ -482,7 +475,6 @@ void RB_RenderFlares(void)
 
 		r_flareCoeff->modified = qfalse;
 	}
-#endif
 
 	// reset currentEntity to world so that any previously referenced entities don't have influence
 	// on the rendering of these flares (i.e. RF_ renderer flags).
@@ -490,10 +482,8 @@ void RB_RenderFlares(void)
 	backEnd.orientation = backEnd.viewParms.world;
 	GL_LoadModelViewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
-	if(tr.world != NULL)		// thx Thilo
-	{
-		RB_AddLightFlares();
-	}
+//	if(tr.world != NULL)
+//		RB_AddLightFlares();
 
 	// perform z buffer readback on each flare in this view
 	draw = qfalse;
