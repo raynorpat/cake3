@@ -11685,6 +11685,12 @@ const void     *RB_SwapBuffers(const void *data)
 
 	backEnd.projection2D = qfalse;
 
+#if defined(USE_D3D10)
+	// TODO
+#else
+	glState.finishCalled = qfalse;
+#endif
+
 	return (const void *)(cmd + 1);
 }
 

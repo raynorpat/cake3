@@ -396,12 +396,24 @@ static void InitOpenGL(void)
 #if defined(GLSL_COMPILE_STARTUP_ONLY)
 		GLSL_InitGPUShaders();
 #endif
+		
+		glConfig.smpActive = qfalse;
+		if ( r_smp->integer )
+		{
+			ri.Printf( PRINT_ALL, "Trying SMP acceleration...\n" );
+
+			if ( GLimp_SpawnRenderThread( RB_RenderThread ) )
+			{
+				ri.Printf( PRINT_ALL, "...succeeded.\n" );
+				glConfig.smpActive = qtrue;
+			}
+			else
+			{
+				ri.Printf( PRINT_ALL, "...failed.\n" );
+			}
+		}
 	}
 
-	GL_CheckErrors();
-
-	// init command buffers and SMP
-	R_InitCommandBuffers();
 	GL_CheckErrors();
 
 	// print info
@@ -1991,9 +2003,6 @@ void R_Init(void)
 		ri.Printf(PRINT_ALL, "------------------------------------\n");
 	}
 
-	// init command buffers and SMP
-	R_InitCommandBuffers();
-
 	// print info
 	GfxInfo_f();
 
@@ -2080,7 +2089,6 @@ void RE_Shutdown(qboolean destroyWindow)
 	{
 		R_SyncRenderThread();
 
-		R_ShutdownCommandBuffers();
 		R_ShutdownImages();
 		R_ShutdownVBOs();
 		R_ShutdownFBOs();

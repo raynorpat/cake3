@@ -4435,6 +4435,7 @@ qboolean        GLimp_SpawnRenderThread(void (*function) (void));
 void			GLimp_ShutdownRenderThread(void);
 void           *GLimp_RendererSleep(void);
 void            GLimp_FrontEndSleep(void);
+void            GLimp_SyncRenderThread(void);
 void            GLimp_WakeRenderer(void *data);
 
 void            GLimp_LogComment(const char *comment);
@@ -5080,9 +5081,6 @@ extern volatile qboolean renderThreadActive;
 
 void           *R_GetCommandBuffer(int bytes);
 void            RB_ExecuteRenderCommands(const void *data);
-
-void            R_InitCommandBuffers(void);
-void            R_ShutdownCommandBuffers(void);
 
 void            R_SyncRenderThread(void);
 
