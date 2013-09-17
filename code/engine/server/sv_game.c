@@ -24,9 +24,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_game.c -- interface to the game dll
 #include "server.h"
 
+#ifdef BOTLIB
 #include "../botlib/botlib.h"
 
 botlib_export_t *botlib_export;
+#endif
 
 void SV_GameError(const char *string)
 {
@@ -460,16 +462,20 @@ intptr_t SV_GameSystemCalls(intptr_t * args)
 			}
 		}
 
+#ifdef BOTLIB
 		case G_DEBUG_POLYGON_CREATE:
 			return BotImport_DebugPolygonCreate(args[1], args[2], VMA(3));
 		case G_DEBUG_POLYGON_DELETE:
 			BotImport_DebugPolygonDelete(args[1]);
 			return 0;
+#endif
+
 		case G_REAL_TIME:
 			return Com_RealTime(VMA(1));
 
 			//====================================
 
+#ifdef BOTLIB
 		case BOTLIB_SETUP:
 			return SV_BotLibSetup();
 		case BOTLIB_SHUTDOWN:
@@ -840,6 +846,7 @@ intptr_t SV_GameSystemCalls(intptr_t * args)
 
 		case BOTLIB_AI_GENETIC_PARENTS_AND_CHILD_SELECTION:
 			return botlib_export->ai.GeneticParentsAndChildSelection(args[1], VMA(2), VMA(3), VMA(4), VMA(5));
+#endif
 
 			//====================================
 #if defined(USE_BULLET)
@@ -981,9 +988,8 @@ Called on a normal map change, not on a map_restart
 */
 void SV_InitGameProgs(void)
 {
+#ifdef BOTLIB
 	cvar_t         *var;
-
-	//FIXME these are temp while I make bots run in vm
 	extern int      bot_enable;
 
 	var = Cvar_Get("bot_enable", "1", CVAR_LATCH);
@@ -995,6 +1001,7 @@ void SV_InitGameProgs(void)
 	{
 		bot_enable = 0;
 	}
+#endif
 
 #if defined(USE_LLVM)
 	// load the dll or bytecode

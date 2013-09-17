@@ -7,9 +7,7 @@ project "XreaL"
 	files
 	{
 		"../shared/**.c", "../shared/**.h",
-		
-		"botlib/**.c", "botlib/**.h",
-		
+	
 		"client/**.c", "client/**.h",
 		"server/**.c", "server/**.h",
 		
@@ -174,7 +172,6 @@ project "XreaL"
 	defines
 	{ 
 		"STANDALONE",
-		"BOTLIB",
 		"REF_HARD_LINKED",
 		"GLEW_STATIC",
 		"BUILD_FREETYPE",
@@ -424,7 +421,6 @@ project "XreaL-dedicated"
 	{
 		"../shared/**.c", "../shared/**.h",
 		
-		"botlib/**.c", "botlib/**.h",
 		"server/**.c", "server/**.h",
 
 		"null/null_client.c",
@@ -462,7 +458,6 @@ project "XreaL-dedicated"
 	{ 
 		"DEDICATED",
 		"STANDALONE",
-		"BOTLIB",
 		--"USE_MUMBLE",
 		--"USE_VOIP",
 	}

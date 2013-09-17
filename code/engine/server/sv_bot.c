@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "server.h"
 
+#ifdef BOTLIB
 #include "../botlib/botlib.h"
 
 typedef struct bot_debugpoly_s
@@ -39,6 +40,7 @@ int             bot_maxdebugpolys;
 
 extern botlib_export_t *botlib_export;
 int             bot_enable;
+#endif
 
 /*
 ==================
@@ -106,6 +108,8 @@ void SV_BotFreeClient(int clientNum)
 	}
 }
 
+
+#ifdef BOTLIB
 /*
 ==================
 BotDrawDebugPolygons
@@ -489,6 +493,7 @@ static void BotImport_DebugLineShow(int line, vec3_t start, vec3_t end, int colo
 	BotImport_DebugPolygonShow(line, color, 4, points);
 */
 }
+#endif
 
 /*
 ==================
@@ -497,12 +502,14 @@ SV_BotFrame
 */
 void SV_BotFrame(int time)
 {
+#ifdef BOTLIB
 	if(!bot_enable)
 		return;
 	//NOTE: maybe the game is already shutdown
 	if(!gvm)
 		return;
 	VM_Call(gvm, BOTAI_START_FRAME, time);
+#endif
 }
 
 /*
@@ -512,6 +519,7 @@ SV_BotLibSetup
 */
 int SV_BotLibSetup(void)
 {
+#ifdef BOTLIB
 	if(!bot_enable)
 	{
 		return 0;
@@ -526,6 +534,9 @@ int SV_BotLibSetup(void)
 	botlib_export->BotLibVarSet("basegame", com_basegame->string);
 
 	return botlib_export->BotLibSetup();
+#else
+	return 0;
+#endif
 }
 
 /*
@@ -538,13 +549,16 @@ it is changing to a different game directory.
 */
 int SV_BotLibShutdown(void)
 {
-
+#ifdef BOTLIB
 	if(!botlib_export)
 	{
 		return -1;
 	}
 
 	return botlib_export->BotLibShutdown();
+#else
+	return -1;
+#endif
 }
 
 /*
@@ -554,7 +568,7 @@ SV_BotInitCvars
 */
 void SV_BotInitCvars(void)
 {
-
+#ifdef BOTLIB
 	Cvar_Get("bot_enable", "1", 0);	//enable the bot
 	Cvar_Get("bot_developer", "0", CVAR_CHEAT);	//bot developer mode
 	Cvar_Get("bot_debug", "0", CVAR_CHEAT);	//enable bot debugging
@@ -585,6 +599,7 @@ void SV_BotInitCvars(void)
 	Cvar_Get("bot_interbreedbots", "10", CVAR_CHEAT);	//number of bots used for interbreeding
 	Cvar_Get("bot_interbreedcycle", "20", CVAR_CHEAT);	//bot interbreeding cycle
 	Cvar_Get("bot_interbreedwrite", "", CVAR_CHEAT);	//write interbreeded bots to this file
+#endif
 }
 
 /*
@@ -594,6 +609,7 @@ SV_BotInitBotLib
 */
 void SV_BotInitBotLib(void)
 {
+#ifdef BOTLIB
 	botlib_import_t botlib_import;
 
 	if(debugpolygons)
@@ -634,6 +650,7 @@ void SV_BotInitBotLib(void)
 
 	botlib_export = (botlib_export_t *) GetBotLibAPI(BOTLIB_API_VERSION, &botlib_import);
 	assert(botlib_export);		// somehow we end up with a zero import.
+#endif
 }
 
 
